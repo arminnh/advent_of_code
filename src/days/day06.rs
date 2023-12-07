@@ -7,13 +7,24 @@ fn get_lines(path: &str) -> Lines<BufReader<File>> {
     BufReader::new(File::open(path).expect("Could not open file.")).lines()
 }
 
-fn parse_line(line: String) -> Vec<usize> {
+fn parse_line_part_1(line: String) -> Vec<usize> {
     line.split_once(":")
         .unwrap()
         .1
         .split_ascii_whitespace()
         .map(|x| x.parse::<usize>().unwrap())
         .collect::<Vec<usize>>()
+}
+
+fn parse_line_part_2(line: String) -> usize {
+    line.split_once(":")
+        .unwrap()
+        .1
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect::<String>()
+        .parse::<usize>()
+        .unwrap()
 }
 
 fn calculate_distance(total_time: usize, time_charged: usize) -> usize {
@@ -34,8 +45,8 @@ fn calculate_nr_of_wins(time: usize, record_distance: usize) -> usize {
 }
 
 fn part_1(mut lines: Lines<BufReader<File>>) -> usize {
-    let times = parse_line(lines.next().unwrap().unwrap());
-    let record_distances = parse_line(lines.next().unwrap().unwrap());
+    let times = parse_line_part_1(lines.next().unwrap().unwrap());
+    let record_distances = parse_line_part_1(lines.next().unwrap().unwrap());
 
     times
         .iter()
@@ -50,17 +61,22 @@ fn part_1(mut lines: Lines<BufReader<File>>) -> usize {
         })
 }
 
+fn part_2(mut lines: Lines<BufReader<File>>) -> usize {
+    let time = parse_line_part_2(lines.next().unwrap().unwrap());
+    let record_distance = parse_line_part_2(lines.next().unwrap().unwrap());
+
+    calculate_nr_of_wins(time, record_distance)
+}
+
 pub fn solve() -> SolutionPair {
     (
         Solution::from(part_1(get_lines("inputs/day_6"))),
-        Solution::from(0),
+        Solution::from(part_2(get_lines("inputs/day_6"))),
     )
 }
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-
     use super::*;
 
     #[test]
@@ -71,5 +87,10 @@ mod tests {
     #[test]
     fn test_part_1() {
         assert_eq!(part_1(get_lines("inputs/day_6")), 840336)
+    }
+
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(get_lines("inputs/day_6")), 41382569)
     }
 }

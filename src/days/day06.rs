@@ -37,25 +37,17 @@ fn part_1(mut lines: Lines<BufReader<File>>) -> usize {
     let times = parse_line(lines.next().unwrap().unwrap());
     let record_distances = parse_line(lines.next().unwrap().unwrap());
 
-    let result = times
+    times
         .iter()
         .zip(record_distances.iter())
-        .map(|(time, record_distance)| {
-            let nr_of_wins = calculate_nr_of_wins(*time, *record_distance);
-            println!("{:?}, {:?}, {:?}", time, record_distance, nr_of_wins);
-            nr_of_wins
-        })
+        .map(|(time, record_distance)| calculate_nr_of_wins(*time, *record_distance))
         .fold(1, |result, nr_of_wins| {
             if nr_of_wins > 0 {
                 result * nr_of_wins
             } else {
                 result
             }
-        });
-
-    println!("{:?}", result);
-
-    result
+        })
 }
 
 pub fn solve() -> SolutionPair {
@@ -74,5 +66,10 @@ mod tests {
     #[test]
     fn test_part_1_example() {
         assert_eq!(part_1(get_lines("inputs/day_6_example")), 288)
+    }
+
+    #[test]
+    fn test_part_1() {
+        assert_eq!(part_1(get_lines("inputs/day_6")), 840336)
     }
 }

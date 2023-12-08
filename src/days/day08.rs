@@ -81,34 +81,37 @@ fn part_2_bruteforce(mut lines: Lines) -> usize {
     count
 }
 
+fn gcd(a: usize, b: usize) -> usize {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn lcm(numbers: Vec<usize>) -> usize {
+    numbers.iter().fold(1, |acc, x| acc * x / gcd(acc, *x))
+}
+
 fn part_2(mut lines: Lines) -> usize {
     let instructions: Vec<char> = lines.next().unwrap().chars().collect();
-    let mut instructions_iter = instructions.iter().cycle();
     let network: HashMap<String, (String, String)> = parse_network(lines);
-    let mut current_nodes: Vec<&String> = network.keys().filter(|x| x.ends_with('A')).collect();
-    let mut count = 0;
 
-    while current_nodes.iter().filter(|x| !x.ends_with('Z')).count() != 0 {
-        count += 1;
-        match instructions_iter.next() {
-            Some(instruction) => {
-                current_nodes = current_nodes
-                    .iter()
-                    .map(|node| match network.get(*node) {
-                        Some((left, right)) => match instruction {
-                            'L' => left,
-                            'R' => right,
-                            _ => panic!("Invalid instruction: {:?}", instruction),
-                        },
-                        None => panic!("Node '{:?}' does not exist in network.", node),
-                    })
-                    .collect();
+    lcm(network
+        .keys()
+        .filter(|x| x.ends_with('A'))
+        .map(|mut node| {
+            let mut instructions_iter = instructions.iter().cycle();
+            let mut steps = 0;
+
+            while !node.ends_with('Z') {
+                steps += 1;
+                node = next_node(&network, node, instructions_iter.next().unwrap())
             }
-            None => panic!("Ran out of instructions."),
-        }
-    }
 
-    count
+            steps
+        })
+        .collect())
 }
 
 pub fn solve() -> SolutionPair {
@@ -158,6 +161,14 @@ XXX = (XXX, XXX)";
     }
 
     #[test]
+    fn test_part_1() {
+        assert_eq!(
+            part_1(fs::read_to_string("inputs/day_8").unwrap().lines()),
+            18157
+        );
+    }
+
+    #[test]
     fn test_part_2_bruteforce_example() {
         assert_eq!(part_2_bruteforce(EXAMPLE_INPUT_3.lines()), 6);
     }
@@ -165,5 +176,13 @@ XXX = (XXX, XXX)";
     #[test]
     fn test_part_2_example() {
         assert_eq!(part_2(EXAMPLE_INPUT_3.lines()), 6);
+    }
+
+    #[test]
+    fn test_part_2() {
+        assert_eq!(
+            part_2(fs::read_to_string("inputs/day_8").unwrap().lines()),
+            14299763833181
+        );
     }
 }

@@ -24,6 +24,21 @@ fn parse_network(lines: Lines) -> HashMap<String, (String, String)> {
     out
 }
 
+fn next_node<'a>(
+    network: &'a HashMap<String, (String, String)>,
+    current_node: &str,
+    instruction: &char,
+) -> &'a String {
+    match network.get(current_node) {
+        Some((left, right)) => match instruction {
+            'L' => left,
+            'R' => right,
+            _ => panic!("Invalid instruction: {:?}", instruction),
+        },
+        None => panic!("Node '{:?}' does not exist in network.", current_node),
+    }
+}
+
 fn part_1(mut lines: Lines) -> usize {
     let mut current_node = "AAA";
     let end_node = "ZZZ";
@@ -35,14 +50,7 @@ fn part_1(mut lines: Lines) -> usize {
     while current_node != end_node {
         count += 1;
         match instructions_iter.next() {
-            Some(instruction) => match network.get(current_node) {
-                Some((left, right)) => match instruction {
-                    'L' => current_node = left,
-                    'R' => current_node = right,
-                    _ => panic!("Invalid instruction: {:?}", instruction),
-                },
-                None => panic!("Node '{:?}' does not exist in network.", current_node),
-            },
+            Some(instruction) => current_node = next_node(&network, current_node, instruction),
             None => panic!("Ran out of instructions."),
         }
     }
@@ -51,6 +59,29 @@ fn part_1(mut lines: Lines) -> usize {
 }
 
 fn part_2_bruteforce(mut lines: Lines) -> usize {
+    let instructions: Vec<char> = lines.next().unwrap().chars().collect();
+    let mut instructions_iter = instructions.iter().cycle();
+    let network: HashMap<String, (String, String)> = parse_network(lines);
+    let mut current_nodes: Vec<&String> = network.keys().filter(|x| x.ends_with('A')).collect();
+    let mut count = 0;
+
+    while current_nodes.iter().filter(|x| !x.ends_with('Z')).count() != 0 {
+        count += 1;
+        match instructions_iter.next() {
+            Some(instruction) => {
+                current_nodes = current_nodes
+                    .iter()
+                    .map(|node| next_node(&network, node, instruction))
+                    .collect();
+            }
+            None => panic!("Ran out of instructions."),
+        }
+    }
+
+    count
+}
+
+fn part_2(mut lines: Lines) -> usize {
     let instructions: Vec<char> = lines.next().unwrap().chars().collect();
     let mut instructions_iter = instructions.iter().cycle();
     let network: HashMap<String, (String, String)> = parse_network(lines);
@@ -85,7 +116,7 @@ pub fn solve() -> SolutionPair {
 
     (
         Solution::from(part_1(contents.lines())),
-        Solution::from(part_2_bruteforce(contents.lines())),
+        Solution::from(part_2(contents.lines())),
     )
 }
 
@@ -129,5 +160,10 @@ XXX = (XXX, XXX)";
     #[test]
     fn test_part_2_bruteforce_example() {
         assert_eq!(part_2_bruteforce(EXAMPLE_INPUT_3.lines()), 6);
+    }
+
+    #[test]
+    fn test_part_2_example() {
+        assert_eq!(part_2(EXAMPLE_INPUT_3.lines()), 6);
     }
 }

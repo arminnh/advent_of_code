@@ -44,7 +44,7 @@ impl TryFrom<char> for Card {
     }
 }
 
-fn parse_hand(s: &str) -> Vec<Card> {
+fn parse_cards(s: &str) -> Vec<Card> {
     s.chars().map(|c| Card::try_from(c).unwrap()).collect()
 }
 
@@ -60,7 +60,7 @@ enum HandType {
 }
 
 impl HandType {
-    pub fn from_hand(hand: &Vec<Card>) -> Self {
+    pub fn from_cards(hand: &Vec<Card>) -> Self {
         let mut counts: HashMap<&Card, usize> = HashMap::new();
         hand.iter()
             .for_each(|item| *counts.entry(item).or_insert(0) += 1);
@@ -89,124 +89,170 @@ impl HandType {
     }
 }
 
-fn part_1(lines: Lines) -> usize {
-    let mut parsed: Vec<(Vec<Card>, HandType, usize)> = lines
+#[derive(Debug)]
+struct Hand {
+    cards: Vec<Card>,
+    hand_type: HandType,
+    bet: usize,
+}
+
+fn parse_hands(lines: Lines) -> Vec<Hand> {
+    lines
         .map(
             |line| match line.split_whitespace().collect::<Vec<&str>>()[..] {
                 [hand_str, bet_str] => {
-                    let hand = parse_hand(hand_str);
-                    let hand_type = HandType::from_hand(&hand);
+                    let cards = parse_cards(hand_str);
+                    let hand_type = HandType::from_cards(&cards);
                     let bet: usize = bet_str.parse().unwrap();
 
-                    (hand, hand_type, bet)
+                    Hand {
+                        cards,
+                        hand_type,
+                        bet,
+                    }
                 }
                 _ => panic!("Unsupported input: {:?}", line),
             },
         )
-        .collect();
+        .collect()
+}
 
-    parsed.sort_by(
-        |(left_hand, left_hand_type, _), (right_hand, right_hand_type, _)| {
-            if left_hand_type == right_hand_type {
-                right_hand.cmp(left_hand)
-            } else {
-                right_hand_type.cmp(left_hand_type)
-            }
-        },
-    );
+fn sort_hands(hands: &mut Vec<Hand>) {
+    hands.sort_by(|left, right| {
+        if left.hand_type == right.hand_type {
+            right.cards.cmp(&left.cards)
+        } else {
+            right.hand_type.cmp(&left.hand_type)
+        }
+    });
+}
 
-    parsed
-        .iter()
-        .enumerate()
-        .fold(0, |result, (index, (_, _, bet))| result + (parsed.len() - index) * bet)
+fn calculate_result(hands: Vec<Hand>) -> usize {
+    hands.iter().enumerate().fold(0, |result, (index, hand)| {
+        let rank = hands.len() - index;
+
+        result + rank * hand.bet
+    })
+}
+
+fn part_1(lines: Lines) -> usize {
+    let mut hands: Vec<Hand> = parse_hands(lines);
+    sort_hands(&mut hands);
+    calculate_result(hands)
+}
+
+fn part_2(lines: Lines) -> usize {
+    let mut hands: Vec<Hand> = parse_hands(lines);
+    sort_hands(&mut hands);
+    calculate_result(hands)
 }
 
 pub fn solve() -> SolutionPair {
     let contents = fs::read_to_string("inputs/day_7").expect("Could not open file.");
 
-    (Solution::from(part_1(contents.lines())), Solution::from(0))
+    (
+        Solution::from(part_1(contents.lines())),
+        Solution::from(part_2(contents.lines())),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const EXAMPLE_INPUT: &str = "32T3K 765
+T55J5 684
+KK677 28
+KTJJT 220
+QQQJA 483";
+
     #[test]
     fn test_part_1_example() {
-        let input = "32T3K 765
-        T55J5 684
-        KK677 28
-        KTJJT 220
-        QQQJA 483";
-
-        assert_eq!(part_1(input.lines()), 6440);
+        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 6440);
     }
+
+    // #[test]
+    // fn test_part_2_example() {
+    //     assert_eq!(part_2(EXAMPLE_INPUT.lines()), 5905);
+    // }
 
     #[test]
     fn test_parse_hand() {
         assert_eq!(
-            parse_hand("AKQJT"),
+            parse_cards("AKQJT"),
             vec![Card::Ace, Card::King, Card::Queen, Card::Jack, Card::Ten]
         );
         assert_eq!(
-            parse_hand("98765"),
+            parse_cards("98765"),
             vec![Card::Nine, Card::Eight, Card::Seven, Card::Six, Card::Five]
         );
-        assert_eq!(parse_hand("43"), vec![Card::Four, Card::Three]);
-        assert_eq!(parse_hand("2"), vec![Card::Two]);
+        assert_eq!(parse_cards("43"), vec![Card::Four, Card::Three]);
+        assert_eq!(parse_cards("2"), vec![Card::Two]);
     }
 
     #[test]
     fn test_card_order() {
-        let mut all_cards = parse_hand("AKQJT98765432");
+        let mut all_cards = parse_cards("AKQJT98765432");
         all_cards.sort();
-        assert_eq!(all_cards, parse_hand("23456789TJQKA"));
+        assert_eq!(all_cards, parse_cards("23456789TJQKA"));
     }
 
     #[test]
-    fn test_from_hand() {
+    fn test_hand_type_parsing() {
         assert_eq!(
-            HandType::from_hand(&parse_hand("AKQJT")),
+            HandType::from_cards(&parse_cards("AKQJT")),
             HandType::HighCard
         );
         assert_eq!(
-            HandType::from_hand(&parse_hand("23456")),
+            HandType::from_cards(&parse_cards("23456")),
             HandType::HighCard
         );
-        assert_eq!(HandType::from_hand(&parse_hand("32T3K")), HandType::OnePair);
-        assert_eq!(HandType::from_hand(&parse_hand("KK28A")), HandType::OnePair);
-        assert_eq!(HandType::from_hand(&parse_hand("KK677")), HandType::TwoPair);
-        assert_eq!(HandType::from_hand(&parse_hand("KTJJT")), HandType::TwoPair);
         assert_eq!(
-            HandType::from_hand(&parse_hand("T55J5")),
+            HandType::from_cards(&parse_cards("32T3K")),
+            HandType::OnePair
+        );
+        assert_eq!(
+            HandType::from_cards(&parse_cards("KK28A")),
+            HandType::OnePair
+        );
+        assert_eq!(
+            HandType::from_cards(&parse_cards("KK677")),
+            HandType::TwoPair
+        );
+        assert_eq!(
+            HandType::from_cards(&parse_cards("KTJJT")),
+            HandType::TwoPair
+        );
+        assert_eq!(
+            HandType::from_cards(&parse_cards("T55J5")),
             HandType::ThreeOfAKind
         );
         assert_eq!(
-            HandType::from_hand(&parse_hand("QQQJA")),
+            HandType::from_cards(&parse_cards("QQQJA")),
             HandType::ThreeOfAKind
         );
         assert_eq!(
-            HandType::from_hand(&parse_hand("T55T5")),
+            HandType::from_cards(&parse_cards("T55T5")),
             HandType::FullHouse
         );
         assert_eq!(
-            HandType::from_hand(&parse_hand("QQQJJ")),
+            HandType::from_cards(&parse_cards("QQQJJ")),
             HandType::FullHouse
         );
         assert_eq!(
-            HandType::from_hand(&parse_hand("TTTTA")),
+            HandType::from_cards(&parse_cards("TTTTA")),
             HandType::FourOfAKind
         );
         assert_eq!(
-            HandType::from_hand(&parse_hand("2AAAA")),
+            HandType::from_cards(&parse_cards("2AAAA")),
             HandType::FourOfAKind
         );
         assert_eq!(
-            HandType::from_hand(&parse_hand("AAAAA")),
+            HandType::from_cards(&parse_cards("AAAAA")),
             HandType::FiveOfAKind
         );
         assert_eq!(
-            HandType::from_hand(&parse_hand("99999")),
+            HandType::from_cards(&parse_cards("99999")),
             HandType::FiveOfAKind
         );
     }

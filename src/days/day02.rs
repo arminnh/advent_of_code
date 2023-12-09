@@ -81,8 +81,29 @@ fn part_1(lines: Lines) -> usize {
         })
         .sum()
 }
-fn part_2(_lines: Lines) -> usize {
-    0
+
+fn calculate_power(sets: Vec<HashMap<Color, i32>>) -> i32 {
+    let mut result_set = HashMap::new();
+
+    for set in sets {
+        for (k, v) in set {
+            if v > *result_set.get(&k).unwrap_or(&0) {
+                result_set.insert(k, v);
+            }
+        }
+    }
+
+    result_set.values().fold(1, |result, count| result * count)
+}
+
+fn part_2(lines: Lines) -> i32 {
+    lines
+        .map(|line| match line.split(":").collect::<Vec<&str>>()[..] {
+            [_, sets] => parse_sets(sets),
+            _ => panic!("Unsupported input: {:?}", line),
+        })
+        .map(|sets| calculate_power(sets))
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -151,12 +172,32 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
     }
 
     #[test]
+    fn test_calculate_power() {
+        assert_eq!(
+            calculate_power(vec![
+                HashMap::from([(Color::Red, 4), (Color::Blue, 3)]),
+                HashMap::from([(Color::Red, 1), (Color::Green, 2), (Color::Blue, 6)]),
+                HashMap::from([(Color::Green, 2)])
+            ]),
+            48
+        );
+        assert_eq!(
+            calculate_power(vec![
+                HashMap::from([(Color::Red, 3), (Color::Green, 1), (Color::Blue, 6)]),
+                HashMap::from([(Color::Red, 6), (Color::Green, 3)]),
+                HashMap::from([(Color::Red, 14), (Color::Green, 3), (Color::Blue, 15)])
+            ]),
+            630
+        );
+    }
+
+    #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 2286);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_2").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_2").lines()), 86036);
     }
 }

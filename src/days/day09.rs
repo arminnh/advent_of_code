@@ -12,24 +12,27 @@ fn parse_line(line: &str) -> Vec<i32> {
         .collect()
 }
 
-fn extrapolate(nums: Vec<i32>) -> i32 {
+fn extrapolate(nums: Vec<i32>, forwards: bool) -> i32 {
     if nums.iter().sum::<i32>() == 0 {
         return 0;
     }
 
-    let last = nums.last().unwrap();
     let diff: Vec<i32> = nums.windows(2).map(|w| w[1] - w[0]).collect();
-    // println!("diff: {:?}, last: {:?}", diff, last);
+    let extrapolated = extrapolate(diff, forwards);
 
-    last + extrapolate(diff)
+    if forwards {
+        extrapolated + nums.last().unwrap()
+    } else {
+        nums.first().unwrap() - extrapolated
+    }
 }
 
 fn part_1(lines: Lines) -> i32 {
-    lines.map(|line| extrapolate(parse_line(line))).sum()
+    lines.map(|line| extrapolate(parse_line(line), true)).sum()
 }
 
-fn part_2(_lines: Lines) -> i32 {
-    0
+fn part_2(lines: Lines) -> i32 {
+    lines.map(|line| extrapolate(parse_line(line), false)).sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -59,9 +62,16 @@ mod tests {
 
     #[test]
     fn test_extrapolate() {
-        assert_eq!(extrapolate(vec![0, 3, 6, 9, 12, 15]), 18);
-        assert_eq!(extrapolate(vec![1, 3, 6, 10, 15, 21]), 28);
-        assert_eq!(extrapolate(vec![10, 13, 16, 21, 30, 45]), 68);
+        assert_eq!(extrapolate(vec![0, 3, 6, 9, 12, 15], true), 18);
+        assert_eq!(extrapolate(vec![1, 3, 6, 10, 15, 21], true), 28);
+        assert_eq!(extrapolate(vec![10, 13, 16, 21, 30, 45], true), 68);
+    }
+
+    #[test]
+    fn test_extrapolate_backwards() {
+        assert_eq!(extrapolate(vec![0, 3, 6, 9, 12, 15], false), -3);
+        assert_eq!(extrapolate(vec![1, 3, 6, 10, 15, 21], false), 0);
+        assert_eq!(extrapolate(vec![10, 13, 16, 21, 30, 45], false), 5);
     }
 
     #[test]
@@ -76,11 +86,11 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 2);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_9").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_9").lines()), 919);
     }
 }

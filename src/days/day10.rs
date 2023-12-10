@@ -3,6 +3,7 @@ use core::fmt;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::str::{FromStr, Lines};
+use std::vec;
 
 fn load_input(path: &str) -> String {
     fs::read_to_string(path).expect("Could not open file.")
@@ -79,16 +80,21 @@ fn parse_network(lines: Lines) -> HashMap<Position, Tile> {
     network
 }
 
-fn print_network(network: &HashMap<Position, Tile>) -> () {
-    let (x, _) = *network.keys().max_by_key(|(x, _)| x).unwrap();
+fn print_network(network: &HashMap<Position, Tile>, cycle: Option<&HashSet<Position>>) {
+    let (x, y) = network.keys().max_by_key(|pos| *pos).unwrap();
 
-    for i in 0..=x {
-        for j in 0..=x {
-            let tile = network.get(&(i, j)).unwrap();
-            print!("{}", *tile);
+    for i in 0..=*x {
+        for j in 0..=*y {
+            if cycle.is_some() && cycle.unwrap().contains(&(i, j)) {
+                print!("X");
+            } else {
+                let tile = network.get(&(i, j)).unwrap();
+                print!("{}", *tile);
+            }
         }
         println!("");
     }
+    println!("");
 }
 
 fn find_start(network: &HashMap<Position, Tile>) -> &Position {
@@ -98,7 +104,7 @@ fn find_start(network: &HashMap<Position, Tile>) -> &Position {
         .unwrap()
 }
 
-fn neighbor_positions(network: &HashMap<(i32, i32), Tile>, position: &Position) -> Vec<Position> {
+fn neighbor_positions(network: &HashMap<Position, Tile>, position: &Position) -> Vec<Position> {
     let mut out = Vec::new();
 
     let start_tile_neighbors = [
@@ -180,6 +186,7 @@ fn neighbor_positions(network: &HashMap<(i32, i32), Tile>, position: &Position) 
     out
 }
 
+// Find the furthest point from the start position
 fn part_1(lines: Lines) -> i32 {
     let network = parse_network(lines);
     let start = find_start(&network);
@@ -209,8 +216,91 @@ fn part_1(lines: Lines) -> i32 {
     max_steps
 }
 
-fn part_2(_lines: Lines) -> i32 {
-    0
+fn find_cycle(network: &HashMap<Position, Tile>, start: &Position) -> HashSet<Position> {
+    let mut frontier: VecDeque<Position> = VecDeque::from([start.clone()]);
+    let mut visited: HashSet<Position> = HashSet::new();
+
+    while let Some(current_pos) = frontier.pop_front() {
+        if !visited.contains(&current_pos) {
+            visited.insert(current_pos.clone());
+            for next_pos in neighbor_positions(&network, &current_pos) {
+                if !visited.contains(&next_pos) && network.contains_key(&next_pos) {
+                    frontier.push_back(next_pos);
+                }
+            }
+        }
+    }
+
+    visited
+}
+
+fn neighbor_positions_flood(
+    network: &HashMap<Position, Tile>,
+    current_pos: &Position,
+) -> Vec<Position> {
+    vec![
+        (current_pos.0 + 1, current_pos.1),
+        (current_pos.0 - 1, current_pos.1),
+        (current_pos.0, current_pos.1 + 1),
+        (current_pos.0, current_pos.1 - 1),
+    ]
+}
+
+fn flood_fill(network: &HashMap<Position, Tile>, cycle: &HashSet<Position>) -> HashSet<Position> {
+    let mut frontier: VecDeque<Position> = VecDeque::new();
+    let mut visited: HashSet<Position> = HashSet::new();
+
+    // fill frontier with edges of the map
+    let (x, y) = network.keys().max_by_key(|pos| *pos).unwrap();
+    for i in 0..=*x {
+        frontier.push_back((i, 0));
+        frontier.push_back((i, *y));
+    }
+    for j in 0..=*y {
+        frontier.push_back((0, j));
+        frontier.push_back((*x, j));
+    }
+
+    while let Some(current_pos) = frontier.pop_front() {
+        if !visited.contains(&current_pos) {
+            visited.insert(current_pos);
+
+            for next_pos in neighbor_positions_flood(network, &current_pos) {
+                if !visited.contains(&next_pos)
+                    && network.contains_key(&next_pos)
+                    && !cycle.contains(&next_pos)
+                {
+                    frontier.push_back(next_pos);
+                }
+            }
+        }
+    }
+
+    visited
+}
+
+// Find the number of tiles enclosed by the loop that contains the start position
+fn part_2(lines: Lines) -> usize {
+    let network = parse_network(lines);
+    print_network(&network, None);
+
+    let start = find_start(&network);
+    let cycle: HashSet<Position> = find_cycle(&network, start);
+    print_network(&network, Some(&cycle));
+
+    let flood: HashSet<Position> = flood_fill(&network, &cycle);
+    print_network(&network, Some(&flood));
+
+    let remaining: HashSet<Position> = network
+        .keys()
+        .cloned()
+        .collect::<HashSet<Position>>()
+        .difference(&cycle.union(&flood).cloned().collect())
+        .cloned()
+        .collect();
+    print_network(&network, Some(&remaining));
+
+    remaining.len()
 }
 
 pub fn solve() -> SolutionPair {
@@ -224,40 +314,97 @@ pub fn solve() -> SolutionPair {
 mod tests {
     use super::*;
 
-    const EXAMPLE_INPUT_1: &str = ".....
+    #[test]
+    fn test_part_1_example_1() {
+        let input = ".....
 .S-7.
 .|.|.
 .L-J.
 .....";
 
-    const EXAMPLE_INPUT_2: &str = "..F7.
+        assert_eq!(part_1(input.lines()), 4);
+    }
+
+    #[test]
+    fn test_part_1_example_2() {
+        let input = "..F7.
 .FJ|.
 SJ.L7
 |F--J
 LJ...";
 
-    #[test]
-    fn test_part_1_example_1() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 4);
-    }
-
-    #[test]
-    fn test_part_1_example_2() {
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 8);
+        assert_eq!(part_1(input.lines()), 8);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_10").lines()), 0);
+        assert_eq!(part_1(load_input("inputs/day_10").lines()), 6786);
     }
 
-    // #[test]
-    // fn test_part_2_example() {
-    //     assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
-    // }
+    #[test]
+    fn test_part_2_example_1() {
+        let input = "...........
+.S-------7.
+.|F-----7|.
+.||.....||.
+.||.....||.
+.|L-7.F-J|.
+.|..|.|..|.
+.L--J.L--J.
+...........";
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(load_input("inputs/day_10").lines()), 0);
-    // }
+        assert_eq!(part_2(input.lines()), 4);
+    }
+
+    #[test]
+    fn test_part_2_example_2() {
+        let input = "..........
+.S------7.
+.|F----7|.
+.||....||.
+.||....||.
+.|L-7F-J|.
+.|..||..|.
+.L--JL--J.
+..........";
+
+        assert_eq!(part_2(input.lines()), 4);
+    }
+
+    #[test]
+    fn test_part_2_example_3() {
+        let input = ".F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...";
+
+        assert_eq!(part_2(input.lines()), 8);
+    }
+
+    #[test]
+    fn test_part_2_example_4() {
+        let input = "FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJIF7FJ-
+L---JF-JLJIIIIFJLJJ7
+|F|F-JF---7IIIL7L|7|
+|FFJF7L7F-JF7IIL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L";
+
+        assert_eq!(part_2(input.lines()), 10);
+    }
+
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(load_input("inputs/day_10").lines()), 0);
+    }
 }

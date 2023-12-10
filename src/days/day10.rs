@@ -11,7 +11,7 @@ fn load_input(path: &str) -> String {
 
 type Position = (i32, i32);
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum BendConnections {
     NorthAndEast,
     NorthAndWest,
@@ -19,7 +19,7 @@ enum BendConnections {
     SouthAndWest,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum Tile {
     Start,
     Ground,
@@ -33,13 +33,13 @@ impl fmt::Display for Tile {
         let out = match self {
             Tile::Start => "S",
             Tile::Ground => ".",
-            Tile::Vertical => "|",
-            Tile::Horizontal => "-",
+            Tile::Vertical => "║",
+            Tile::Horizontal => "═",
             Tile::Bend(connections) => match connections {
-                BendConnections::NorthAndEast => "L",
-                BendConnections::NorthAndWest => "J",
-                BendConnections::SouthAndWest => "7",
-                BendConnections::SouthAndEast => "F",
+                BendConnections::NorthAndEast => "╚",
+                BendConnections::NorthAndWest => "╝",
+                BendConnections::SouthAndWest => "╗",
+                BendConnections::SouthAndEast => "╔",
             },
         };
         write!(f, "{}", out)
@@ -104,7 +104,16 @@ fn find_start(network: &HashMap<Position, Tile>) -> &Position {
         .unwrap()
 }
 
-fn neighbor_positions(network: &HashMap<Position, Tile>, position: &Position) -> Vec<Position> {
+fn neighbors_basic(current_pos: &Position) -> Vec<Position> {
+    vec![
+        (current_pos.0 + 1, current_pos.1),
+        (current_pos.0 - 1, current_pos.1),
+        (current_pos.0, current_pos.1 + 1),
+        (current_pos.0, current_pos.1 - 1),
+    ]
+}
+
+fn neighbors_network(network: &HashMap<Position, Tile>, position: &Position) -> Vec<Position> {
     let mut out = Vec::new();
 
     let start_tile_neighbors = [
@@ -190,7 +199,7 @@ fn neighbor_positions(network: &HashMap<Position, Tile>, position: &Position) ->
 fn part_1(lines: Lines) -> i32 {
     let network = parse_network(lines);
     let start = find_start(&network);
-    // print_network(&network);
+    print_network(&network, None);
 
     let mut frontier: VecDeque<(Position, i32)> = VecDeque::from(vec![(start.clone(), 0)]);
     let mut visited: HashSet<Position> = HashSet::new();
@@ -205,7 +214,7 @@ fn part_1(lines: Lines) -> i32 {
         if !visited.contains(&current_pos) {
             // println!("{:?}, {:?}", current_pos, steps);
             visited.insert(current_pos.clone());
-            for next_pos in neighbor_positions(&network, &current_pos) {
+            for next_pos in neighbors_network(&network, &current_pos) {
                 if !visited.contains(&next_pos) && network.contains_key(&next_pos) {
                     frontier.push_back((next_pos, steps + 1))
                 }
@@ -216,6 +225,55 @@ fn part_1(lines: Lines) -> i32 {
     max_steps
 }
 
+// Insert ground between everything so that I don't have to handle special cases in the flood fill
+fn add_ground(network: HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), Tile> {
+    let mut out = HashMap::new();
+
+    // Each tile gets moved into a 2x2 block
+    let (x, y) = network.keys().max_by_key(|pos| *pos).unwrap();
+    for i in 0..=*x {
+        for j in 0..=*y {
+            let tile = network.get(&(i, j)).unwrap();
+            // The tile itself goes bottom right
+            out.insert((2 * i, 2 * j), *tile);
+            // Top left is always Ground
+            out.insert((2 * i - 1, 2 * j - 1), Tile::Ground);
+
+            // Top right, and bottom left depend on tile type
+            let (top_right, bottom_left) = match tile {
+                Tile::Start => (
+                    match network.get(&(i - 1, j)).unwrap_or(&Tile::Ground) {
+                        Tile::Vertical
+                        | Tile::Bend(BendConnections::SouthAndWest)
+                        | Tile::Bend(BendConnections::SouthAndEast) => Tile::Vertical,
+                        _ => Tile::Ground,
+                    },
+                    match network.get(&(i, j - 1)).unwrap_or(&Tile::Ground) {
+                        Tile::Horizontal
+                        | Tile::Bend(BendConnections::NorthAndEast)
+                        | Tile::Bend(BendConnections::SouthAndEast) => Tile::Horizontal,
+                        _ => Tile::Ground,
+                    },
+                ),
+                Tile::Ground => (Tile::Ground, Tile::Ground),
+                Tile::Vertical => (Tile::Vertical, Tile::Ground),
+                Tile::Horizontal => (Tile::Ground, Tile::Horizontal),
+                Tile::Bend(connection) => match connection {
+                    BendConnections::NorthAndEast => (Tile::Vertical, Tile::Ground),
+                    BendConnections::NorthAndWest => (Tile::Vertical, Tile::Horizontal),
+                    BendConnections::SouthAndEast => (Tile::Ground, Tile::Ground),
+                    BendConnections::SouthAndWest => (Tile::Ground, Tile::Horizontal),
+                },
+            };
+
+            out.insert((2 * i - 1, 2 * j), top_right);
+            out.insert((2 * i, 2 * j - 1), bottom_left);
+        }
+    }
+
+    out
+}
+
 fn find_cycle(network: &HashMap<Position, Tile>, start: &Position) -> HashSet<Position> {
     let mut frontier: VecDeque<Position> = VecDeque::from([start.clone()]);
     let mut visited: HashSet<Position> = HashSet::new();
@@ -223,7 +281,7 @@ fn find_cycle(network: &HashMap<Position, Tile>, start: &Position) -> HashSet<Po
     while let Some(current_pos) = frontier.pop_front() {
         if !visited.contains(&current_pos) {
             visited.insert(current_pos.clone());
-            for next_pos in neighbor_positions(&network, &current_pos) {
+            for next_pos in neighbors_network(&network, &current_pos) {
                 if !visited.contains(&next_pos) && network.contains_key(&next_pos) {
                     frontier.push_back(next_pos);
                 }
@@ -234,38 +292,24 @@ fn find_cycle(network: &HashMap<Position, Tile>, start: &Position) -> HashSet<Po
     visited
 }
 
-fn neighbor_positions_flood(
-    network: &HashMap<Position, Tile>,
-    current_pos: &Position,
-) -> Vec<Position> {
-    vec![
-        (current_pos.0 + 1, current_pos.1),
-        (current_pos.0 - 1, current_pos.1),
-        (current_pos.0, current_pos.1 + 1),
-        (current_pos.0, current_pos.1 - 1),
-    ]
-}
-
 fn flood_fill(network: &HashMap<Position, Tile>, cycle: &HashSet<Position>) -> HashSet<Position> {
     let mut frontier: VecDeque<Position> = VecDeque::new();
     let mut visited: HashSet<Position> = HashSet::new();
 
     // fill frontier with edges of the map
     let (x, y) = network.keys().max_by_key(|pos| *pos).unwrap();
-    for i in 0..=*x {
-        frontier.push_back((i, 0));
-        frontier.push_back((i, *y));
-    }
-    for j in 0..=*y {
-        frontier.push_back((0, j));
-        frontier.push_back((*x, j));
-    }
+    let left_and_right_edges = (0..=*x).into_iter().flat_map(|i| [(i, 0), (i, *y)]);
+    let top_and_bottom_edges = (0..=*y).into_iter().flat_map(|j| [(0, j), (*x, j)]);
+    left_and_right_edges
+        .chain(top_and_bottom_edges)
+        .filter(|pos| !cycle.contains(pos))
+        .for_each(|pos| frontier.push_back(pos));
 
     while let Some(current_pos) = frontier.pop_front() {
         if !visited.contains(&current_pos) {
             visited.insert(current_pos);
 
-            for next_pos in neighbor_positions_flood(network, &current_pos) {
+            for next_pos in neighbors_basic(&current_pos) {
                 if !visited.contains(&next_pos)
                     && network.contains_key(&next_pos)
                     && !cycle.contains(&next_pos)
@@ -281,7 +325,10 @@ fn flood_fill(network: &HashMap<Position, Tile>, cycle: &HashSet<Position>) -> H
 
 // Find the number of tiles enclosed by the loop that contains the start position
 fn part_2(lines: Lines) -> usize {
-    let network = parse_network(lines);
+    let original_network = parse_network(lines);
+    print_network(&original_network, None);
+
+    let network = add_ground(original_network);
     print_network(&network, None);
 
     let start = find_start(&network);
@@ -300,7 +347,14 @@ fn part_2(lines: Lines) -> usize {
         .collect();
     print_network(&network, Some(&remaining));
 
-    remaining.len()
+    let remaining_from_original: HashSet<Position> = remaining
+        .iter()
+        .filter(|(x, y)| x % 2 == 0 && y % 2 == 0)
+        .cloned()
+        .collect();
+    print_network(&network, Some(&remaining_from_original));
+
+    remaining_from_original.len()
 }
 
 pub fn solve() -> SolutionPair {
@@ -392,10 +446,10 @@ L--J.L7...LJS7F-7L7.
         let input = "FF7FSF7F7F7F7F7F---7
 L|LJ||||||||||||F--J
 FL-7LJLJ||||||LJL-77
-F--JF--7||LJLJIF7FJ-
-L---JF-JLJIIIIFJLJJ7
-|F|F-JF---7IIIL7L|7|
-|FFJF7L7F-JF7IIL---7
+F--JF--7||LJLJ.F7FJ-
+L---JF-JLJ....FJLJJ7
+|F|F-JF---7...L7L|7|
+|FFJF7L7F-JF7..L---7
 7-L-JL7||F7|L7F-7F7|
 L.L7LFJ|||||FJL7||LJ
 L7JLJL-JLJLJL--JLJ.L";
@@ -405,6 +459,6 @@ L7JLJL-JLJLJL--JLJ.L";
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_10").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_10").lines()), 495);
     }
 }

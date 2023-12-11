@@ -199,7 +199,7 @@ fn neighbors_network(network: &HashMap<Position, Tile>, position: &Position) -> 
 fn part_1(lines: Lines) -> i32 {
     let network = parse_network(lines);
     let start = find_start(&network);
-    print_network(&network, None);
+    // print_network(&network, None);
 
     let mut frontier: VecDeque<(Position, i32)> = VecDeque::from(vec![(start.clone(), 0)]);
     let mut visited: HashSet<Position> = HashSet::new();
@@ -326,17 +326,17 @@ fn flood_fill(network: &HashMap<Position, Tile>, cycle: &HashSet<Position>) -> H
 // Find the number of tiles enclosed by the loop that contains the start position
 fn part_2(lines: Lines) -> usize {
     let original_network = parse_network(lines);
-    print_network(&original_network, None);
+    // print_network(&original_network, None);
 
     let network = add_ground(original_network);
-    print_network(&network, None);
+    // print_network(&network, None);
 
     let start = find_start(&network);
     let cycle: HashSet<Position> = find_cycle(&network, start);
-    print_network(&network, Some(&cycle));
+    // print_network(&network, Some(&cycle));
 
     let flood: HashSet<Position> = flood_fill(&network, &cycle);
-    print_network(&network, Some(&flood));
+    // print_network(&network, Some(&flood));
 
     let remaining: HashSet<Position> = network
         .keys()
@@ -345,14 +345,14 @@ fn part_2(lines: Lines) -> usize {
         .difference(&cycle.union(&flood).cloned().collect())
         .cloned()
         .collect();
-    print_network(&network, Some(&remaining));
+    // print_network(&network, Some(&remaining));
 
     let remaining_from_original: HashSet<Position> = remaining
         .iter()
         .filter(|(x, y)| x % 2 == 0 && y % 2 == 0)
         .cloned()
         .collect();
-    print_network(&network, Some(&remaining_from_original));
+    // print_network(&network, Some(&remaining_from_original));
 
     remaining_from_original.len()
 }

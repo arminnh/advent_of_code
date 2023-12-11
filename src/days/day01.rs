@@ -53,7 +53,7 @@ fn parse_line(line: &str) -> usize {
         .keys()
         .flat_map(|k| line.match_indices(k))
         .collect();
-    println!("{:?}", indexes);
+    // println!("{:?}", indexes);
 
     let (_, first) = indexes.iter().min_by_key(|(index, _)| index).unwrap();
     let (_, last) = indexes.iter().max_by_key(|(index, _)| index).unwrap();

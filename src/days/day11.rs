@@ -118,7 +118,6 @@ mod tests {
     fn test_part_2_example_expand_by_10() {
         let expansion_factor = 10;
         let galaxies = expand_universe(parse_galaxies(EXAMPLE_INPUT_1.lines()), expansion_factor);
-        println!("{:?}", galaxies);
         assert_eq!(sum_of_shortest_paths_between_galaxies(galaxies), 1030);
     }
 
@@ -126,12 +125,11 @@ mod tests {
     fn test_part_2_example_expand_by_100() {
         let expansion_factor = 100;
         let galaxies = expand_universe(parse_galaxies(EXAMPLE_INPUT_1.lines()), expansion_factor);
-        println!("{:?}", galaxies);
         assert_eq!(sum_of_shortest_paths_between_galaxies(galaxies), 8410);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_11").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_11").lines()), 702152204842);
     }
 }

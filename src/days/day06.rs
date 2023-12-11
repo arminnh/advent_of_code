@@ -1,13 +1,9 @@
+use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::fs::File;
-use std::io::{BufRead, BufReader, Lines};
+use std::str::Lines;
 use std::usize;
 
-fn get_lines(path: &str) -> Lines<BufReader<File>> {
-    BufReader::new(File::open(path).expect("Could not open file.")).lines()
-}
-
-fn parse_line_part_1(line: String) -> Vec<usize> {
+fn parse_line_part_1(line: &str) -> Vec<usize> {
     line.split_once(":")
         .unwrap()
         .1
@@ -16,7 +12,7 @@ fn parse_line_part_1(line: String) -> Vec<usize> {
         .collect::<Vec<usize>>()
 }
 
-fn parse_line_part_2(line: String) -> usize {
+fn parse_line_part_2(line: &str) -> usize {
     line.split_once(":")
         .unwrap()
         .1
@@ -44,9 +40,9 @@ fn calculate_nr_of_wins(time: usize, record_distance: usize) -> usize {
     })
 }
 
-fn part_1(mut lines: Lines<BufReader<File>>) -> usize {
-    let times = parse_line_part_1(lines.next().unwrap().unwrap());
-    let record_distances = parse_line_part_1(lines.next().unwrap().unwrap());
+fn part_1(mut lines: Lines) -> usize {
+    let times = parse_line_part_1(lines.next().unwrap());
+    let record_distances = parse_line_part_1(lines.next().unwrap());
 
     times
         .iter()
@@ -61,17 +57,18 @@ fn part_1(mut lines: Lines<BufReader<File>>) -> usize {
         })
 }
 
-fn part_2(mut lines: Lines<BufReader<File>>) -> usize {
-    let time = parse_line_part_2(lines.next().unwrap().unwrap());
-    let record_distance = parse_line_part_2(lines.next().unwrap().unwrap());
+fn part_2(mut lines: Lines) -> usize {
+    let time = parse_line_part_2(lines.next().unwrap());
+    let record_distance = parse_line_part_2(lines.next().unwrap());
 
     calculate_nr_of_wins(time, record_distance)
 }
 
 pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/day_6");
     (
-        Solution::from(part_1(get_lines("inputs/day_6"))),
-        Solution::from(part_2(get_lines("inputs/day_6"))),
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
     )
 }
 
@@ -79,18 +76,21 @@ pub fn solve() -> SolutionPair {
 mod tests {
     use super::*;
 
+    const EXAMPLE_INPUT: &str = "Time:      7  15   30
+Distance:  9  40  200";
+
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(get_lines("inputs/day_6_example")), 288)
+        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 288)
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(get_lines("inputs/day_6")), 840336)
+        assert_eq!(part_1(load_input("inputs/day_6").lines()), 840336)
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(get_lines("inputs/day_6")), 41382569)
+        assert_eq!(part_2(load_input("inputs/day_6").lines()), 41382569)
     }
 }

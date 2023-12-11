@@ -1,11 +1,15 @@
 use crate::{Solution, SolutionPair};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::str::Lines;
 use std::usize;
 
 fn load_input(path: &str) -> String {
     fs::read_to_string(path).expect("Could not open file.")
+}
+
+fn parse_card_id(input: &str) -> usize {
+    input.split_ascii_whitespace().last().unwrap().parse().unwrap()
 }
 
 fn parse_numbers(input: &str) -> HashSet<usize> {
@@ -37,14 +41,38 @@ fn part_1(lines: Lines) -> usize {
         .sum()
 }
 
-fn part_2(_lines: Lines) -> usize {
-    0
+fn part_2(lines: Lines) -> usize {
+    let mut card_amounts: HashMap<usize, usize> = HashMap::new();
+
+    lines.for_each(
+        |line| match line.split([':', '|']).collect::<Vec<&str>>()[..] {
+            [card_id_str, winners_str, scratched_str] => {
+                let card_id = parse_card_id(card_id_str);
+                let current_card_amount = *card_amounts
+                    .entry(card_id)
+                    .and_modify(|x| *x += 1)
+                    .or_insert(1);
+
+                let winners = parse_numbers(winners_str);
+                let scratched = parse_numbers(scratched_str);
+                let wins = scratched.iter().filter(|x| winners.contains(x)).count();
+
+                for id in card_id + 1..=card_id + wins {
+                    *card_amounts.entry(id).or_insert(0) += current_card_amount;
+                }
+            }
+            _ => panic!("Invalid input: '{:?}'", line),
+        },
+    );
+
+    card_amounts.values().sum()
 }
 
 pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/day_4");
     (
-        Solution::from(part_1(load_input("inputs/day_4").lines())),
-        Solution::from(part_2(load_input("inputs/day_4").lines())),
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
     )
 }
 
@@ -71,11 +99,11 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 30);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_4").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_4").lines()), 13080971);
     }
 }

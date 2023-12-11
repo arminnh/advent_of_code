@@ -1,12 +1,9 @@
+use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
 use std::fs;
 use std::str::{FromStr, Lines};
 use std::usize;
-
-fn load_input(path: &str) -> String {
-    fs::read_to_string(path).expect("Could not open file.")
-}
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 enum Color {
@@ -107,9 +104,10 @@ fn part_2(lines: Lines) -> i32 {
 }
 
 pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/day_2");
     (
-        Solution::from(part_1(load_input("inputs/day_2").lines())),
-        Solution::from(part_2(load_input("inputs/day_2").lines())),
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
     )
 }
 

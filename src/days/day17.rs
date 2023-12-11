@@ -1,11 +1,7 @@
+use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::fs;
 use std::str::Lines;
 use std::usize;
-
-fn load_input(path: &str) -> String {
-    fs::read_to_string(path).expect("Could not open file.")
-}
 
 fn part_1(_lines: Lines) -> usize {
     0

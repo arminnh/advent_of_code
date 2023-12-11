@@ -1,11 +1,8 @@
+use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::HashSet;
 use std::fs;
 use std::str::Lines;
-
-fn load_input(path: &str) -> String {
-    fs::read_to_string(path).expect("Could not open file.")
-}
 
 type Position = (i32, i32);
 
@@ -93,9 +90,10 @@ fn part_2(_lines: Lines) -> i32 {
 }
 
 pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/day_3");
     (
-        Solution::from(part_1(load_input("inputs/day_3").lines())),
-        Solution::from(part_2(load_input("inputs/day_3").lines())),
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
     )
 }
 

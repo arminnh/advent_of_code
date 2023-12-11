@@ -1,15 +1,16 @@
+use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::str::Lines;
 use std::usize;
 
-fn load_input(path: &str) -> String {
-    fs::read_to_string(path).expect("Could not open file.")
-}
-
 fn parse_card_id(input: &str) -> usize {
-    input.split_ascii_whitespace().last().unwrap().parse().unwrap()
+    input
+        .split_ascii_whitespace()
+        .last()
+        .unwrap()
+        .parse()
+        .unwrap()
 }
 
 fn parse_numbers(input: &str) -> HashSet<usize> {

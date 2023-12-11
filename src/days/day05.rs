@@ -1,11 +1,7 @@
+use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::fs;
 use std::str::Lines;
 use std::usize;
-
-fn load_input(path: &str) -> String {
-    fs::read_to_string(path).expect("Could not open file.")
-}
 
 fn part_1(_lines: Lines) -> usize {
     0
@@ -16,9 +12,10 @@ fn part_2(_lines: Lines) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/day_5");
     (
-        Solution::from(part_1(load_input("inputs/day_5").lines())),
-        Solution::from(part_2(load_input("inputs/day_5").lines())),
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
     )
 }
 

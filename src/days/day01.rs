@@ -1,11 +1,7 @@
+use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
-use std::fs;
 use std::str::Lines;
-
-fn load_input(path: &str) -> String {
-    fs::read_to_string(path).expect("Could not open file.")
-}
 
 fn part_1(lines: Lines) -> u32 {
     lines
@@ -49,10 +45,7 @@ fn parse_line(line: &str) -> usize {
         ("9", 9),
     ]);
 
-    let indexes: Vec<(usize, &str)> = letters
-        .keys()
-        .flat_map(|k| line.match_indices(k))
-        .collect();
+    let indexes: Vec<(usize, &str)> = letters.keys().flat_map(|k| line.match_indices(k)).collect();
     // println!("{:?}", indexes);
 
     let (_, first) = indexes.iter().min_by_key(|(index, _)| index).unwrap();

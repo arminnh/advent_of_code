@@ -1,7 +1,6 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
-use std::fs;
 use std::str::Lines;
 use std::usize;
 
@@ -116,11 +115,11 @@ fn part_2(mut lines: Lines) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let contents = fs::read_to_string("inputs/day_8").expect("Could not open file.");
+    let input = load_input("inputs/day_8");
 
     (
-        Solution::from(part_1(contents.lines())),
-        Solution::from(part_2(contents.lines())),
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
     )
 }
 
@@ -164,7 +163,7 @@ XXX = (XXX, XXX)";
     #[test]
     fn test_part_1() {
         assert_eq!(
-            part_1(fs::read_to_string("inputs/day_8").unwrap().lines()),
+            part_1(load_input("inputs/day_8").lines()),
             18157
         );
     }
@@ -182,7 +181,7 @@ XXX = (XXX, XXX)";
     #[test]
     fn test_part_2() {
         assert_eq!(
-            part_2(fs::read_to_string("inputs/day_8").unwrap().lines()),
+            part_2(load_input("inputs/day_8").lines()),
             14299763833181
         );
     }

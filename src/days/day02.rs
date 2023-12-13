@@ -1,7 +1,6 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
-use std::fs;
 use std::str::{FromStr, Lines};
 use std::usize;
 

@@ -49,14 +49,6 @@ fn parse_line(line: &str) -> (Vec<Status>, Vec<usize>) {
     }
 }
 
-fn valid_arrangement(candidate: &Vec<Status>, damaged_spring_groups: &Vec<usize>) -> bool {
-    candidate
-        .split(|x| *x == Status::Operational || *x == Status::Unknown)
-        .filter_map(|s| if s.len() > 0 { Some(s.len()) } else { None })
-        .collect::<Vec<usize>>()
-        .eq(damaged_spring_groups)
-}
-
 // Count how many possible arrangements of operational and damaged springs fit the given criteria in each row.
 // Contiguous groups of damaged springs are always separated by at least one operational spring.
 fn count_possible_arrangements(
@@ -70,29 +62,37 @@ fn count_possible_arrangements(
     let mut candidates: Vec<(Vec<Status>, usize)> = Vec::from([(springs, 1)]);
 
     // Evolve the list of candidates for each group of damaged springs
-    for group_size in damaged_spring_groups.iter() {
+    for (group_index, group_size) in damaged_spring_groups.iter().enumerate() {
         let mut new_candidates = Vec::new();
-        // println!("\nGroup {:?}\nCandidates:", group_size);
-        // candidates.iter().for_each(|c| println!("  {:?}", c));
 
         while let Some((mut candidate, processed)) = candidates.pop() {
-            // println!("Candidate: {:?}, {:?}", candidate, processed);
             for i in processed..candidate.len() - group_size {
-                // Step in window of group size + 2. groups must be surrounded by operational springs.
+                // Step through in windows of group size + 2, since groups must be surrounded by operational springs
                 let window = candidate.get(i - 1..i + group_size + 1).unwrap();
-                // println!("    window {:?}", window);
+
+                if window.starts_with(&[Status::Damaged]) {
+                    // Just moved over a damaged group larger than current group size, so stop here for this group
+                    break;
+                }
 
                 // If damaged group fits here, then place it and add as new candidate for next group checking
-                if window.starts_with(&[Status::Operational])
-                    && !window.ends_with(&[Status::Damaged])
+                if !window.ends_with(&[Status::Damaged])
                     && !window[1..1 + group_size].contains(&Status::Operational)
                 {
                     let mut new_candidate = candidate.clone();
                     let mut new_group = vec![Status::Damaged].repeat(*group_size);
                     new_group.push(Status::Operational);
                     new_candidate.splice(i..i + group_size + 1, new_group);
-                    // println!("     => Pushing new candidate {:?}", new_candidate);
-                    new_candidates.push((new_candidate, i + group_size + 1));
+
+                    // When checking last group, the rest of the candidate cannot contain damaged springs
+                    if group_index < damaged_spring_groups.len() - 1
+                        || !new_candidate
+                            .get(i + group_size + 1..)
+                            .unwrap()
+                            .contains(&Status::Damaged)
+                    {
+                        new_candidates.push((new_candidate, i + group_size + 1));
+                    }
                 }
 
                 // Moving on to evaluate later positions in the list, so
@@ -106,12 +106,7 @@ fn count_possible_arrangements(
         candidates = new_candidates;
     }
 
-    // println!("\n\nFinal candidates :");
-    // candidates.iter().for_each(|c| println!("  {:?}", c));
-    candidates
-        .iter()
-        .filter(|(c, _)| valid_arrangement(&c, &damaged_spring_groups))
-        .count()
+    candidates.len()
 }
 
 fn part_1(lines: Lines) -> usize {
@@ -182,14 +177,38 @@ mod tests {
     }
 
     #[test]
+    fn test_part_1_example() {
+        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 21);
+    }
+
+    #[test]
     fn test_count_possible_arrangements_7() {
         let (springs, groups) = parse_line("#????##????#?#??#?? 1,1,13");
         assert_eq!(count_possible_arrangements(springs, groups), 3);
     }
 
     #[test]
-    fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 21);
+    fn test_count_possible_arrangements_8() {
+        let (springs, groups) = parse_line("?.#?#??#?#. 1,6,1");
+        assert_eq!(count_possible_arrangements(springs, groups), 1);
+    }
+
+    #[test]
+    fn test_count_possible_arrangements_9() {
+        let (springs, groups) = parse_line(".#?.???????????#..? 2,5,1,1,1,1");
+        assert_eq!(count_possible_arrangements(springs, groups), 4);
+    }
+
+    #[test]
+    fn test_count_possible_arrangements_10() {
+        let (springs, groups) = parse_line("??..???.?#????????? 1,3,2,1,1,1");
+        assert_eq!(count_possible_arrangements(springs, groups), 60);
+    }
+
+    #[test]
+    fn test_count_possible_arrangements_11() {
+        let (springs, groups) = parse_line("??????#?#? 1,1,3");
+        assert_eq!(count_possible_arrangements(springs, groups), 6);
     }
 
     #[test]

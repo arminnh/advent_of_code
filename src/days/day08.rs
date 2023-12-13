@@ -58,6 +58,7 @@ fn part_1(mut lines: Lines) -> usize {
     count
 }
 
+#[allow(dead_code)]
 fn part_2_bruteforce(mut lines: Lines) -> usize {
     let instructions: Vec<char> = lines.next().unwrap().chars().collect();
     let mut instructions_iter = instructions.iter().cycle();

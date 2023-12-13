@@ -76,22 +76,22 @@ fn parse_network(lines: Lines) -> HashMap<Position, Tile> {
     network
 }
 
-fn print_network(network: &HashMap<Position, Tile>, cycle: Option<&HashSet<Position>>) {
-    let (x, y) = network.keys().max_by_key(|pos| *pos).unwrap();
+// fn print_network(network: &HashMap<Position, Tile>, cycle: Option<&HashSet<Position>>) {
+//     let (x, y) = network.keys().max_by_key(|pos| *pos).unwrap();
 
-    for i in 0..=*x {
-        for j in 0..=*y {
-            if cycle.is_some() && cycle.unwrap().contains(&(i, j)) {
-                print!("X");
-            } else {
-                let tile = network.get(&(i, j)).unwrap();
-                print!("{}", *tile);
-            }
-        }
-        println!("");
-    }
-    println!("");
-}
+//     for i in 0..=*x {
+//         for j in 0..=*y {
+//             if cycle.is_some() && cycle.unwrap().contains(&(i, j)) {
+//                 print!("X");
+//             } else {
+//                 let tile = network.get(&(i, j)).unwrap();
+//                 print!("{}", *tile);
+//             }
+//         }
+//         println!("");
+//     }
+//     println!("");
+// }
 
 fn find_start(network: &HashMap<Position, Tile>) -> &Position {
     network

@@ -29,13 +29,14 @@ enum Direction {
 
 // Determine the next directions for a beam on the current cell in the grid. Beams can split in two directions.
 fn next_directions(cell: u8, beam_direction: Direction) -> [Option<Direction>; 2] {
+    use Direction::*;
     match (cell, beam_direction) {
-        (b'|', Direction::Left | Direction::Right) => [Some(Direction::Up), Some(Direction::Down)],
-        (b'-', Direction::Up | Direction::Down) => [Some(Direction::Left), Some(Direction::Right)],
-        (b'\\', Direction::Up) | (b'/', Direction::Down) => [Some(Direction::Left), None],
-        (b'\\', Direction::Down) | (b'/', Direction::Up) => [Some(Direction::Right), None],
-        (b'\\', Direction::Left) | (b'/', Direction::Right) => [Some(Direction::Up), None],
-        (b'\\', Direction::Right) | (b'/', Direction::Left) => [Some(Direction::Down), None],
+        (b'|', Left | Right) => [Some(Up), Some(Down)],
+        (b'-', Up | Down) => [Some(Left), Some(Right)],
+        (b'\\', Up) | (b'/', Down) => [Some(Left), None],
+        (b'\\', Down) | (b'/', Up) => [Some(Right), None],
+        (b'\\', Left) | (b'/', Right) => [Some(Up), None],
+        (b'\\', Right) | (b'/', Left) => [Some(Down), None],
         _ => [Some(beam_direction), None],
     }
 }
@@ -47,11 +48,12 @@ fn advance_beam(
     width: usize,
     grid_len: usize,
 ) -> Option<(usize, Direction)> {
+    use Direction::*;
     match direction {
-        Direction::Up if i >= width => Some((i - width, Direction::Up)),
-        Direction::Down if i < grid_len - width => Some((i + width, Direction::Down)),
-        Direction::Left if i % width > 0 => Some((i - 1, Direction::Left)),
-        Direction::Right if i % width < width - 1 => Some((i + 1, Direction::Right)),
+        Up if i >= width => Some((i - width, Up)),
+        Down if i < grid_len - width => Some((i + width, Down)),
+        Left if i % width > 0 => Some((i - 1, Left)),
+        Right if i % width < width - 1 => Some((i + 1, Right)),
         _ => None,
     }
 }

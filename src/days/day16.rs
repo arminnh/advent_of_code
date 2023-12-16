@@ -41,19 +41,13 @@ fn next_directions(cell: u8, beam_direction: Direction) -> [Option<Direction>; 2
     }
 }
 
-// Advance the beam in the given direction as long as it stays on the grid.
-fn advance_beam(
-    i: usize,
-    direction: Direction,
-    width: usize,
-    grid_len: usize,
-) -> Option<(usize, Direction)> {
-    use Direction::*;
+// Move the beam in the given direction as long as it stays on the grid.
+fn next_position(i: usize, direction: Direction, width: usize, grid_len: usize) -> Option<usize> {
     match direction {
-        Up if i >= width => Some((i - width, Up)),
-        Down if i < grid_len - width => Some((i + width, Down)),
-        Left if i % width > 0 => Some((i - 1, Left)),
-        Right if i % width < width - 1 => Some((i + 1, Right)),
+        Direction::Up if i >= width => Some(i - width),
+        Direction::Down if i < grid_len - width => Some(i + width),
+        Direction::Left if i % width > 0 => Some(i - 1),
+        Direction::Right if i % width < width - 1 => Some(i + 1),
         _ => None,
     }
 }
@@ -74,10 +68,10 @@ fn count_energized_tiles(grid: &Vec<u8>, width: usize, initial_beam: (usize, Dir
         // iters += 1;
 
         next_directions(grid[beam.0], beam.1).iter().for_each(|d| {
-            if let Some(new_direction) = d {
-                if let Some(next_beam) = advance_beam(beam.0, *new_direction, width, grid.len()) {
-                    if !visited.contains(&next_beam) {
-                        beams.push(next_beam)
+            if let Some(next_direction) = *d {
+                if let Some(next_position) = next_position(beam.0, next_direction, width, grid.len()) {
+                    if !visited.contains(&(next_position, next_direction)) {
+                        beams.push((next_position, next_direction))
                     }
                 }
             }

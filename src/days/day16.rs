@@ -30,15 +30,15 @@ fn print_grid(grid: &Vec<u8>, width: usize, energized: &HashSet<&usize>, current
 }
 
 // Determine the next directions for a beam on the current cell in the grid. Beams can split in two directions.
-fn next_directions(cell: u8, beam_direction: Direction) -> (Direction, Option<Direction>) {
+fn next_directions(cell: u8, beam_direction: Direction) -> [Option<Direction>; 2] {
     match (cell, beam_direction) {
-        (b'|', Direction::Left | Direction::Right) => (Direction::Up, Some(Direction::Down)),
-        (b'-', Direction::Up | Direction::Down) => (Direction::Left, Some(Direction::Right)),
-        (b'\\', Direction::Up) | (b'/', Direction::Down) => (Direction::Left, None),
-        (b'\\', Direction::Down) | (b'/', Direction::Up) => (Direction::Right, None),
-        (b'\\', Direction::Left) | (b'/', Direction::Right) => (Direction::Up, None),
-        (b'\\', Direction::Right) | (b'/', Direction::Left) => (Direction::Down, None),
-        _ => (beam_direction, None),
+        (b'|', Direction::Left | Direction::Right) => [Some(Direction::Up), Some(Direction::Down)],
+        (b'-', Direction::Up | Direction::Down) => [Some(Direction::Left), Some(Direction::Right)],
+        (b'\\', Direction::Up) | (b'/', Direction::Down) => [Some(Direction::Left), None],
+        (b'\\', Direction::Down) | (b'/', Direction::Up) => [Some(Direction::Right), None],
+        (b'\\', Direction::Left) | (b'/', Direction::Right) => [Some(Direction::Up), None],
+        (b'\\', Direction::Right) | (b'/', Direction::Left) => [Some(Direction::Down), None],
+        _ => [Some(beam_direction), None],
     }
 }
 
@@ -67,31 +67,24 @@ fn part_1(lines: Lines) -> usize {
     let mut visited: HashMap<usize, HashSet<Direction>> = HashMap::new();
 
     while let Some((i, direction)) = beams.pop_front() {
+        visited.entry(i).or_default().insert(direction);
         // print!("\x1B[2J\x1b[1;1H");
         // println!("Beam at {:?} going {:?}", (i / width, i % width), direction);
-        let visited_directions = visited.entry(i).or_default();
-        visited_directions.insert(direction);
         // print_grid(&grid, width, &visited.keys().collect(), i);
         // thread::sleep(Duration::from_millis(33));
 
-        let (dir_1, dir_2) = next_directions(grid[i], direction);
-
-        if let Some(next_pos) = advance_beam(i, dir_1, width, grid.len()) {
-            if !visited.contains_key(&next_pos.0)
-                || !visited.get(&next_pos.0).unwrap().contains(&next_pos.1)
-            {
-                beams.push_back(next_pos)
-            }
-        }
-        if let Some(d) = dir_2 {
-            if let Some(next_pos) = advance_beam(i, d, width, grid.len()) {
-                if !visited.contains_key(&next_pos.0)
-                    || !visited.get(&next_pos.0).unwrap().contains(&next_pos.1)
-                {
-                    beams.push_back(next_pos)
+        next_directions(grid[i], direction)
+            .iter()
+            .filter_map(|d| *d)
+            .for_each(|new_direction| {
+                if let Some(next_pos) = advance_beam(i, new_direction, width, grid.len()) {
+                    if !visited.contains_key(&next_pos.0)
+                        || !visited.get(&next_pos.0).unwrap().contains(&next_pos.1)
+                    {
+                        beams.push_back(next_pos)
+                    }
                 }
-            }
-        }
+            })
     }
 
     visited.len()

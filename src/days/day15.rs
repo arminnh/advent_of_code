@@ -50,7 +50,6 @@ fn part_2(lines: Lines) -> usize {
                             .iter()
                             .position(|(label_in_box, _)| label_in_box == &label)
                         {
-                            println!("Removed");
                             lenses.remove(position);
                         }
                     });

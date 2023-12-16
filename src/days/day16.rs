@@ -1,8 +1,7 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::str::Lines;
-use std::usize;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 enum Direction {
@@ -59,34 +58,32 @@ fn advance_beam(
 
 fn count_energized_tiles(grid: &Vec<u8>, width: usize, initial_beam: (usize, Direction)) -> usize {
     let mut beams: Vec<(usize, Direction)> = Vec::from([initial_beam]);
-    let mut visited: HashMap<usize, HashSet<Direction>> = HashMap::new();
+    let mut visited: HashSet<(usize, Direction)> = HashSet::new();
     // let mut iters = 0;
 
-    while let Some((i, direction)) = beams.pop() {
-        visited.entry(i).or_default().insert(direction);
+    while let Some(beam) = beams.pop() {
+        visited.insert(beam);
         // if iters % 20 == 0 {
         //     print!("\x1B[2J\x1b[1;1H");
-        //     println!("Beam at {:?} going {:?}", (i / width, i % width), direction);
-        //     print_grid(&grid, width, &visited.keys().collect(), i);
-        //     thread::sleep(Duration::from_millis(10));
+        //     println!("Beam at {:?} going {:?}", (beam.0 / width, beam.0 % width), beam.1);
+        //     print_grid(&grid, width, &visited.iter().map(|(i, _)| i).collect(), beam.0);
+        //     thread::sleep(Duration::from_millis(100));
         // }
         // iters += 1;
 
-        next_directions(grid[i], direction)
-            .iter()
-            .filter_map(|d| *d)
-            .for_each(|new_direction| {
-                if let Some(next_pos) = advance_beam(i, new_direction, width, grid.len()) {
-                    if !visited.contains_key(&next_pos.0)
-                        || !visited.get(&next_pos.0).unwrap().contains(&next_pos.1)
-                    {
-                        beams.push(next_pos)
+        next_directions(grid[beam.0], beam.1).iter().for_each(|d| {
+            if let Some(new_direction) = d {
+                if let Some(next_beam) = advance_beam(beam.0, *new_direction, width, grid.len()) {
+                    if !visited.contains(&next_beam) {
+                        beams.push(next_beam)
                     }
                 }
-            })
+            }
+        })
     }
 
-    visited.len()
+    let energized: HashSet<&usize> = visited.iter().map(|(i, _)| i).collect();
+    energized.len()
 }
 
 // Send a beam through the grid and count how many tiles end up being energized.

@@ -2,7 +2,7 @@ use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::ops::Range;
 use std::str::Lines;
-use std::usize;
+use std::{cmp, usize};
 
 struct Map {
     // List of source range mapping to destination starting point.
@@ -13,7 +13,7 @@ struct Map {
 impl Map {
     fn map(&self, x: &usize) -> usize {
         for (range, destination) in self.mappings.iter() {
-            if range.contains(x) {
+            if range.contains(&(x - 1)) {
                 return destination + x - range.start;
             }
         }
@@ -22,7 +22,7 @@ impl Map {
     }
 
     fn from_lines(lines: Lines) -> Self {
-        let mappings = lines
+        let mut mappings: Vec<(Range<usize>, usize)> = lines
             .skip(1)
             .map(|line| {
                 match line
@@ -31,14 +31,41 @@ impl Map {
                     .collect::<Vec<usize>>()[..]
                 {
                     [destination_start, source_start, length] => {
-                        (source_start..source_start + length, destination_start)
+                        (source_start..source_start + length - 1, destination_start)
                     }
                     _ => panic!("Invalid line {:?}", line),
                 }
             })
             .collect();
+        mappings.sort_by_key(|(source, _)| source.start);
 
         Map { mappings }
+    }
+
+    fn map_range(&self, range: Range<usize>) -> Vec<Range<usize>> {
+        let mut result = Vec::new();
+        let relevant_mappings: Vec<&(Range<usize>, usize)> = self
+            .mappings
+            .iter()
+            .filter(|(source, _)| source.start <= range.end && source.end >= range.start)
+            .collect();
+
+        if relevant_mappings.len() == 0 {
+            return vec![range];
+        }
+
+        for (i, (source, destination)) in relevant_mappings.iter().enumerate() {
+            if i == 0 && range.start < source.start {
+                result.push(range.start..source.start - 1);
+            }
+            let new_range_start = cmp::max(range.start, source.start) + destination - source.start;
+            let new_range_end = cmp::min(range.end, source.end) + destination - source.start;
+            result.push(new_range_start..new_range_end);
+            if i == relevant_mappings.len() - 1 && source.end < range.end {
+                result.push(source.end + 1..range.end);
+            }
+        }
+        result
     }
 }
 
@@ -50,29 +77,50 @@ fn parse_seeds(splits: &str) -> Vec<usize> {
         .collect()
 }
 
+fn parse_maps(splits: std::str::Split<'_, &str>) -> Vec<Map> {
+    splits.map(|map| Map::from_lines(map.lines())).collect()
+}
+
 fn part_1(input: &str) -> usize {
     let mut splits = input.split("\n\n");
-    let seeds = parse_seeds(splits.next().unwrap());
+    let seeds: Vec<usize> = parse_seeds(splits.next().unwrap());
+    let maps: Vec<Map> = parse_maps(splits);
 
-    *splits
-        .fold(seeds, |seeds, map_lines| {
-            let map: Map = Map::from_lines(map_lines.lines());
-            seeds.iter().map(|seed| map.map(seed)).collect()
-        })
+    *maps
+        .iter()
+        .fold(seeds, |seeds, m| seeds.iter().map(|x| m.map(x)).collect())
         .iter()
         .min()
         .unwrap()
 }
 
-fn part_2(_lines: Lines) -> usize {
-    0
+fn part_2(input: &str) -> usize {
+    let mut splits = input.split("\n\n");
+    let seeds: Vec<usize> = parse_seeds(splits.next().unwrap());
+    let seed_ranges: Vec<Range<usize>> = seeds
+        .chunks_exact(2)
+        .map(|seeds| (seeds[0]..seeds[0] + seeds[1] - 1))
+        .collect();
+    let maps: Vec<Map> = parse_maps(splits);
+
+    maps.iter()
+        .fold(seed_ranges, |seed_ranges, m| {
+            seed_ranges
+                .into_iter()
+                .flat_map(|range| m.map_range(range))
+                .collect()
+        })
+        .iter()
+        .map(|range| range.start)
+        .min()
+        .unwrap()
 }
 
 pub fn solve() -> SolutionPair {
     let input = load_input("inputs/day_5");
     (
         Solution::from(part_1(&input)),
-        Solution::from(part_2(input.lines())),
+        Solution::from(part_2(&input)),
     )
 }
 
@@ -80,7 +128,7 @@ pub fn solve() -> SolutionPair {
 mod tests {
     use super::*;
 
-    const EXAMPLE_INPUT_1: &str = "seeds: 79 14 55 13
+    const EXAMPLE_INPUT: &str = "seeds: 79 14 55 13
 
 seed-to-soil map:
 50 98 2
@@ -116,7 +164,7 @@ humidity-to-location map:
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1), 35);
+        assert_eq!(part_1(EXAMPLE_INPUT), 35);
     }
 
     #[test]
@@ -126,11 +174,11 @@ humidity-to-location map:
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT), 46);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_5").lines()), 0);
+        assert_eq!(part_2(&load_input("inputs/day_5")), 15290096);
     }
 }

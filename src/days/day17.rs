@@ -80,8 +80,18 @@ struct Move {
 }
 
 impl Move {
-    fn next(&self, direction: Direction, grid: &Grid) -> Option<Self> {
-        if self.direction == direction && self.steps_in_direction >= 3 {
+    fn next(
+        &self,
+        direction: Direction,
+        grid: &Grid,
+        min_steps: i32,
+        max_steps: i32,
+    ) -> Option<Self> {
+        if self.direction == direction {
+            if self.steps_in_direction >= max_steps {
+                return None;
+            }
+        } else if self.steps_in_direction < min_steps {
             return None;
         }
         let position = self
@@ -102,11 +112,11 @@ impl Move {
         })
     }
 
-    fn next_moves(&self, grid: &Grid) -> Vec<Self> {
+    fn next_moves(&self, grid: &Grid, min_steps: i32, max_steps: i32) -> Vec<Self> {
         self.direction
             .next_directions()
             .iter()
-            .flat_map(|d| self.next(*d, &grid))
+            .flat_map(|d| self.next(*d, &grid, min_steps, max_steps))
             .collect()
     }
 }
@@ -130,15 +140,23 @@ where
     IN: IntoIterator<Item = Move>,
 {
     let mut visited: HashSet<(Position, Direction, i32)> = HashSet::new();
-    let mut frontier: BinaryHeap<Move> = BinaryHeap::from([Move {
-        cost: 0,
-        position: Position(0, 0),
-        direction: Direction::Down,
-        steps_in_direction: 0,
-    }]);
+    let mut frontier: BinaryHeap<Move> = BinaryHeap::from([
+        Move {
+            cost: 0,
+            position: Position(0, 0),
+            direction: Direction::Down,
+            steps_in_direction: 0,
+        },
+        Move {
+            cost: 0,
+            position: Position(0, 0),
+            direction: Direction::Right,
+            steps_in_direction: 0,
+        },
+    ]);
 
     while let Some(current) = frontier.pop() {
-        if current.position == goal {
+        if current.position == goal && current.steps_in_direction >= 4 {
             return current.cost;
         }
 
@@ -159,12 +177,17 @@ where
 fn part_1(lines: Lines) -> usize {
     let mut grid = Grid::from_lines(lines);
     let goal = Position(grid.max_x, grid.max_y);
-
-    dijkstra(&mut grid, goal, |grid: &Grid, m: &Move| m.next_moves(grid))
+    dijkstra(&mut grid, goal, |grid: &Grid, m: &Move| {
+        m.next_moves(grid, 0, 3)
+    })
 }
 
-fn part_2(_lines: Lines) -> usize {
-    0
+fn part_2(lines: Lines) -> usize {
+    let mut grid = Grid::from_lines(lines);
+    let goal = Position(grid.max_x, grid.max_y);
+    dijkstra(&mut grid, goal, |grid: &Grid, m: &Move| {
+        m.next_moves(grid, 4, 10)
+    })
 }
 
 pub fn solve() -> SolutionPair {
@@ -213,11 +236,11 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 94);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_17").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_17").lines()), 0); // 1188 too low
     }
 }

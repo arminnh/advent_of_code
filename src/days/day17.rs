@@ -4,10 +4,31 @@ use std::collections::{BinaryHeap, HashSet};
 use std::str::Lines;
 use std::usize;
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+struct Position(usize, usize);
+
+impl Position {
+    // Return the next position after moving in the direction.
+    fn move_in_direction(
+        &self,
+        direction: Direction,
+        max_x: usize,
+        max_y: usize,
+    ) -> Option<Position> {
+        match direction {
+            Direction::Up if self.0 > 0 => Some(Position(self.0 - 1, self.1)),
+            Direction::Down if self.0 < max_x - 1 => Some(Position(self.0 + 1, self.1)),
+            Direction::Left if self.1 > 0 => Some(Position(self.0, self.1 - 1)),
+            Direction::Right if self.1 < max_y - 1 => Some(Position(self.0, self.1 + 1)),
+            _ => None,
+        }
+    }
+}
+
 struct Node {
     cost: usize,
     total_cost: usize,
-    previous: Option<(usize, usize)>,
+    previous: Option<Position>,
 }
 
 fn parse_grid(lines: Lines<'_>) -> Vec<Vec<Node>> {
@@ -25,7 +46,7 @@ fn parse_grid(lines: Lines<'_>) -> Vec<Vec<Node>> {
 }
 
 fn print_path(grid: &Vec<Vec<Node>>) {
-    let mut path: HashSet<(usize, usize)> = HashSet::new();
+    let mut path: HashSet<Position> = HashSet::new();
     let mut current = grid.last().unwrap().last().unwrap();
     while let Some(pos) = current.previous {
         if path.insert(pos) {
@@ -36,7 +57,7 @@ fn print_path(grid: &Vec<Vec<Node>>) {
     }
     grid.iter().enumerate().for_each(|(x, row)| {
         row.iter().enumerate().for_each(|(y, node)| {
-            if path.contains(&(x, y)) {
+            if path.contains(&Position(x, y)) {
                 print!("•");
             } else {
                 print!("{}", node.cost);
@@ -55,22 +76,6 @@ enum Direction {
 }
 
 impl Direction {
-    // Return the next position after moving in the direction.
-    fn apply_to_pos(
-        &self,
-        pos: (usize, usize),
-        max_x: usize,
-        max_y: usize,
-    ) -> Option<(usize, usize)> {
-        match self {
-            Direction::Up if pos.0 > 0 => Some((pos.0 - 1, pos.1)),
-            Direction::Down if pos.0 < max_x - 1 => Some((pos.0 + 1, pos.1)),
-            Direction::Left if pos.1 > 0 => Some((pos.0, pos.1 - 1)),
-            Direction::Right if pos.1 < max_y - 1 => Some((pos.0, pos.1 + 1)),
-            _ => None,
-        }
-    }
-
     // Cannot turn back, so return the other three directions.
     fn next_directions(&self) -> [Self; 3] {
         match self {
@@ -85,18 +90,13 @@ impl Direction {
 #[derive(Debug, PartialEq, Eq)]
 struct SearchStep {
     cost: usize,
-    position: (usize, usize),
+    position: Position,
     direction: Direction,
     steps_in_direction: i32,
 }
 
 impl SearchStep {
-    fn new(
-        cost: usize,
-        position: (usize, usize),
-        direction: Direction,
-        steps_in_direction: i32,
-    ) -> Self {
+    fn new(cost: usize, position: Position, direction: Direction, steps_in_direction: i32) -> Self {
         Self {
             cost,
             position,
@@ -112,7 +112,7 @@ impl SearchStep {
         max_x: usize,
         max_y: usize,
     ) -> Option<Self> {
-        let position = direction.apply_to_pos(self.position, max_x, max_y)?;
+        let position = self.position.move_in_direction(direction, max_x, max_y)?;
         let cost = self.cost + grid[position.0][position.1].cost;
 
         if self.direction == direction {
@@ -149,18 +149,19 @@ fn part_1(lines: Lines) -> usize {
     let mut grid = parse_grid(lines);
     let max_x = grid.len();
     let max_y = grid[0].len();
-    let mut visited: HashSet<((usize, usize), Direction)> = HashSet::new();
+    let target_position = Position(max_x - 1, max_y - 1);
+    let mut visited: HashSet<(Position, Direction, i32)> = HashSet::new();
     let mut frontier: BinaryHeap<SearchStep> =
-        BinaryHeap::from([SearchStep::new(0, (0, 0), Direction::Down, -1)]);
+        BinaryHeap::from([SearchStep::new(0, Position(0, 0), Direction::Down, -1)]);
 
     while let Some(current) = frontier.pop() {
         // println!("{:?}", current);
-        if current.position == (max_x - 1, max_y - 1) {
+        if current.position == target_position {
             print_path(&grid);
             return current.cost;
         }
 
-        if !visited.insert((current.position, current.direction)) {
+        if !visited.insert((current.position, current.direction, current.steps_in_direction)) {
             continue;
         }
 
@@ -212,6 +213,14 @@ mod tests {
 1224686865563
 2546548887735
 4322674655533";
+
+    const EXAMPLE_INPUT_SIMPLE: &str = "112999
+911111";
+
+    #[test]
+    fn test_part_1_example_simple() {
+        assert_eq!(part_1(EXAMPLE_INPUT_SIMPLE.lines()), 7);
+    }
 
     #[test]
     fn test_part_1_example() {

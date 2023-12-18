@@ -25,6 +25,26 @@ impl Position {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+impl Direction {
+    // Cannot turn back, so return the other three directions.
+    fn next_directions(&self) -> [Self; 3] {
+        match self {
+            Direction::Up => [Direction::Up, Direction::Left, Direction::Right],
+            Direction::Down => [Direction::Down, Direction::Left, Direction::Right],
+            Direction::Left => [Direction::Up, Direction::Down, Direction::Left],
+            Direction::Right => [Direction::Up, Direction::Down, Direction::Right],
+        }
+    }
+}
+
 struct Node {
     cost: usize,
     total_cost: usize,
@@ -45,7 +65,7 @@ fn parse_grid(lines: Lines<'_>) -> Vec<Vec<Node>> {
         .collect()
 }
 
-fn print_path(grid: &Vec<Vec<Node>>) {
+fn print_solution(grid: &Vec<Vec<Node>>) {
     let mut path: HashSet<Position> = HashSet::new();
     let mut current = grid.last().unwrap().last().unwrap();
     while let Some(pos) = current.previous {
@@ -65,26 +85,6 @@ fn print_path(grid: &Vec<Vec<Node>>) {
         });
         println!();
     });
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-impl Direction {
-    // Cannot turn back, so return the other three directions.
-    fn next_directions(&self) -> [Self; 3] {
-        match self {
-            Direction::Up => [Direction::Up, Direction::Left, Direction::Right],
-            Direction::Down => [Direction::Down, Direction::Left, Direction::Right],
-            Direction::Left => [Direction::Up, Direction::Down, Direction::Left],
-            Direction::Right => [Direction::Up, Direction::Down, Direction::Right],
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -112,23 +112,31 @@ impl SearchStep {
         max_x: usize,
         max_y: usize,
     ) -> Option<Self> {
+        if self.direction == direction && self.steps_in_direction >= 3 {
+            return None;
+        }
         let position = self.position.move_in_direction(direction, max_x, max_y)?;
         let cost = self.cost + grid[position.0][position.1].cost;
-
-        if self.direction == direction {
-            if self.steps_in_direction < 3 {
-                Some(SearchStep::new(
-                    cost,
-                    position,
-                    direction,
-                    self.steps_in_direction + 1,
-                ))
-            } else {
-                None
-            }
+        let steps_in_direction = if self.direction == direction {
+            self.steps_in_direction + 1
         } else {
-            Some(SearchStep::new(cost, position, direction, 1))
-        }
+            1
+        };
+
+        Some(SearchStep {
+            cost,
+            position,
+            direction,
+            steps_in_direction,
+        })
+    }
+
+    fn next_steps(&self, grid: &Vec<Vec<Node>>, max_x: usize, max_y: usize) -> Vec<SearchStep> {
+        self.direction
+            .next_directions()
+            .iter()
+            .flat_map(|d| self.next(*d, &grid, max_x, max_y))
+            .collect()
     }
 }
 
@@ -152,30 +160,29 @@ fn part_1(lines: Lines) -> usize {
     let target_position = Position(max_x - 1, max_y - 1);
     let mut visited: HashSet<(Position, Direction, i32)> = HashSet::new();
     let mut frontier: BinaryHeap<SearchStep> =
-        BinaryHeap::from([SearchStep::new(0, Position(0, 0), Direction::Down, -1)]);
+        BinaryHeap::from([SearchStep::new(0, Position(0, 0), Direction::Down, 0)]);
 
     while let Some(current) = frontier.pop() {
         // println!("{:?}", current);
         if current.position == target_position {
-            print_path(&grid);
+            print_solution(&grid);
             return current.cost;
         }
 
-        if !visited.insert((current.position, current.direction, current.steps_in_direction)) {
+        if !visited.insert((
+            current.position,
+            current.direction,
+            current.steps_in_direction,
+        )) {
             continue;
         }
 
-        for direction in current.direction.next_directions() {
-            if let Some(next) = current.next(direction, &grid, max_x, max_y) {
-                let node = &mut grid[next.position.0][next.position.1];
-                if next.cost < node.total_cost {
-                    // println!(
-                    //     "    {:?} <- {:?}, {:?}",
-                    //     next.position, current.position, next.cost
-                    // );
-                    node.total_cost = next.cost;
-                    node.previous = Some(current.position);
-                }
+        for next in current.next_steps(&grid, max_x, max_y) {
+            let node = &mut grid[next.position.0][next.position.1];
+            if next.cost < node.total_cost {
+                // println!("{:?} <- {:?}, {:?}", next.position, current.position, next.cost);
+                node.total_cost = next.cost;
+                node.previous = Some(current.position);
                 frontier.push(next);
             }
         }

@@ -45,6 +45,7 @@ impl Direction {
     }
 }
 
+#[derive(Debug)]
 struct Node {
     cost: usize,
     total_cost: usize,
@@ -191,17 +192,18 @@ where
             current.direction,
             current.steps_in_direction,
         )) {
+            // println!("skipping");
             continue;
         }
 
         for next in successors(grid, &current) {
             let node = grid.at_mut(next.position.0, next.position.1);
             if next.cost < node.total_cost {
-                // println!("{:?} <- {:?}, {:?}", next.position, current.position, next.cost);
                 node.total_cost = next.cost;
                 node.previous = Some(current.position);
-                frontier.push(next);
+                // println!("   {:?}, {:?}", next.position, node);
             }
+            frontier.push(next);
         }
     }
 
@@ -262,7 +264,7 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_17").lines()), 0);
+        assert_eq!(part_1(load_input("inputs/day_17").lines()), 1001);
     }
 
     #[test]

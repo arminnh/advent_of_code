@@ -51,79 +51,93 @@ struct Node {
     previous: Option<Position>,
 }
 
-fn parse_grid(lines: Lines<'_>) -> Vec<Vec<Node>> {
-    lines
-        .map(|line| {
-            line.chars()
-                .map(|c| Node {
-                    cost: c as usize - 48,
-                    total_cost: usize::MAX,
-                    previous: None,
-                })
-                .collect::<Vec<Node>>()
-        })
-        .collect()
+struct Grid {
+    grid: Vec<Vec<Node>>,
+    max_x: usize,
+    max_y: usize,
 }
 
-fn print_solution(grid: &Vec<Vec<Node>>) {
-    let mut path: HashSet<Position> = HashSet::new();
-    let mut current = grid.last().unwrap().last().unwrap();
-    while let Some(pos) = current.previous {
-        if path.insert(pos) {
-            current = &grid[pos.0][pos.1];
-        } else {
-            break;
-        }
+impl Grid {
+    fn from_lines(lines: Lines<'_>) -> Self {
+        let grid: Vec<Vec<Node>> = lines
+            .map(|line| {
+                line.chars()
+                    .map(|c| Node {
+                        cost: c as usize - b'0' as usize,
+                        total_cost: usize::MAX,
+                        previous: None,
+                    })
+                    .collect::<Vec<Node>>()
+            })
+            .collect();
+
+        let max_x = grid.len();
+        let max_y = grid[0].len();
+        Grid { grid, max_x, max_y }
     }
-    grid.iter().enumerate().for_each(|(x, row)| {
-        row.iter().enumerate().for_each(|(y, node)| {
-            if path.contains(&Position(x, y)) {
-                print!("•");
+
+    fn find_solution(&self) -> HashSet<Position> {
+        let mut path: HashSet<Position> = HashSet::new();
+
+        let mut current = self.grid.last().unwrap().last().unwrap();
+        while let Some(pos) = current.previous {
+            if path.insert(pos) {
+                current = &self.grid[pos.0][pos.1];
             } else {
-                print!("{}", node.cost);
+                break;
             }
+        }
+
+        path
+    }
+
+    fn print_solution(&self) {
+        let path = self.find_solution();
+        self.grid.iter().enumerate().for_each(|(x, row)| {
+            row.iter().enumerate().for_each(|(y, node)| {
+                if path.contains(&Position(x, y)) {
+                    print!("•");
+                } else {
+                    print!("{}", node.cost);
+                }
+            });
+            println!();
         });
-        println!();
-    });
+    }
+
+    fn at(&self, x: usize, y: usize) -> &Node {
+        &self.grid[x][y]
+    }
+
+    fn at_mut(&mut self, x: usize, y: usize) -> &mut Node {
+        &mut self.grid[x][y]
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct SearchStep {
+struct Move {
     cost: usize,
     position: Position,
     direction: Direction,
     steps_in_direction: i32,
 }
 
-impl SearchStep {
-    fn new(cost: usize, position: Position, direction: Direction, steps_in_direction: i32) -> Self {
-        Self {
-            cost,
-            position,
-            direction,
-            steps_in_direction,
-        }
-    }
-
-    fn next(
-        &self,
-        direction: Direction,
-        grid: &Vec<Vec<Node>>,
-        max_x: usize,
-        max_y: usize,
-    ) -> Option<Self> {
+impl Move {
+    fn next(&self, direction: Direction, grid: &Grid) -> Option<Self> {
         if self.direction == direction && self.steps_in_direction >= 3 {
             return None;
         }
-        let position = self.position.move_in_direction(direction, max_x, max_y)?;
-        let cost = self.cost + grid[position.0][position.1].cost;
+        let position = self
+            .position
+            .move_in_direction(direction, grid.max_x, grid.max_y)?;
+        let cost = self.cost + grid.at(position.0, position.1).cost;
         let steps_in_direction = if self.direction == direction {
             self.steps_in_direction + 1
         } else {
             1
         };
 
-        Some(SearchStep {
+        Some(Move {
             cost,
             position,
             direction,
@@ -131,41 +145,44 @@ impl SearchStep {
         })
     }
 
-    fn next_steps(&self, grid: &Vec<Vec<Node>>, max_x: usize, max_y: usize) -> Vec<SearchStep> {
+    fn next_moves(&self, grid: &Grid) -> Vec<Self> {
         self.direction
             .next_directions()
             .iter()
-            .flat_map(|d| self.next(*d, &grid, max_x, max_y))
+            .flat_map(|d| self.next(*d, &grid))
             .collect()
     }
 }
 
-impl Ord for SearchStep {
+impl Ord for Move {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         // BinaryHeap is a max-heap so reverse the comparison
         other.cost.cmp(&self.cost)
     }
 }
 
-impl PartialOrd for SearchStep {
+impl PartialOrd for Move {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-fn part_1(lines: Lines) -> usize {
-    let mut grid = parse_grid(lines);
-    let max_x = grid.len();
-    let max_y = grid[0].len();
-    let target_position = Position(max_x - 1, max_y - 1);
+fn dijkstra<FN, IN>(grid: &mut Grid, goal: Position, successors: FN) -> usize
+where
+    FN: Fn(&Grid, &Move) -> IN,
+    IN: IntoIterator<Item = Move>,
+{
     let mut visited: HashSet<(Position, Direction, i32)> = HashSet::new();
-    let mut frontier: BinaryHeap<SearchStep> =
-        BinaryHeap::from([SearchStep::new(0, Position(0, 0), Direction::Down, 0)]);
+    let mut frontier: BinaryHeap<Move> = BinaryHeap::from([Move {
+        cost: 0,
+        position: Position(0, 0),
+        direction: Direction::Down,
+        steps_in_direction: 0,
+    }]);
 
     while let Some(current) = frontier.pop() {
         // println!("{:?}", current);
-        if current.position == target_position {
-            print_solution(&grid);
+        if current.position == goal {
             return current.cost;
         }
 
@@ -177,8 +194,8 @@ fn part_1(lines: Lines) -> usize {
             continue;
         }
 
-        for next in current.next_steps(&grid, max_x, max_y) {
-            let node = &mut grid[next.position.0][next.position.1];
+        for next in successors(grid, &current) {
+            let node = grid.at_mut(next.position.0, next.position.1);
             if next.cost < node.total_cost {
                 // println!("{:?} <- {:?}, {:?}", next.position, current.position, next.cost);
                 node.total_cost = next.cost;
@@ -189,6 +206,15 @@ fn part_1(lines: Lines) -> usize {
     }
 
     panic!("Oh no!")
+}
+
+fn part_1(lines: Lines) -> usize {
+    let mut grid = Grid::from_lines(lines);
+    let goal = Position(grid.max_x - 1, grid.max_y - 1);
+
+    let cost = dijkstra(&mut grid, goal, |grid: &Grid, m: &Move| m.next_moves(grid));
+    grid.print_solution();
+    cost
 }
 
 fn part_2(_lines: Lines) -> usize {

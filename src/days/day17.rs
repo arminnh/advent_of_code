@@ -17,9 +17,9 @@ impl Position {
     ) -> Option<Position> {
         match direction {
             Direction::Up if self.0 > 0 => Some(Position(self.0 - 1, self.1)),
-            Direction::Down if self.0 < max_x - 1 => Some(Position(self.0 + 1, self.1)),
+            Direction::Down if self.0 < max_x => Some(Position(self.0 + 1, self.1)),
             Direction::Left if self.1 > 0 => Some(Position(self.0, self.1 - 1)),
-            Direction::Right if self.1 < max_y - 1 => Some(Position(self.0, self.1 + 1)),
+            Direction::Right if self.1 < max_y => Some(Position(self.0, self.1 + 1)),
             _ => None,
         }
     }
@@ -45,73 +45,29 @@ impl Direction {
     }
 }
 
-#[derive(Debug)]
-struct Node {
-    cost: usize,
-    total_cost: usize,
-    previous: Option<Position>,
-}
-
 struct Grid {
-    grid: Vec<Vec<Node>>,
+    grid: Vec<Vec<u8>>,
     max_x: usize,
     max_y: usize,
 }
 
 impl Grid {
     fn from_lines(lines: Lines<'_>) -> Self {
-        let grid: Vec<Vec<Node>> = lines
+        let grid: Vec<Vec<u8>> = lines
             .map(|line| {
                 line.chars()
-                    .map(|c| Node {
-                        cost: c as usize - b'0' as usize,
-                        total_cost: usize::MAX,
-                        previous: None,
-                    })
-                    .collect::<Vec<Node>>()
+                    .map(|c| c as u8 - b'0' as u8)
+                    .collect::<Vec<u8>>()
             })
             .collect();
 
-        let max_x = grid.len();
-        let max_y = grid[0].len();
+        let max_x: usize = grid.len() - 1;
+        let max_y = grid[0].len() - 1;
         Grid { grid, max_x, max_y }
     }
 
-    fn find_solution(&self) -> HashSet<Position> {
-        let mut path: HashSet<Position> = HashSet::new();
-
-        let mut current = self.grid.last().unwrap().last().unwrap();
-        while let Some(pos) = current.previous {
-            if path.insert(pos) {
-                current = &self.grid[pos.0][pos.1];
-            } else {
-                break;
-            }
-        }
-
-        path
-    }
-
-    fn print_solution(&self) {
-        let path = self.find_solution();
-        self.grid.iter().enumerate().for_each(|(x, row)| {
-            row.iter().enumerate().for_each(|(y, node)| {
-                if path.contains(&Position(x, y)) {
-                    print!("•");
-                } else {
-                    print!("{}", node.cost);
-                }
-            });
-            println!();
-        });
-    }
-
-    fn at(&self, x: usize, y: usize) -> &Node {
+    fn at(&self, x: usize, y: usize) -> &u8 {
         &self.grid[x][y]
-    }
-
-    fn at_mut(&mut self, x: usize, y: usize) -> &mut Node {
-        &mut self.grid[x][y]
     }
 }
 
@@ -131,7 +87,7 @@ impl Move {
         let position = self
             .position
             .move_in_direction(direction, grid.max_x, grid.max_y)?;
-        let cost = self.cost + grid.at(position.0, position.1).cost;
+        let cost = self.cost + *grid.at(position.0, position.1) as usize;
         let steps_in_direction = if self.direction == direction {
             self.steps_in_direction + 1
         } else {
@@ -182,28 +138,18 @@ where
     }]);
 
     while let Some(current) = frontier.pop() {
-        // println!("{:?}", current);
         if current.position == goal {
             return current.cost;
         }
 
-        if !visited.insert((
+        if visited.insert((
             current.position,
             current.direction,
             current.steps_in_direction,
         )) {
-            // println!("skipping");
-            continue;
-        }
-
-        for next in successors(grid, &current) {
-            let node = grid.at_mut(next.position.0, next.position.1);
-            if next.cost < node.total_cost {
-                node.total_cost = next.cost;
-                node.previous = Some(current.position);
-                // println!("   {:?}, {:?}", next.position, node);
-            }
-            frontier.push(next);
+            successors(grid, &current)
+                .into_iter()
+                .for_each(|next| frontier.push(next));
         }
     }
 
@@ -212,11 +158,9 @@ where
 
 fn part_1(lines: Lines) -> usize {
     let mut grid = Grid::from_lines(lines);
-    let goal = Position(grid.max_x - 1, grid.max_y - 1);
+    let goal = Position(grid.max_x, grid.max_y);
 
-    let cost = dijkstra(&mut grid, goal, |grid: &Grid, m: &Move| m.next_moves(grid));
-    grid.print_solution();
-    cost
+    dijkstra(&mut grid, goal, |grid: &Grid, m: &Move| m.next_moves(grid))
 }
 
 fn part_2(_lines: Lines) -> usize {

@@ -4,19 +4,19 @@ use std::collections::HashSet;
 use std::str::Lines;
 use std::usize;
 
-type Position = (usize, usize);
+type Position = (i32, i32);
 
 fn print_grid(
-    max_x: usize,
-    max_y: usize,
-    rocks: &HashSet<(usize, usize)>,
-    possible_positions: &HashSet<(usize, usize)>,
+    max_x: i32,
+    max_y: i32,
+    rocks: &HashSet<Position>,
+    possible_positions: &HashSet<Position>,
 ) {
     for x in 0..max_x {
         for y in 0..max_y {
-            if rocks.contains(&(x, y)) {
+            if rocks.contains(&(x as i32, y as i32)) {
                 print!("#");
-            } else if possible_positions.contains(&(x, y)) {
+            } else if possible_positions.contains(&(x as i32, y as i32)) {
                 print!("O");
             } else {
                 print!(".");
@@ -28,63 +28,68 @@ fn print_grid(
     println!("");
 }
 
-fn rock_positions(grid: &Vec<Vec<u8>>) -> HashSet<(usize, usize)> {
+fn rock_positions(grid: &Vec<Vec<u8>>) -> HashSet<Position> {
     grid.iter()
         .enumerate()
         .flat_map(|(x, row)| {
-            row.iter()
-                .enumerate()
-                .filter_map(move |(y, &c)| if c == b'#' { Some((x, y)) } else { None })
+            row.iter().enumerate().filter_map(move |(y, &c)| {
+                if c == b'#' {
+                    Some((x as i32, y as i32))
+                } else {
+                    None
+                }
+            })
         })
         .collect()
 }
 
-fn get_start(grid: &Vec<Vec<u8>>) -> (usize, usize) {
+fn get_start(grid: &Vec<Vec<u8>>) -> Position {
     let x = grid.iter().position(|bytes| bytes.contains(&b'S')).unwrap();
     let y = grid[x].iter().position(|&b| b == b'S').unwrap();
-    (x, y)
+    (x as i32, y as i32)
 }
 
-fn neighbors(p: &Position, max_x: usize, max_y: usize) -> Vec<Position> {
-    let mut out = Vec::new();
-    if p.0 < max_x - 1 {
-        out.push((p.0 + 1, p.1));
-    }
-    if p.0 > 0 {
-        out.push((p.0 - 1, p.1));
-    }
-    if p.1 < max_y - 1 {
-        out.push((p.0, p.1 + 1));
-    }
-    if p.1 > 0 {
-        out.push((p.0, p.1 - 1));
-    }
-    out
+fn neighbors(p: &Position) -> [Position; 4] {
+    [
+        (p.0 + 1, p.1),
+        (p.0 - 1, p.1),
+        (p.0, p.1 + 1),
+        (p.0, p.1 - 1),
+    ]
 }
 
 fn part_1(lines: Lines, iterations: usize) -> usize {
     let grid: Vec<Vec<u8>> = lines.map(|line| line.as_bytes().to_vec()).collect();
-    let max_x = grid.len();
-    let max_y = grid[0].len();
-    let rocks: HashSet<(usize, usize)> = rock_positions(&grid);
-    let mut possible_positions: HashSet<Position> = HashSet::from([get_start(&grid)]);
+    let rocks: HashSet<Position> = rock_positions(&grid);
+    let start = get_start(&grid);
+    let mut possible_positions_even: HashSet<Position> = HashSet::from([start]);
+    let mut possible_positions_uneven: HashSet<Position> = HashSet::from([]);
+    let mut last_iteration_positions: HashSet<Position> = HashSet::from([start]);
 
     for i in 0..iterations {
-        for position in possible_positions.drain().collect::<Vec<Position>>() {
-            for neighbor in neighbors(&position, max_x, max_y) {
-                if !rocks.contains(&neighbor) {
-                    possible_positions.insert(neighbor);
+        for p in last_iteration_positions.drain().collect::<Vec<Position>>() {
+            for n in neighbors(&p).into_iter().filter(|n| !rocks.contains(n)) {
+                if i % 2 == 0 {
+                    if possible_positions_uneven.insert(n) {
+                        last_iteration_positions.insert(n);
+                    }
+                } else {
+                    if possible_positions_even.insert(n) {
+                        last_iteration_positions.insert(n);
+                    }
                 }
             }
         }
-        println!("Iteration {}:", i);
-        print_grid(max_x, max_y, &rocks, &possible_positions);
     }
 
-    possible_positions.len()
+    if iterations % 2 == 0 {
+        possible_positions_even.len()
+    } else {
+        possible_positions_uneven.len()
+    }
 }
 
-fn part_2(_lines: Lines) -> usize {
+fn part_2(_lines: Lines, _iterations: usize) -> usize {
     0
 }
 
@@ -92,7 +97,7 @@ pub fn solve() -> SolutionPair {
     let input = load_input("inputs/day_21");
     (
         Solution::from(part_1(input.lines(), 64)),
-        Solution::from(part_2(input.lines())),
+        Solution::from(part_2(input.lines(), 64)),
     )
 }
 
@@ -123,12 +128,37 @@ mod tests {
     }
 
     #[test]
-    fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 0);
+    fn test_part_2_example_1() {
+        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 10), 50);
+    }
+
+    #[test]
+    fn test_part_2_example_2() {
+        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 50), 1594);
+    }
+
+    #[test]
+    fn test_part_2_example_3() {
+        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 100), 6536);
+    }
+
+    #[test]
+    fn test_part_2_example_4() {
+        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 500), 167004);
+    }
+
+    #[test]
+    fn test_part_2_example_5() {
+        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 1000), 668697);
+    }
+
+    #[test]
+    fn test_part_2_example_6() {
+        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 5000), 16733044);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_21").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_21").lines(), 26501365), 0);
     }
 }

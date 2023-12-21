@@ -6,6 +6,7 @@ use std::usize;
 
 type Position = (i32, i32);
 
+#[allow(dead_code)]
 fn print_grid(
     max_x: i32,
     max_y: i32,
@@ -58,17 +59,37 @@ fn neighbors(p: &Position) -> [Position; 4] {
     ]
 }
 
-fn part_1(lines: Lines, iterations: usize) -> usize {
-    let grid: Vec<Vec<u8>> = lines.map(|line| line.as_bytes().to_vec()).collect();
-    let rocks: HashSet<Position> = rock_positions(&grid);
-    let start = get_start(&grid);
+fn normalize_coord(coord: i32, max: i32) -> i32 {
+    if coord >= 0 {
+        coord % max
+    } else {
+        (max - (-coord % max)) % max
+    }
+}
+
+fn normalize_position(p: Position, max_x: i32, max_y: i32) -> Position {
+    (normalize_coord(p.0, max_x), normalize_coord(p.1, max_y))
+}
+
+// Determine how many positions (avoiding rocks) can be reached in exactly N steps
+fn nr_of_possible_positions(
+    rocks: HashSet<(i32, i32)>,
+    max_x: i32,
+    max_y: i32,
+    start: (i32, i32),
+    iterations: usize,
+) -> usize {
     let mut possible_positions_even: HashSet<Position> = HashSet::from([start]);
     let mut possible_positions_uneven: HashSet<Position> = HashSet::from([]);
     let mut last_iteration_positions: HashSet<Position> = HashSet::from([start]);
 
     for i in 0..iterations {
         for p in last_iteration_positions.drain().collect::<Vec<Position>>() {
-            for n in neighbors(&p).into_iter().filter(|n| !rocks.contains(n)) {
+            for n in neighbors(&p)
+                .into_iter()
+                // normalize the position to check for rocks on the infinitely repeating grid
+                .filter(|&n| !rocks.contains(&normalize_position(n, max_x, max_y)))
+            {
                 if i % 2 == 0 {
                     if possible_positions_uneven.insert(n) {
                         last_iteration_positions.insert(n);
@@ -80,6 +101,14 @@ fn part_1(lines: Lines, iterations: usize) -> usize {
                 }
             }
         }
+        if i % 1000 == 0 {
+            println!("Iteration {}", i);
+        }
+        // if i % 2 == 0 {
+        //     print_grid(max_x, max_y, &rocks, &possible_positions_uneven);
+        // } else {
+        //     print_grid(max_x, max_y, &rocks, &possible_positions_even);
+        // }
     }
 
     if iterations % 2 == 0 {
@@ -89,15 +118,26 @@ fn part_1(lines: Lines, iterations: usize) -> usize {
     }
 }
 
-fn part_2(_lines: Lines, _iterations: usize) -> usize {
-    0
+fn part_1(lines: Lines, iterations: usize) -> usize {
+    let grid: Vec<Vec<u8>> = lines.map(|line| line.as_bytes().to_vec()).collect();
+    let max_x = grid.len() as i32;
+    let max_y = grid[0].len() as i32;
+    let start = get_start(&grid);
+    let rocks = rock_positions(&grid);
+
+    nr_of_possible_positions(rocks, max_x, max_y, start, iterations)
+}
+
+fn part_2(lines: Lines, iterations: usize) -> usize {
+    part_1(lines, iterations)
 }
 
 pub fn solve() -> SolutionPair {
     let input = load_input("inputs/day_21");
     (
         Solution::from(part_1(input.lines(), 64)),
-        Solution::from(part_2(input.lines(), 64)),
+        Solution::from(0),
+        // Solution::from(part_2(input.lines(), 26501365)),
     )
 }
 

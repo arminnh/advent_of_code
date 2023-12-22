@@ -1,10 +1,12 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
+use std::f32::consts::PI;
 use std::str::Lines;
 use std::usize;
 use three_d::*;
 
+type BrickID = usize;
 type Point3D = (usize, usize, usize);
 
 fn color_palette() -> Vec<(u8, u8, u8)> {
@@ -22,10 +24,10 @@ fn color_palette() -> Vec<(u8, u8, u8)> {
     ]
 }
 
-fn render(brick_points: &HashMap<Point3D, usize>) {
+fn render(brick_points: &HashMap<Point3D, BrickID>, connections: &HashMap<Point3D, Point3D>) {
     let window = Window::new(WindowSettings {
         title: "Shapes!".to_string(),
-        max_size: Some((1280, 720)),
+        max_size: Some((600, 720)),
         ..Default::default()
     })
     .unwrap();
@@ -73,12 +75,7 @@ fn render(brick_points: &HashMap<Point3D, usize>) {
             PhysicalMaterial::new_transparent(
                 &context,
                 &CpuMaterial {
-                    albedo: Srgba {
-                        r: 0,
-                        g: 0,
-                        b: 0,
-                        a: 200,
-                    },
+                    albedo: Srgba::BLACK,
                     ..Default::default()
                 },
             ),
@@ -87,6 +84,32 @@ fn render(brick_points: &HashMap<Point3D, usize>) {
             Mat4::from_translation(vec3(x as f32, z as f32, y as f32)) * Mat4::from_scale(0.17),
         );
         shapes.push(sphere);
+    }
+
+    for (from, &to) in connections.iter() {
+        let brick_id = brick_points.get(from).unwrap();
+        let mut cylinder = Gm::new(
+            Mesh::new(&context, &CpuMesh::cylinder(16)),
+            PhysicalMaterial::new_transparent(
+                &context,
+                &CpuMaterial {
+                    albedo: Srgba {
+                        r: colors[brick_id % colors.len()].0,
+                        g: colors[brick_id % colors.len()].1,
+                        b: colors[brick_id % colors.len()].2,
+                        a: 200,
+                    },
+                    ..Default::default()
+                },
+            ),
+        );
+        cylinder.set_transformation(
+            Mat4::from_translation(vec3(to.0 as f32, to.2 as f32, to.1 as f32))
+                * Mat4::from_scale(0.2 as f32)
+                * Mat4::from_angle_z(Rad(PI / 2.0))
+                * Mat4::from_nonuniform_scale(4.0 + 4.0 * (from.2 - to.2) as f32, 1.0, 1.0),
+        );
+        shapes.push(cylinder);
     }
 
     window.render_loop(move |mut frame_input| {
@@ -127,7 +150,7 @@ fn parse_bricks(lines: Lines) -> Vec<(Point3D, Point3D)> {
         .collect()
 }
 
-fn brick_points(bricks: &Vec<(Point3D, Point3D)>) -> HashMap<Point3D, usize> {
+fn brick_points(bricks: &Vec<(Point3D, Point3D)>) -> HashMap<Point3D, BrickID> {
     bricks
         .iter()
         .enumerate()
@@ -141,14 +164,47 @@ fn brick_points(bricks: &Vec<(Point3D, Point3D)>) -> HashMap<Point3D, usize> {
         .collect()
 }
 
+fn detect_connections(brick_points: &HashMap<Point3D, BrickID>) -> HashMap<Point3D, Point3D> {
+    let max_x = brick_points.iter().max_by_key(|(p, _)| p.0).unwrap().0 .0;
+    let max_y = brick_points.iter().max_by_key(|(p, _)| p.1).unwrap().0 .1;
+    let max_z = brick_points.iter().max_by_key(|(p, _)| p.2).unwrap().0 .2;
+    let mut connections: HashMap<Point3D, Point3D> = HashMap::new();
+    // Iterate in plane from top to bottom, keeping track of last seen cube above
+    let mut plane: HashMap<(usize, usize), (Point3D, BrickID)> = HashMap::new();
+    dbg!(&max_x, &max_y, &max_z);
+
+    for z in (0..=max_z).rev() {
+        for x in 0..=max_x {
+            for y in 0..=max_y {
+                let current_pos = (x, y, z);
+                println!("{:?}", current_pos);
+
+                if let Some(&brick_id) = brick_points.get(&current_pos) {
+                    println!("{:?}", brick_id);
+                    if let Some(&(prev_p, prev_brick_id)) = plane.get(&(x, y)) {
+                        if brick_id != prev_brick_id {
+                            connections.insert(prev_p, current_pos);
+                        }
+                    }
+                    plane.insert((x, y) , (current_pos, brick_id));
+                }
+            }
+        }
+    }
+
+    connections
+}
+
 fn part_1(lines: Lines) -> usize {
-    let bricks = parse_bricks(lines);
-    let brick_points = brick_points(&bricks);
+    let bricks: Vec<(Point3D, Point3D)> = parse_bricks(lines);
+    let brick_points: HashMap<Point3D, BrickID> = brick_points(&bricks);
+    let connections: HashMap<Point3D, Point3D> = detect_connections(&brick_points);
 
-    println!("{:?}", bricks);
-    println!("{:?}", brick_points);
+    println!("bricks: {:?}\n", bricks);
+    println!("brick_points: {:?}\n", brick_points);
+    println!("connections: {:?}\n", connections);
 
-    render(&brick_points);
+    render(&brick_points, &connections);
 
     0
 }

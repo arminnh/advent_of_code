@@ -73,7 +73,7 @@ fn normalize_position(p: Position, max_x: i32, max_y: i32) -> Position {
 
 // Determine how many positions (avoiding rocks) can be reached in exactly N steps
 fn nr_of_possible_positions(
-    rocks: HashSet<(i32, i32)>,
+    rocks: &HashSet<(i32, i32)>,
     max_x: i32,
     max_y: i32,
     start: (i32, i32),
@@ -101,9 +101,6 @@ fn nr_of_possible_positions(
                 }
             }
         }
-        if i % 1000 == 0 {
-            println!("Iteration {}", i);
-        }
         // if i % 2 == 0 {
         //     print_grid(max_x, max_y, &rocks, &possible_positions_uneven);
         // } else {
@@ -125,19 +122,55 @@ fn part_1(lines: Lines, iterations: usize) -> usize {
     let start = get_start(&grid);
     let rocks = rock_positions(&grid);
 
-    nr_of_possible_positions(rocks, max_x, max_y, start, iterations)
+    nr_of_possible_positions(&rocks, max_x, max_y, start, iterations)
 }
 
-fn part_2(lines: Lines, iterations: usize) -> usize {
-    part_1(lines, iterations)
+fn second_order_lagrange_polynomial(x_i: Vec<f64>, y_i: Vec<f64>) -> impl Fn(f64) -> f64 {
+    move |new_x| -> f64 {
+        let term_1 = y_i[0]
+            * ((new_x - x_i[1]) / (x_i[0] - x_i[1]))
+            * ((new_x - x_i[2]) / (x_i[0] - x_i[2]));
+        let term_2 = y_i[1]
+            * ((new_x - x_i[0]) / (x_i[1] - x_i[0]))
+            * ((new_x - x_i[2]) / (x_i[1] - x_i[2]));
+        let term_3 = y_i[2]
+            * ((new_x - x_i[0]) / (x_i[2] - x_i[0]))
+            * ((new_x - x_i[1]) / (x_i[2] - x_i[1]));
+        term_1 + term_2 + term_3
+    }
+}
+
+// This elf is very into ultra marathon running
+fn part_2(lines: Lines, iterations: usize) -> i64 {
+    let grid: Vec<Vec<u8>> = lines.map(|line| line.as_bytes().to_vec()).collect();
+    let max_x = grid.len() as i32;
+    let max_y = grid[0].len() as i32;
+    let start = get_start(&grid);
+    let rocks = rock_positions(&grid);
+
+    // The pattern of growth repeats after max_x steps (size of grid). The start is in the center.
+    // The number of positions that can be reached is a quadratic function
+    // -> Lagrange interpolation to map nr of iterations to nr of positions
+    // -> Can be used to extrapolate to other iterations where the pattern repeats, which 26501365 luckily is.
+    let x_i: Vec<f64> = vec![
+        start.0 as f64,
+        start.0 as f64 + max_x as f64,
+        start.0 as f64 + 2.0 * max_x as f64,
+    ];
+    let y_i: Vec<f64> = x_i
+        .iter()
+        .map(|&iters| nr_of_possible_positions(&rocks, max_x, max_y, start, iters as usize) as f64)
+        .collect();
+
+    let polynomial_fn = second_order_lagrange_polynomial(x_i, y_i);
+    polynomial_fn(iterations as f64) as i64
 }
 
 pub fn solve() -> SolutionPair {
     let input = load_input("inputs/day_21");
     (
         Solution::from(part_1(input.lines(), 64)),
-        Solution::from(0),
-        // Solution::from(part_2(input.lines(), 26501365)),
+        Solution::from(part_2(input.lines(), 26501365)),
     )
 }
 
@@ -168,37 +201,31 @@ mod tests {
     }
 
     #[test]
-    fn test_part_2_example_1() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 10), 50);
+    fn test_lagrange_fn() {
+        let polynomial = second_order_lagrange_polynomial(vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 4.0]);
+        assert_eq!(polynomial(0.0), 0.0);
+        assert_eq!(polynomial(1.0), 1.0);
+        assert_eq!(polynomial(2.0), 4.0);
+        assert_eq!(polynomial(3.0), 9.0);
+        assert_eq!(polynomial(4.0), 16.0);
+        assert_eq!(polynomial(10.0), 100.0);
+        assert_eq!(polynomial(20.0), 400.0);
     }
 
     #[test]
-    fn test_part_2_example_2() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 50), 1594);
-    }
-
-    #[test]
-    fn test_part_2_example_3() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 100), 6536);
-    }
-
-    #[test]
-    fn test_part_2_example_4() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 500), 167004);
-    }
-
-    #[test]
-    fn test_part_2_example_5() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 1000), 668697);
-    }
-
-    #[test]
-    fn test_part_2_example_6() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 5000), 16733044);
+    fn test_lagrange_fn_2() {
+        let polynomial = second_order_lagrange_polynomial(
+            vec![65.0, 196.0, 327.0],
+            vec![3703.0, 32957.0, 91379.0],
+        );
+        assert_eq!(polynomial(26501365.0), 596857397104703.0);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_21").lines(), 26501365), 0);
+        assert_eq!(
+            part_2(load_input("inputs/day_21").lines(), 26501365),
+            596857397104703
+        );
     }
 }

@@ -6,7 +6,12 @@ use std::usize;
 
 type Position = (i32, i32);
 
-fn neighbors(p: &Position, grid: &Grid, visited: &HashSet<Position>) -> Vec<Position> {
+fn neighbors(
+    p: &Position,
+    grid: &Grid,
+    visited: &HashSet<Position>,
+    ignore_slopes: bool,
+) -> Vec<Position> {
     let mut out: Vec<Position> = Vec::new();
     let neighbors = [
         (p.0 + 1, p.1),
@@ -17,11 +22,12 @@ fn neighbors(p: &Position, grid: &Grid, visited: &HashSet<Position>) -> Vec<Posi
 
     for neighbor in neighbors {
         if let Some(c) = grid.at(&neighbor) {
-            // dbg!(&c, &p, &neighbor);
-            if c == b'#'
-                || visited.contains(&neighbor)
-                || (c == b'>' && neighbor.1 < p.1)
-                || (c == b'v' && neighbor.0 < p.0)
+            if c == b'#' || visited.contains(&neighbor) {
+                continue;
+            }
+            if !ignore_slopes
+                // Don't move up slippery slopes
+                && ((c == b'>' && neighbor.1 < p.1) || (c == b'v' && neighbor.0 < p.0))
             {
                 continue;
             }
@@ -61,13 +67,6 @@ impl Grid {
         }
     }
 
-    fn is_slope_at(&self, p: &Position) -> bool {
-        match self.at(&p) {
-            Some(b'>') | Some(b'v') => true,
-            _ => false,
-        }
-    }
-
     fn print(&self, visited: &HashSet<Position>, current: Position) {
         for x in 0..self.max_x {
             for y in 0..self.max_y {
@@ -97,24 +96,20 @@ struct Move {
 }
 
 impl Move {
-    fn next(&self, grid: &Grid, visited: &HashSet<Position>) -> Vec<Self> {
-        match grid.at(&self.position).unwrap() {
-            b'>' => vec![Move {
+    fn next(&self, grid: &Grid, visited: &HashSet<Position>, ignore_slopes: bool) -> Vec<Self> {
+        let positions = match grid.at(&self.position).unwrap() {
+            b'>' if !ignore_slopes => vec![(self.position.0, self.position.1 + 1)],
+            b'v' if !ignore_slopes => vec![(self.position.0 + 1, self.position.1)],
+            _ => neighbors(&self.position, grid, visited, ignore_slopes),
+        };
+
+        positions
+            .into_iter()
+            .map(|p| Move {
                 cost: self.cost + 1,
-                position: (self.position.0, self.position.1 + 1),
-            }],
-            b'v' => vec![Move {
-                cost: self.cost + 1,
-                position: (self.position.0 + 1, self.position.1),
-            }],
-            _ => neighbors(&self.position, grid, visited)
-                .into_iter()
-                .map(|p| Move {
-                    cost: self.cost + 1,
-                    position: p,
-                })
-                .collect(),
-        }
+                position: p,
+            })
+            .collect()
     }
 }
 
@@ -131,52 +126,60 @@ impl PartialOrd for Move {
     }
 }
 
-fn recursive_dijkstra(
+fn find_longest_path(
     grid: &mut Grid,
     start: Move,
     goal: Position,
+    ignore_slopes: bool,
     visited: HashSet<Position>,
 ) -> usize {
-    let mut vis = visited;
+    let mut visited: HashSet<Position> = visited;
     let mut frontier: BinaryHeap<Move> = BinaryHeap::from([start]);
 
     while let Some(current) = frontier.pop() {
         if current.position == goal {
-            // grid.print(&vis, current.position);
+            // grid.print(&visited, current.position);
             // println!("Cost: {:?}\n\n", current.cost);
             return current.cost;
         }
 
-        if vis.insert(current.position) {
-            let successors = current.next(grid, &vis);
-            let contains_slope = successors.iter().any(|m| grid.is_slope_at(&m.position));
-
-            if successors.len() > 1 && contains_slope {
+        if visited.insert(current.position) {
+            let successors = current.next(grid, &visited, ignore_slopes);
+            if successors.len() > 1 {
                 return successors
                     .into_iter()
-                    .map(|m| recursive_dijkstra(grid, m, goal, vis.clone()))
-                    .max().unwrap();
+                    .map(|m| find_longest_path(grid, m, goal, ignore_slopes, visited.clone()))
+                    .max()
+                    .unwrap();
             } else {
                 successors.into_iter().for_each(|next| frontier.push(next));
             }
         }
     }
 
-    panic!("Oh no!")
+    0
 }
 
 fn part_1(lines: Lines) -> usize {
+    let ignore_slopes = false;
     let mut grid = Grid::from_lines(lines);
     let start = Move {
         cost: 0,
         position: (0, 1),
     };
     let goal = (grid.max_x - 1, grid.max_y - 2);
-    recursive_dijkstra(&mut grid, start, goal, HashSet::new())
+    find_longest_path(&mut grid, start, goal, ignore_slopes, HashSet::new())
 }
 
-fn part_2(_lines: Lines) -> usize {
-    0
+fn part_2(lines: Lines) -> usize {
+    let ignore_slopes = true;
+    let mut grid = Grid::from_lines(lines);
+    let start = Move {
+        cost: 0,
+        position: (0, 1),
+    };
+    let goal = (grid.max_x - 1, grid.max_y - 2);
+    find_longest_path(&mut grid, start, goal, ignore_slopes, HashSet::new())
 }
 
 pub fn solve() -> SolutionPair {
@@ -227,7 +230,7 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 154);
     }
 
     #[test]

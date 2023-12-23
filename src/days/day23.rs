@@ -1,41 +1,25 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::collections::{BinaryHeap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
+type Graph = HashMap<Position, Vec<(Position, usize)>>;
 
-fn neighbors(
-    p: &Position,
-    grid: &Grid,
-    visited: &HashSet<Position>,
+fn parse_input(
+    lines: Lines,
     ignore_slopes: bool,
-) -> Vec<Position> {
-    let mut out: Vec<Position> = Vec::new();
-    let neighbors = [
-        (p.0 + 1, p.1),
-        (p.0 - 1, p.1),
-        (p.0, p.1 + 1),
-        (p.0, p.1 - 1),
-    ];
+) -> (Move, Position, HashMap<Position, Vec<(Position, usize)>>) {
+    let grid: Grid = Grid::from_lines(lines);
+    let start_move = Move {
+        cost: 0,
+        position: (0, 1),
+    };
+    let goal = (grid.max_x - 1, grid.max_y - 2);
+    let graph: Graph = grid_to_graph(&grid, start_move.position, goal, ignore_slopes);
 
-    for neighbor in neighbors {
-        if let Some(c) = grid.at(&neighbor) {
-            if c == b'#' || visited.contains(&neighbor) {
-                continue;
-            }
-            if !ignore_slopes
-                // Don't move up slippery slopes
-                && ((c == b'>' && neighbor.1 < p.1) || (c == b'v' && neighbor.0 < p.0))
-            {
-                continue;
-            }
-            out.push(neighbor);
-        };
-    }
-
-    out
+    (start_move, goal, graph)
 }
 
 struct Grid {
@@ -45,7 +29,7 @@ struct Grid {
 }
 
 impl Grid {
-    fn from_lines(lines: Lines<'_>) -> Self {
+    fn from_lines(lines: Lines) -> Self {
         let grid: Vec<Vec<u8>> = lines
             .map(|line| line.chars().map(|c| c as u8).collect::<Vec<u8>>())
             .collect();
@@ -67,18 +51,55 @@ impl Grid {
         }
     }
 
-    fn print(&self, visited: &HashSet<Position>, current: Position) {
+    fn neighbors(&self, p: &Position, ignore_slopes: bool) -> Vec<Position> {
+        let mut out: Vec<Position> = Vec::new();
+        let neighbors = [
+            (p.0 + 1, p.1),
+            (p.0 - 1, p.1),
+            (p.0, p.1 + 1),
+            (p.0, p.1 - 1),
+        ];
+
+        for neighbor in neighbors {
+            if let Some(c) = self.at(&neighbor) {
+                if c == b'#'
+                    || !ignore_slopes
+                    // Don't move up slippery slopes
+                    && ((c == b'>' && neighbor.1 < p.1) || (c == b'v' && neighbor.0 < p.0))
+                {
+                    continue;
+                }
+                out.push(neighbor);
+            };
+        }
+
+        out
+    }
+
+    fn print(
+        &self,
+        visited: Option<&HashSet<Position>>,
+        current: Option<Position>,
+        nodes: Option<&HashSet<Position>>,
+        edge_ids: Option<&HashMap<Position, (usize, usize)>>,
+    ) {
         for x in 0..self.max_x {
             for y in 0..self.max_y {
                 let p = (x, y);
-                if current == p {
+                if current.map_or(false, |c| c == p) {
                     print!("█");
-                } else if visited.contains(&p) {
+                } else if visited.map_or(false, |v| v.contains(&p)) {
                     match self.at(&p).unwrap() {
                         b'>' => print!("⯮"),
                         b'v' => print!("⯯"),
                         _ => print!("O"),
                     }
+                } else if nodes.map_or(false, |n| n.contains(&p)) {
+                    print!("*")
+                } else if edge_ids.map_or(false, |e| e.contains_key(&p)) {
+                    print!("{}", edge_ids.unwrap().get(&p).unwrap().0 % 10);
+                } else if self.at(&p).unwrap() == b'#' {
+                    print!(" ");
                 } else {
                     print!("{}", self.at(&p).unwrap() as char);
                 }
@@ -89,6 +110,79 @@ impl Grid {
     }
 }
 
+fn grid_to_graph(grid: &Grid, start: Position, goal: Position, ignore_slopes: bool) -> Graph {
+    let mut nodes: HashSet<Position> = HashSet::from([goal]);
+    let mut edges: Vec<(Position, Position, usize)> = Vec::new();
+    // For each visited position, store edge_id being explored and cost of the edge so far
+    let mut visited: HashMap<Position, (usize, usize)> = HashMap::new();
+    let mut frontier: Vec<(Position, Position, usize)> = Vec::from([(start, start, 0)]);
+
+    while let Some((last_node, current, cost)) = frontier.pop() {
+        // If visiting existing node again, create new edge
+        if nodes.contains(&current) {
+            edges.push((last_node, current, cost));
+            continue;
+        }
+
+        // If visited this position for another edge -> split into two and add new one
+        if let Some((edge_id, cost_at_pos)) = visited.insert(current, (edges.len(), cost)) {
+            if edge_id != edges.len() {
+                // Register new node
+                nodes.insert(current);
+                let existing_edge = edges[edge_id].clone();
+                // Push new edge that was just discovered
+                edges.push((last_node, current, cost));
+                // Push second part of existing edge
+                edges.push((current, existing_edge.1, existing_edge.2 - cost_at_pos));
+                // Shorten the existing edge to meet the new edge
+                edges[edge_id] = (existing_edge.0, current, cost_at_pos);
+                // Update costs for rest of existing path
+                visited
+                    .iter_mut()
+                    .filter(|(_, (id, c))| id == &edge_id && c > &cost_at_pos)
+                    .for_each(|(_, (id, c))| {
+                        *id = edges.len() - 1;
+                        *c -= cost_at_pos;
+                    });
+                continue;
+            }
+        }
+        let neighbors: Vec<Position> = grid.neighbors(&current, ignore_slopes);
+        let unvisited_neighbors: Vec<&Position> = neighbors
+            .iter()
+            .filter(|&n| !visited.contains_key(n))
+            .collect();
+
+        if unvisited_neighbors.len() > 1 {
+            // fork in the road -> create edge until current position
+            edges.push((last_node, current, cost));
+            nodes.insert(last_node);
+            nodes.insert(current);
+            unvisited_neighbors.into_iter().for_each(|&p| {
+                frontier.push((current, p, 1));
+            });
+        } else {
+            // continue exploring to unvisited positions, to nodes, or to positions covered by another edge
+            let f = |pos: &Position| -> bool {
+                *pos != last_node
+                    && (nodes.contains(pos)
+                        || visited.get(pos).map_or(true, |(id, _)| id != &edges.len()))
+            };
+            neighbors.into_iter().filter(|n| f(n)).for_each(|p| {
+                frontier.push((last_node, p, cost + 1));
+            });
+        }
+    }
+
+    grid.print(None, None, Some(&nodes), Some(&visited));
+
+    let mut graph: Graph = HashMap::new();
+    edges
+        .into_iter()
+        .for_each(|(from, to, c)| graph.entry(from).or_default().push((to, c)));
+    graph
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct Move {
     cost: usize,
@@ -96,18 +190,14 @@ struct Move {
 }
 
 impl Move {
-    fn next(&self, grid: &Grid, visited: &HashSet<Position>, ignore_slopes: bool) -> Vec<Self> {
-        let positions = match grid.at(&self.position).unwrap() {
-            b'>' if !ignore_slopes => vec![(self.position.0, self.position.1 + 1)],
-            b'v' if !ignore_slopes => vec![(self.position.0 + 1, self.position.1)],
-            _ => neighbors(&self.position, grid, visited, ignore_slopes),
-        };
-
-        positions
+    fn next(&self, graph: &Graph) -> Vec<Self> {
+        graph
+            .get(&self.position)
+            .unwrap()
             .into_iter()
-            .map(|p| Move {
-                cost: self.cost + 1,
-                position: p,
+            .map(|(next_position, cost)| Move {
+                cost: self.cost + cost,
+                position: *next_position,
             })
             .collect()
     }
@@ -127,10 +217,9 @@ impl PartialOrd for Move {
 }
 
 fn find_longest_path(
-    grid: &mut Grid,
+    graph: &Graph,
     start: Move,
     goal: Position,
-    ignore_slopes: bool,
     visited: HashSet<Position>,
 ) -> usize {
     let mut visited: HashSet<Position> = visited;
@@ -144,11 +233,11 @@ fn find_longest_path(
         }
 
         if visited.insert(current.position) {
-            let successors = current.next(grid, &visited, ignore_slopes);
+            let successors = current.next(graph);
             if successors.len() > 1 {
                 return successors
                     .into_iter()
-                    .map(|m| find_longest_path(grid, m, goal, ignore_slopes, visited.clone()))
+                    .map(|m| find_longest_path(graph, m, goal, visited.clone()))
                     .max()
                     .unwrap();
             } else {
@@ -162,24 +251,15 @@ fn find_longest_path(
 
 fn part_1(lines: Lines) -> usize {
     let ignore_slopes = false;
-    let mut grid = Grid::from_lines(lines);
-    let start = Move {
-        cost: 0,
-        position: (0, 1),
-    };
-    let goal = (grid.max_x - 1, grid.max_y - 2);
-    find_longest_path(&mut grid, start, goal, ignore_slopes, HashSet::new())
+    let (start, goal, graph): (Move, Position, Graph) = parse_input(lines, ignore_slopes);
+    find_longest_path(&graph, start, goal, HashSet::new())
 }
 
 fn part_2(lines: Lines) -> usize {
+    return 0;
     let ignore_slopes = true;
-    let mut grid = Grid::from_lines(lines);
-    let start = Move {
-        cost: 0,
-        position: (0, 1),
-    };
-    let goal = (grid.max_x - 1, grid.max_y - 2);
-    find_longest_path(&mut grid, start, goal, ignore_slopes, HashSet::new())
+    let (start, goal, graph): (Move, Position, Graph) = parse_input(lines, ignore_slopes);
+    find_longest_path(&graph, start, goal, HashSet::new())
 }
 
 pub fn solve() -> SolutionPair {

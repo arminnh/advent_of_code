@@ -1,6 +1,6 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
 use std::str::Lines;
 use std::usize;
@@ -88,8 +88,8 @@ fn render(brick_points: &HashMap<Point3D, BrickID>, connections: &HashMap<Point3
 
     for (from, &to) in connections.iter() {
         let brick_id = brick_points.get(from).unwrap();
-        let mut cylinder = Gm::new(
-            Mesh::new(&context, &CpuMesh::cylinder(16)),
+        let mut connection = Gm::new(
+            Mesh::new(&context, &CpuMesh::arrow(10.0, 0.3, 5)),
             PhysicalMaterial::new_transparent(
                 &context,
                 &CpuMaterial {
@@ -103,13 +103,13 @@ fn render(brick_points: &HashMap<Point3D, BrickID>, connections: &HashMap<Point3
                 },
             ),
         );
-        cylinder.set_transformation(
+        connection.set_transformation(
             Mat4::from_translation(vec3(to.0 as f32, to.2 as f32, to.1 as f32))
-                * Mat4::from_scale(0.2 as f32)
+                * Mat4::from_scale(0.1 as f32)
                 * Mat4::from_angle_z(Rad(PI / 2.0))
-                * Mat4::from_nonuniform_scale(4.0 + 4.0 * (from.2 - to.2) as f32, 1.0, 1.0),
+                * Mat4::from_nonuniform_scale((from.2 - to.2) as f32, 1.0, 1.0),
         );
-        shapes.push(cylinder);
+        shapes.push(connection);
     }
 
     window.render_loop(move |mut frame_input| {
@@ -177,16 +177,13 @@ fn detect_connections(brick_points: &HashMap<Point3D, BrickID>) -> HashMap<Point
         for x in 0..=max_x {
             for y in 0..=max_y {
                 let current_pos = (x, y, z);
-                println!("{:?}", current_pos);
-
                 if let Some(&brick_id) = brick_points.get(&current_pos) {
-                    println!("{:?}", brick_id);
                     if let Some(&(prev_p, prev_brick_id)) = plane.get(&(x, y)) {
                         if brick_id != prev_brick_id {
                             connections.insert(prev_p, current_pos);
                         }
                     }
-                    plane.insert((x, y) , (current_pos, brick_id));
+                    plane.insert((x, y), (current_pos, brick_id));
                 }
             }
         }
@@ -199,10 +196,48 @@ fn part_1(lines: Lines) -> usize {
     let bricks: Vec<(Point3D, Point3D)> = parse_bricks(lines);
     let brick_points: HashMap<Point3D, BrickID> = brick_points(&bricks);
     let connections: HashMap<Point3D, Point3D> = detect_connections(&brick_points);
+    let connection_targets: HashSet<&Point3D> = connections.values().collect();
 
     println!("bricks: {:?}\n", bricks);
     println!("brick_points: {:?}\n", brick_points);
     println!("connections: {:?}\n", connections);
+
+    let mut nr_of_connections_per_brick: HashMap<usize, usize> = HashMap::new();
+    for (p, brick_id) in brick_points.iter() {
+        if connections.contains_key(p) {
+            nr_of_connections_per_brick
+                .entry(*brick_id)
+                .and_modify(|c| *c += 1)
+                .or_insert(1);
+        }
+    }
+    println!(
+        "nr_of_connections_per_brick: {:?}\n",
+        nr_of_connections_per_brick
+    );
+    println!(
+        "sum of children - 1 for each node: {}",
+        nr_of_connections_per_brick
+            .iter()
+            .fold(0, |result, (_, c)| result + c - 1)
+    );
+    let bricks_with_parents: HashSet<usize> = brick_points
+        .iter()
+        .filter_map(|(k, v)| {
+            if connection_targets.contains(k) {
+                Some(*v)
+            } else {
+                None
+            }
+        })
+        .collect();
+    println!("total bricks: {}", bricks.len());
+    println!("bricks with parents: {:?}", bricks_with_parents.len());
+    println!("bricks without parents: {:?}", bricks.len() - bricks_with_parents.len());
+    println!("result: {:?}", bricks.len() - bricks_with_parents.len() +
+    nr_of_connections_per_brick
+        .iter()
+        .fold(0, |result, (_, c)| result + c - 1));
 
     render(&brick_points, &connections);
 
@@ -217,13 +252,7 @@ pub fn solve() -> SolutionPair {
     let input = load_input("inputs/day_22");
     (
         Solution::from(part_1(
-            "1,0,1~1,2,1
-0,0,2~2,0,2
-0,2,3~2,2,3
-0,0,4~0,2,4
-2,0,5~2,2,5
-0,1,6~2,1,6
-1,1,8~1,1,9"
+            input
                 .lines(),
         )),
         Solution::from(part_2(input.lines())),
@@ -244,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 5);
     }
 
     #[test]

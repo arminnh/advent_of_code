@@ -1,22 +1,19 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
 type Graph = HashMap<Position, HashSet<(Position, usize)>>;
 
-fn parse_input(lines: Lines, ignore_slopes: bool) -> (Move, Position, Graph) {
+fn parse_input(lines: Lines, ignore_slopes: bool) -> (Position, Position, Graph) {
     let grid: Grid = Grid::from_lines(lines);
-    let start_move = Move {
-        cost: 0,
-        position: (0, 1),
-    };
+    let start = (0, 1);
     let goal = (grid.max_x - 1, grid.max_y - 2);
-    let graph: Graph = grid_to_graph(&grid, start_move.position, goal, ignore_slopes);
+    let graph: Graph = grid_to_graph(&grid, start, goal, ignore_slopes);
 
-    (start_move, goal, graph)
+    (start, goal, graph)
 }
 
 struct Grid {
@@ -73,7 +70,7 @@ impl Grid {
         out
     }
 
-    #[warn(dead_code)]
+    #[allow(dead_code)]
     fn print(
         &self,
         visited: Option<&HashSet<Position>>,
@@ -173,7 +170,6 @@ fn grid_to_graph(grid: &Grid, start: Position, goal: Position, ignore_slopes: bo
         }
         // grid.print(None, Some(current), Some(&nodes), Some(&visited));
     }
-
     // grid.print(None, None, Some(&nodes), Some(&visited));
 
     let mut graph: Graph = HashMap::new();
@@ -183,86 +179,42 @@ fn grid_to_graph(grid: &Grid, start: Position, goal: Position, ignore_slopes: bo
             graph.entry(to).or_default().insert((from, c));
         }
     });
-    // println!("{}", graph.iter().map(|(k, v)| v.len()).sum::<usize>());
     graph
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-struct Move {
-    cost: usize,
-    position: Position,
-}
-
-impl Move {
-    fn next(&self, graph: &Graph) -> Vec<Self> {
-        graph
-            .get(&self.position)
-            .unwrap()
-            .into_iter()
-            .map(|(next_position, cost)| Move {
-                cost: self.cost + cost,
-                position: *next_position,
-            })
-            .collect()
-    }
-}
-
-impl Ord for Move {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // BinaryHeap is a max-heap, we want to search by highest cost first
-        self.cost.cmp(&other.cost)
-    }
-}
-
-impl PartialOrd for Move {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 fn find_longest_path(
     graph: &Graph,
-    start: Move,
+    current: Position,
+    cost: usize,
     goal: Position,
-    visited: HashSet<Position>,
+    visited: &mut HashSet<Position>,
 ) -> usize {
-    let mut visited: HashSet<Position> = visited;
-    let mut frontier: BinaryHeap<Move> = BinaryHeap::from([start]);
+    visited.insert(current);
+    let mut max_cost = cost;
 
-    while let Some(current) = frontier.pop() {
-        if current.position == goal {
-            // grid.print(&visited, current.position);
-            // println!("Cost: {:?}\n\n", current.cost);
-            return current.cost;
-        }
-
-        if visited.insert(current.position) {
-            let successors = current.next(graph);
-            if successors.len() > 1 {
-                return successors
-                    .into_iter()
-                    .map(|m| find_longest_path(graph, m, goal, visited.clone()))
-                    .max()
-                    .unwrap();
-            } else {
-                successors.into_iter().for_each(|next| frontier.push(next));
+    if let Some(successors) = graph.get(&current) {
+        successors.into_iter().for_each(|&(next, c)| {
+            if !visited.contains(&next) {
+                let new_cost = cost + find_longest_path(graph, next, c, goal, visited);
+                max_cost = std::cmp::max(max_cost, new_cost);
             }
-        }
+        });
     }
 
-    0
+    visited.remove(&current);
+    max_cost
 }
 
 fn part_1(lines: Lines) -> usize {
     let ignore_slopes = false;
-    let (start, goal, graph): (Move, Position, Graph) = parse_input(lines, ignore_slopes);
-    find_longest_path(&graph, start, goal, HashSet::new())
+    let (start, goal, graph): (Position, Position, Graph) = parse_input(lines, ignore_slopes);
+    find_longest_path(&graph, start, 0, goal, &mut HashSet::new())
 }
 
 fn part_2(lines: Lines) -> usize {
     let ignore_slopes = true;
-    let (start, goal, graph): (Move, Position, Graph) = parse_input(lines, ignore_slopes);
-    find_longest_path(&graph, start, goal, HashSet::new())
+    let (start, goal, graph): (Position, Position, Graph) = parse_input(lines, ignore_slopes);
+    find_longest_path(&graph, start, 0, goal, &mut HashSet::new())
 }
 
 pub fn solve() -> SolutionPair {

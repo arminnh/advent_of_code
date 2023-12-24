@@ -1,12 +1,11 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::num::ParseFloatError;
 use std::str::{FromStr, Lines};
 use std::usize;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct Vec3D {
     x: f32,
     y: f32,
@@ -34,6 +33,34 @@ impl FromStr for Vec3D {
     }
 }
 
+struct Hailstone {
+    position: Vec3D,
+    velocity: Vec3D,
+}
+
+impl Hailstone {
+    fn is_in_future(&self, x: f32, y: f32) -> bool {
+        let dot_product =
+            (x - self.position.x) * self.velocity.x + (y - self.position.y) * self.velocity.y;
+
+        dot_product > 0.0
+    }
+}
+
+fn parse_hailstones(input_lines: Lines<'_>) -> Vec<Hailstone> {
+    input_lines
+        .map(
+            |l| match l.split("@").map(|l| l.trim()).collect::<Vec<&str>>()[..] {
+                [position, velocity] => Hailstone {
+                    position: Vec3D::from_str(position).unwrap(),
+                    velocity: Vec3D::from_str(velocity).unwrap(),
+                },
+                _ => panic!("Invalid input line {:?}", l),
+            },
+        )
+        .collect()
+}
+
 struct Line {
     // y = m x + b
     m: f32,
@@ -56,12 +83,7 @@ impl Line {
     }
 
     fn intersection(&self, other: &Line) -> Option<(f32, f32)> {
-        if self.m == other.m {
-            if self.b == other.b {
-                println!("Line is self");
-            } else {
-                println!("Parallel lines");
-            }
+        if self.m == other.m || self.b == other.b {
             return None;
         }
         // For two lines   y = m1* x + b1   and   y = m2 * x + b2
@@ -74,50 +96,28 @@ impl Line {
     }
 }
 
-fn parse_hailstone_lines(input_lines: Lines<'_>) -> Vec<Line> {
-    input_lines
-        .map(
-            |l| match l.split("@").map(|l| l.trim()).collect::<Vec<&str>>()[..] {
-                [position, velocity] => Line::from_point_slope_form(
-                    Vec3D::from_str(position).unwrap(),
-                    Vec3D::from_str(velocity).unwrap(),
-                ),
-
-                _ => panic!("Invalid input line {:?}", l),
-            },
-        )
-        .collect()
-}
-
 fn part_1(input_lines: Lines, min: f32, max: f32) -> usize {
-    let lines: Vec<Line> = parse_hailstone_lines(input_lines);
-    let mut intersections: HashMap<usize, (usize, f32)> = HashMap::new();
+    let hailstones: Vec<Hailstone> = parse_hailstones(input_lines);
+    let lines: Vec<Line> = hailstones
+        .iter()
+        .map(|h| Line::from_point_slope_form(h.position, h.velocity))
+        .collect();
+    let mut intersections: Vec<(usize, f32, f32)> = Vec::new();
     let in_range = |x, y| -> bool { x >= min && x <= max && y >= min && y <= max };
 
     for (i, line_1) in lines.iter().enumerate() {
-        for (j, line_2) in lines[i + 1..].iter().enumerate() {
-            if let Some((x, y)) = line_1.intersection(line_2) {
-                // println!("Intersection for {} and {}: {:?}", line_1, line_2, (x, y));
-                if in_range(x, y) {
-                    // println!("Is in range");
-                    if intersections.contains_key(&i) {
-                        let (prev_hailstone, prev_y) = intersections[&i];
-                        if y > prev_y {
-                            // println!("Higher than previous intersection");
-                            intersections.remove(&prev_hailstone);
-                            intersections.insert(i, (j, y));
-                            intersections.insert(j, (i, y));
-                        }
-                    } else {
-                        intersections.insert(i, (j, y));
-                        intersections.insert(j, (i, y));
-                    }
+        for j in i + 1..lines.len() {
+            if let Some((x, y)) = line_1.intersection(&lines[j]) {
+                if in_range(x, y)
+                    && hailstones[i].is_in_future(x, y)
+                    && hailstones[j].is_in_future(x, y)
+                {
+                    intersections.push((i, x, y));
                 }
             }
         }
     }
 
-    println!("{:?}", intersections);
     intersections.len()
 }
 
@@ -160,7 +160,7 @@ mod tests {
                 200_000_000_000_000.0,
                 400_000_000_000_000.0
             ),
-            0
+            18651
         );
     }
 

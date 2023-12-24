@@ -5,12 +5,9 @@ use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
-type Graph = HashMap<Position, Vec<(Position, usize)>>;
+type Graph = HashMap<Position, HashSet<(Position, usize)>>;
 
-fn parse_input(
-    lines: Lines,
-    ignore_slopes: bool,
-) -> (Move, Position, HashMap<Position, Vec<(Position, usize)>>) {
+fn parse_input(lines: Lines, ignore_slopes: bool) -> (Move, Position, Graph) {
     let grid: Grid = Grid::from_lines(lines);
     let start_move = Move {
         cost: 0,
@@ -76,6 +73,7 @@ impl Grid {
         out
     }
 
+    #[warn(dead_code)]
     fn print(
         &self,
         visited: Option<&HashSet<Position>>,
@@ -125,8 +123,9 @@ fn grid_to_graph(grid: &Grid, start: Position, goal: Position, ignore_slopes: bo
         }
 
         // If visited this position for another edge -> split into two and add new one
+        // Only applicable for part 1, since paths are not blocked off by slopes in part 2
         if let Some((edge_id, cost_at_pos)) = visited.insert(current, (edges.len(), cost)) {
-            if edge_id != edges.len() {
+            if !ignore_slopes && edge_id != edges.len() {
                 // Register new node
                 nodes.insert(current);
                 let existing_edge = edges[edge_id].clone();
@@ -172,14 +171,19 @@ fn grid_to_graph(grid: &Grid, start: Position, goal: Position, ignore_slopes: bo
                 frontier.push((last_node, p, cost + 1));
             });
         }
+        // grid.print(None, Some(current), Some(&nodes), Some(&visited));
     }
 
-    grid.print(None, None, Some(&nodes), Some(&visited));
+    // grid.print(None, None, Some(&nodes), Some(&visited));
 
     let mut graph: Graph = HashMap::new();
-    edges
-        .into_iter()
-        .for_each(|(from, to, c)| graph.entry(from).or_default().push((to, c)));
+    edges.into_iter().for_each(|(from, to, c)| {
+        graph.entry(from).or_default().insert((to, c));
+        if ignore_slopes {
+            graph.entry(to).or_default().insert((from, c));
+        }
+    });
+    // println!("{}", graph.iter().map(|(k, v)| v.len()).sum::<usize>());
     graph
 }
 
@@ -256,7 +260,6 @@ fn part_1(lines: Lines) -> usize {
 }
 
 fn part_2(lines: Lines) -> usize {
-    return 0;
     let ignore_slopes = true;
     let (start, goal, graph): (Move, Position, Graph) = parse_input(lines, ignore_slopes);
     find_longest_path(&graph, start, goal, HashSet::new())
@@ -315,6 +318,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_23").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_23").lines()), 6422);
     }
 }

@@ -1,118 +1,94 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
 use rand::Rng;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
+use std::collections::HashSet;
+// use std::fs::File;
+// use std::io::Write;
 use std::str::Lines;
 use std::usize;
 
-#[derive(Clone)]
-struct Graph {
-    edges: HashMap<String, Vec<String>>,
+fn parse_edges(lines: Lines) -> Vec<(String, String)> {
+    lines
+        .flat_map(|l| match l.split(":").collect::<Vec<_>>()[..] {
+            [from, right] => right
+                .trim()
+                .split_ascii_whitespace()
+                .map(|to| (from.to_owned(), to.to_owned()))
+                .collect::<Vec<(String, String)>>(),
+            _ => panic!("Invalid input {:?}", l),
+        })
+        .collect()
 }
 
-impl Graph {
-    fn new() -> Self {
-        Graph {
-            edges: HashMap::new(),
+// // Write dot file -> visualize with `dot -Kneato -Tpng -o output.png input.dot`
+// fn write_to_dot(edges: &Vec<(String, String)>, file_suffix: &str) -> std::io::Result<()> {
+//     let mut dot_content = String::new();
+
+//     dot_content.push_str("graph {\n");
+//     edges.iter().for_each(|(from, to)| {
+//         dot_content.push_str(&format!("  {} -- {};\n", from, to));
+//     });
+//     dot_content.push_str("}\n");
+
+//     File::create(format!("outputs/day_25{}.dot", file_suffix))?
+//         .write_all(dot_content.as_bytes())?;
+//     Ok(())
+// }
+
+// Replace random edge `from` -> `to` by contracted edge `fromto` - https://en.wikipedia.org/wiki/Karger's_algorithm
+fn contract_edge(nodes: &mut HashSet<String>, edges: &mut Vec<(String, String)>, edge_id: usize) {
+    let (from, to) = edges.swap_remove(edge_id);
+    let new_node: String = from.to_owned() + &to;
+    nodes.remove(&from);
+    nodes.remove(&to);
+    nodes.insert(new_node.clone());
+
+    // replace edges containing `from` or `to` by new edges containing `fromto`
+    edges.retain_mut(|(u, v)| {
+        if (u == &from && v == &to) || (u == &to && v == &from) {
+            // remove self loops after contraction
+            false
+        } else if u == &from || u == &to {
+            // new edge `fromto` -> `v`
+            *u = new_node.clone();
+            true
+        } else if v == &from || v == &to {
+            // new edge `u` -> `fromto`
+            *v = new_node.clone();
+            true
+        } else {
+            // keep edges that don't contain `from` or `to``
+            true
         }
-    }
-
-    fn add_edge(&mut self, u: String, v: String) {
-        self.edges.entry(u.clone()).or_default().push(v.clone());
-        self.edges.entry(v).or_default().push(u);
-    }
-
-    fn edges_vec(&self) -> Vec<(String, String)> {
-        self.edges
-            .iter()
-            .flat_map(|(from, to)| to.into_iter().map(|to| (from.clone(), to.clone())))
-            .collect()
-    }
-
-    // Contract edges for nodes u, v into edges for combined node uv
-    fn contract_edges(&mut self, u: String, v: String) {
-        let new_node: String = u.to_owned() + &v;
-
-        let u_neighbors = self.edges.remove(&u).unwrap();
-        let v_neighbors = self.edges.remove(&v).unwrap();
-        u_neighbors
-            .into_iter()
-            .chain(v_neighbors.into_iter())
-            .filter(|x| x != &v && x != &u)
-            .for_each(|neighbor| {
-                self.add_edge(new_node.clone(), neighbor.clone());
-                self.edges
-                    .get_mut(&neighbor)
-                    .unwrap()
-                    .retain(|x| x != &u && x != &v);
-            });
-    }
-
-    #[allow(dead_code)]
-    fn print(&self) {
-        self.edges
-            .iter()
-            .for_each(|(from, to)| println!("{} -> {:?}", from, to));
-        println!("");
-    }
-
-    #[allow(dead_code)]
-    // Write dot file -> visualize with `dot -Kneato -Tpng -o output.png input.dot`
-    fn write_to_dot(&self, file_suffix: &str) -> std::io::Result<()> {
-        let mut dot_content = String::new();
-
-        dot_content.push_str("graph {\n");
-        self.edges.iter().for_each(|(from, targets)| {
-            targets.iter().for_each(|to| {
-                dot_content.push_str(&format!("  {} -- {};\n", from, to));
-            });
-        });
-        dot_content.push_str("}\n");
-
-        File::create(format!("outputs/day_25{}.dot", file_suffix))?
-            .write_all(dot_content.as_bytes())?;
-        Ok(())
-    }
-}
-
-fn parse_input(lines: Lines) -> Graph {
-    let mut g: Graph = Graph::new();
-
-    lines.for_each(|l| match l.split(":").collect::<Vec<_>>()[..] {
-        [from, right] => right
-            .trim()
-            .split_ascii_whitespace()
-            .collect::<Vec<_>>()
-            .iter()
-            .for_each(|to| g.add_edge(from.to_string(), to.to_string())),
-        _ => panic!("Invalid input {:?}", l),
     });
-
-    g
 }
 
 fn part_1(lines: Lines) -> usize {
-    let graph = parse_input(lines.clone());
     let mut rng = rand::thread_rng();
+    let edges: Vec<(String, String)> = parse_edges(lines.clone());
+    let nodes: HashSet<String> = edges
+        .iter()
+        .flat_map(|(from, to)| vec![from.clone(), to.clone()])
+        .collect();
 
+    // Random iterations until solution is found
     loop {
-        let mut g = graph.clone();
+        let mut e = edges.clone();
+        let mut n = nodes.clone();
 
-        while g.edges.len() > 2 {
-            let mut edges: Vec<(String, String)> = g.edges_vec();
-            let (from, to) = edges.remove(rng.gen_range(0..edges.len()));
-            g.contract_edges(from, to);
+        // Contract edges randomly until only two nodes remain
+        while n.len() > 2 {
+            let edge_id = rng.gen_range(0..e.len());
+            contract_edge(&mut n, &mut e, edge_id);
         }
 
-        let result = g
-            .edges
-            .keys()
-            .map(|name| name.len() / 3)
-            .fold(1, |result, x| result * x);
-
-        println!("RESULT {}", result);
+        // We want a min-cut of 3 edge => if 3 edges remain after the contractions, we can calculate the result
+        if e.len() == 3 {
+            return e
+                .first()
+                .map(|name| name.0.len() / 3 * name.1.len() / 3)
+                .unwrap();
+        }
     }
 }
 
@@ -121,9 +97,10 @@ fn part_2(_lines: Lines) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/day_25");
     (
-        Solution::from(part_1(load_input("inputs/day_25").lines())),
-        Solution::from(part_2(load_input("inputs/day_25").lines())),
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
     )
 }
 
@@ -146,6 +123,128 @@ rzs: qnr cmg lsr rsh
 frs: qnr lhk lsr";
 
     #[test]
+    fn test_contract_edge_1() {
+        let mut nodes = HashSet::from(["A".to_string(), "B".to_string(), "C".to_string()]);
+        let mut edges = vec![
+            ("A".to_string(), "B".to_string()),
+            ("B".to_string(), "C".to_string()),
+            ("C".to_string(), "A".to_string()),
+        ];
+        contract_edge(&mut nodes, &mut edges, 0);
+
+        assert_eq!(nodes, HashSet::from(["AB".to_string(), "C".to_string()]));
+        assert_eq!(
+            edges,
+            vec![
+                ("C".to_string(), "AB".to_string()),
+                ("AB".to_string(), "C".to_string())
+            ]
+        );
+    }
+
+    #[test]
+    fn test_contract_edge_2() {
+        let mut nodes = HashSet::from([
+            "A".to_string(),
+            "B".to_string(),
+            "C".to_string(),
+            "D".to_string(),
+        ]);
+        let mut edges = vec![
+            ("A".to_string(), "B".to_string()),
+            ("B".to_string(), "C".to_string()),
+            ("C".to_string(), "D".to_string()),
+            ("D".to_string(), "A".to_string()),
+            ("B".to_string(), "D".to_string()),
+            ("D".to_string(), "B".to_string()),
+        ];
+        contract_edge(&mut nodes, &mut edges, 3);
+
+        assert_eq!(
+            nodes,
+            HashSet::from(["DA".to_string(), "B".to_string(), "C".to_string()])
+        );
+        assert_eq!(
+            edges,
+            vec![
+                ("DA".to_string(), "B".to_string()),
+                ("B".to_string(), "C".to_string()),
+                ("C".to_string(), "DA".to_string()),
+                ("DA".to_string(), "B".to_string()), // this one moves up because of swap_remove
+                ("B".to_string(), "DA".to_string()),
+            ]
+        );
+
+        contract_edge(&mut nodes, &mut edges, 1);
+
+        assert_eq!(nodes, HashSet::from(["DA".to_string(), "BC".to_string()]));
+        assert_eq!(
+            edges,
+            vec![
+                ("DA".to_string(), "BC".to_string()),
+                ("BC".to_string(), "DA".to_string()),
+                ("BC".to_string(), "DA".to_string()),
+                ("DA".to_string(), "BC".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_contract_edge_3() {
+        let mut nodes = HashSet::from([
+            "rzsqnrcmgjqtnvdrhn".to_string(),
+            "lhk".to_string(),
+            "ntqbvbxhkrshpzllsrhfx".to_string(),
+            "frs".to_string(),
+        ]);
+        let mut edges: Vec<(String, String)> = vec![
+            ("rzsqnrcmgjqtnvdrhn", "ntqbvbxhkrshpzllsrhfx"),
+            ("rzsqnrcmgjqtnvdrhn", "ntqbvbxhkrshpzllsrhfx"),
+            ("rzsqnrcmgjqtnvdrhn", "ntqbvbxhkrshpzllsrhfx"),
+            ("ntqbvbxhkrshpzllsrhfx", "frs"),
+            ("frs", "ntqbvbxhkrshpzllsrhfx"),
+            ("rzsqnrcmgjqtnvdrhn", "rzsqnr"),
+            ("rzsqnrcmgjqtnvdrhn", "ntqbvbxhkrshpzllsrhfx"),
+            ("frs", "rzsqnrcmgjqtnvdrhn"),
+            ("frs", "lhk"),
+            ("ntqbvbxhkrshpzllsrhfx", "rzsqnrcmgjqtnvdrhn"),
+            ("ntqbvbxhkrshpzllsrhfx", "lhk"),
+            ("ntqbvbxhkrshpzllsrhfx", "rzsqnrcmgjqtnvdrhn"),
+        ]
+        .iter()
+        .map(|(from, to)| (from.to_string(), to.to_string()))
+        .collect();
+        contract_edge(&mut nodes, &mut edges, 4);
+
+        assert_eq!(
+            nodes,
+            HashSet::from([
+                "frsntqbvbxhkrshpzllsrhfx".to_string(),
+                "rzsqnrcmgjqtnvdrhn".to_string(),
+                "lhk".to_string()
+            ])
+        );
+        assert_eq!(
+            edges,
+            vec![
+                ("rzsqnrcmgjqtnvdrhn", "frsntqbvbxhkrshpzllsrhfx"),
+                ("rzsqnrcmgjqtnvdrhn", "frsntqbvbxhkrshpzllsrhfx"),
+                ("rzsqnrcmgjqtnvdrhn", "frsntqbvbxhkrshpzllsrhfx"),
+                ("frsntqbvbxhkrshpzllsrhfx", "rzsqnrcmgjqtnvdrhn"),
+                ("rzsqnrcmgjqtnvdrhn", "rzsqnr"),
+                ("rzsqnrcmgjqtnvdrhn", "frsntqbvbxhkrshpzllsrhfx"),
+                ("frsntqbvbxhkrshpzllsrhfx", "rzsqnrcmgjqtnvdrhn"),
+                ("frsntqbvbxhkrshpzllsrhfx", "lhk"),
+                ("frsntqbvbxhkrshpzllsrhfx", "rzsqnrcmgjqtnvdrhn"),
+                ("frsntqbvbxhkrshpzllsrhfx", "lhk")
+            ]
+            .iter()
+            .map(|(from, to)| (from.to_string(), to.to_string()))
+            .collect::<Vec<(String, String)>>()
+        );
+    }
+
+    #[test]
     fn test_part_1_example() {
         assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 9 * 6);
     }
@@ -165,38 +264,3 @@ frs: qnr lhk lsr";
         assert_eq!(part_2(load_input("inputs/day_25").lines()), 0);
     }
 }
-
-// fn edges_to_adjacency_matrix(nodes: &Vec<String>, edges: &HashMap<String, Vec<String>>) -> Vec<Vec<bool>> {
-//     let mut adj_matrix: Vec<Vec<bool>> = Vec::with_capacity(nodes.len());
-//     (0..nodes.len()).for_each(|_| adj_matrix.push(vec![false; nodes.len()]));
-
-//     for (from_id, from_node) in nodes.iter().enumerate() {
-//         for to_node in edges[from_node].iter() {
-//             let to_id = nodes.iter().position(|n| n == to_node).unwrap();
-//             adj_matrix[from_id][to_id] = true;
-//         }
-//     }
-//     // adj_matrix.iter().for_each(|l| {
-//     //     l.iter().for_each(|c| print!("{}, ", *c as i32));
-//     //     println!("")
-//     // });
-//     adj_matrix
-// }
-
-// #[allow(dead_code)]
-// fn write_adjacency_matrix_to_dot(nodes: &Vec<String>, adj_matrix: &[Vec<bool>], file_suffix: &str) -> std::io::Result<()> {
-//     let mut dot_content = String::new();
-
-//     dot_content.push_str("graph {\n");
-//     for (i, row) in adj_matrix.iter().enumerate() {
-//         for (j, &col) in row.iter().enumerate().skip(i + 1) {
-//             if col {
-//                 dot_content.push_str(&format!("  {} -- {};\n", nodes[i], nodes[j]));
-//             }
-//         }
-//     }
-//     dot_content.push_str("}\n");
-
-//     File::create(format!("outputs/day_25{}.dot", file_suffix))?.write_all(dot_content.as_bytes())?;
-//     Ok(())
-// }

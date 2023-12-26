@@ -13,10 +13,22 @@ struct Number {
 }
 
 impl Number {
-    fn touched_by_symbol(&self, symbols: &HashSet<Position>) -> bool {
+    fn adjacent_to_any_symbol(&self, symbols: &HashSet<Position>) -> bool {
         for x in self.position.0 - 1..=self.position.0 + 1 {
             for y in self.position.1 - 1..=self.position.1 + self.len {
                 if symbols.contains(&(x, y)) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    fn adjacent_to_symbol(&self, symbol_position: &Position) -> bool {
+        for x in self.position.0 - 1..=self.position.0 + 1 {
+            for y in self.position.1 - 1..=self.position.1 + self.len {
+                if &(x, y) == symbol_position {
                     return true;
                 }
             }
@@ -67,15 +79,14 @@ fn parse_input(lines: Lines) -> (Vec<Number>, HashSet<Position>) {
     (numbers, symbols)
 }
 
+// What is the sum of all of the part numbers in the engine schematic?
 fn part_1(lines: Lines) -> i32 {
     let (numbers, symbols) = parse_input(lines);
-    // dbg!(&numbers);
-    // dbg!(&symbols);
 
     numbers
         .iter()
         .filter_map(|num| {
-            if num.touched_by_symbol(&symbols) {
+            if num.adjacent_to_any_symbol(&symbols) {
                 Some(num.value)
             } else {
                 None
@@ -84,8 +95,27 @@ fn part_1(lines: Lines) -> i32 {
         .sum()
 }
 
-fn part_2(_lines: Lines) -> i32 {
-    0
+fn gear_ratio(symbol: &Position, numbers: &Vec<Number>) -> Option<i32> {
+    let adjacent_nums = numbers
+        .iter()
+        .filter(|num| num.adjacent_to_symbol(symbol))
+        .collect::<Vec<_>>();
+
+    if adjacent_nums.len() == 2 {
+        Some(adjacent_nums[0].value * adjacent_nums[1].value)
+    } else {
+        None
+    }
+}
+
+// What is the sum of all of the gear ratios in your engine schematic?
+fn part_2(lines: Lines) -> i32 {
+    let (numbers, symbols) = parse_input(lines);
+
+    symbols
+        .iter()
+        .filter_map(|symbol| gear_ratio(symbol, &numbers))
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -174,11 +204,11 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 467835);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_3").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_3").lines()), 91622824);
     }
 }

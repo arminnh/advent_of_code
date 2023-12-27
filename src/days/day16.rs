@@ -11,21 +11,22 @@ enum Direction {
     Right,
 }
 
-// fn print_grid(grid: &Vec<u8>, width: usize, energized: &HashSet<&usize>, current_beam: usize) {
-//     for row in 0..grid.len() / width {
-//         for col in 0..width {
-//             let index = row * width + col;
-//             if index == current_beam {
-//                 print!("@");
-//             } else if grid[index] == b'.' && energized.contains(&index) {
-//                 print!("#");
-//             } else {
-//                 print!("{}", grid[index] as char);
-//             }
-//         }
-//         println!("");
-//     }
-// }
+#[allow(dead_code)]
+fn print_grid(grid: &Vec<u8>, width: usize, energized: &HashSet<&usize>, current_beam: usize) {
+    for row in 0..grid.len() / width {
+        for col in 0..width {
+            let index = row * width + col;
+            if index == current_beam {
+                print!("@");
+            } else if grid[index] == b'.' && energized.contains(&index) {
+                print!("█");
+            } else {
+                print!("{}", grid[index] as char);
+            }
+        }
+        println!("");
+    }
+}
 
 // Determine the next directions for a beam on the current cell in the grid. Beams can split in two directions.
 fn next_directions(cell: u8, beam_direction: Direction) -> [Option<Direction>; 2] {

@@ -134,9 +134,10 @@ impl PartialOrd for Move {
     }
 }
 
-fn dijkstra<FN, IN>(grid: &mut Grid, goal: Position, successors: FN) -> usize
+fn dijkstra<FN1, FN2, IN>(grid: &mut Grid, success: FN1, successors: FN2) -> usize
 where
-    FN: Fn(&Grid, &Move) -> IN,
+    FN1: Fn(&Move) -> bool,
+    FN2: Fn(&Grid, &Move) -> IN,
     IN: IntoIterator<Item = Move>,
 {
     let mut visited: HashSet<(Position, Direction, i32)> = HashSet::new();
@@ -156,7 +157,7 @@ where
     ]);
 
     while let Some(current) = frontier.pop() {
-        if current.position == goal && current.steps_in_direction >= 4 {
+        if success(&current) {
             return current.cost;
         }
 
@@ -177,17 +178,19 @@ where
 fn part_1(lines: Lines) -> usize {
     let mut grid = Grid::from_lines(lines);
     let goal = Position(grid.max_x, grid.max_y);
-    dijkstra(&mut grid, goal, |grid: &Grid, m: &Move| {
-        m.next_moves(grid, 0, 3)
-    })
+    let success = |current: &Move| current.position == goal;
+    let successors = |grid: &Grid, m: &Move| m.next_moves(grid, 0, 3);
+
+    dijkstra(&mut grid, success, successors)
 }
 
 fn part_2(lines: Lines) -> usize {
     let mut grid = Grid::from_lines(lines);
     let goal = Position(grid.max_x, grid.max_y);
-    dijkstra(&mut grid, goal, |grid: &Grid, m: &Move| {
-        m.next_moves(grid, 4, 10)
-    })
+    let success = |current: &Move| current.position == goal && current.steps_in_direction >= 4;
+    let successors = |grid: &Grid, m: &Move| m.next_moves(grid, 4, 10);
+
+    dijkstra(&mut grid, success, successors)
 }
 
 pub fn solve() -> SolutionPair {
@@ -241,6 +244,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_17").lines()), 0); // 1188 too low
+        assert_eq!(part_2(load_input("inputs/day_17").lines()), 1197);
     }
 }

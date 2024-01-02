@@ -5,27 +5,6 @@ use std::str::Lines;
 use std::usize;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-struct Position(usize, usize);
-
-impl Position {
-    // Return the next position after moving in the direction.
-    fn move_in_direction(
-        &self,
-        direction: Direction,
-        max_x: usize,
-        max_y: usize,
-    ) -> Option<Position> {
-        match direction {
-            Direction::Up if self.0 > 0 => Some(Position(self.0 - 1, self.1)),
-            Direction::Down if self.0 < max_x => Some(Position(self.0 + 1, self.1)),
-            Direction::Left if self.1 > 0 => Some(Position(self.0, self.1 - 1)),
-            Direction::Right if self.1 < max_y => Some(Position(self.0, self.1 + 1)),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum Direction {
     Up,
     Down,
@@ -45,36 +24,59 @@ impl Direction {
     }
 }
 
+#[derive(Debug)]
 struct Grid {
-    grid: Vec<Vec<u8>>,
-    max_x: usize,
-    max_y: usize,
+    grid: Vec<u8>,
+    height: usize,
+    width: usize,
 }
 
 impl Grid {
-    fn from_lines(lines: Lines<'_>) -> Self {
-        let grid: Vec<Vec<u8>> = lines
-            .map(|line| {
+    fn from_lines(lines: Lines) -> Self {
+        let mut lines = lines.peekable();
+        let width = lines.peek().map_or(0, |line| line.len());
+        let grid: Vec<u8> = lines
+            .flat_map(|line| {
                 line.chars()
                     .map(|c| c as u8 - b'0' as u8)
                     .collect::<Vec<u8>>()
             })
             .collect();
+        let height: usize = grid.len() / width;
 
-        let max_x: usize = grid.len() - 1;
-        let max_y = grid[0].len() - 1;
-        Grid { grid, max_x, max_y }
+        Grid {
+            grid,
+            height,
+            width,
+        }
     }
 
-    fn at(&self, x: usize, y: usize) -> &u8 {
-        &self.grid[x][y]
+    // Return the next position after moving in the given direction
+    fn next_position(&self, position: usize, direction: Direction) -> Option<usize> {
+        match direction {
+            Direction::Up if position >= self.width => Some(position - self.width),
+            Direction::Down if position < self.width * (self.height - 1) => {
+                Some(position + self.width)
+            }
+            Direction::Left if position % self.width != 0 => Some(position - 1),
+            Direction::Right if (position + 1) % self.width != 0 => Some(position + 1),
+            _ => None,
+        }
+    }
+
+    fn at(&self, index: usize) -> u8 {
+        self.grid[index]
+    }
+
+    fn at_coordinates(&self, x: usize, y: usize) -> &u8 {
+        &self.grid[x * self.width + y]
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 struct Move {
     cost: usize,
-    position: Position,
+    position: usize,
     direction: Direction,
     steps_in_direction: i32,
 }
@@ -94,10 +96,8 @@ impl Move {
         } else if self.steps_in_direction < min_steps {
             return None;
         }
-        let position = self
-            .position
-            .move_in_direction(direction, grid.max_x, grid.max_y)?;
-        let cost = self.cost + *grid.at(position.0, position.1) as usize;
+        let position = grid.next_position(self.position, direction)?;
+        let cost = self.cost + grid.at(position) as usize;
         let steps_in_direction = if self.direction == direction {
             self.steps_in_direction + 1
         } else {
@@ -115,8 +115,8 @@ impl Move {
     fn next_moves(&self, grid: &Grid, min_steps: i32, max_steps: i32) -> Vec<Self> {
         self.direction
             .next_directions()
-            .iter()
-            .flat_map(|d| self.next(*d, &grid, min_steps, max_steps))
+            .into_iter()
+            .flat_map(|d| self.next(d, &grid, min_steps, max_steps))
             .collect()
     }
 }
@@ -140,17 +140,17 @@ where
     FN2: Fn(&Grid, &Move) -> IN,
     IN: IntoIterator<Item = Move>,
 {
-    let mut visited: HashSet<(Position, Direction, i32)> = HashSet::new();
+    let mut visited: HashSet<(usize, Direction, i32)> = HashSet::new();
     let mut frontier: BinaryHeap<Move> = BinaryHeap::from([
         Move {
             cost: 0,
-            position: Position(0, 0),
+            position: 0,
             direction: Direction::Down,
             steps_in_direction: 0,
         },
         Move {
             cost: 0,
-            position: Position(0, 0),
+            position: 0,
             direction: Direction::Right,
             steps_in_direction: 0,
         },
@@ -177,7 +177,7 @@ where
 
 fn part_1(lines: Lines) -> usize {
     let mut grid = Grid::from_lines(lines);
-    let goal = Position(grid.max_x, grid.max_y);
+    let goal = grid.grid.len() - 1;
     let success = |current: &Move| current.position == goal;
     let successors = |grid: &Grid, m: &Move| m.next_moves(grid, 0, 3);
 
@@ -186,7 +186,7 @@ fn part_1(lines: Lines) -> usize {
 
 fn part_2(lines: Lines) -> usize {
     let mut grid = Grid::from_lines(lines);
-    let goal = Position(grid.max_x, grid.max_y);
+    let goal = grid.grid.len() - 1;
     let success = |current: &Move| current.position == goal && current.steps_in_direction >= 4;
     let successors = |grid: &Grid, m: &Move| m.next_moves(grid, 4, 10);
 

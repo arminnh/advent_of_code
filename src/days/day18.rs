@@ -116,9 +116,10 @@ fn part_2(_lines: Lines) -> i32 {
 }
 
 pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/day_18");
     (
-        Solution::from(part_1(load_input("inputs/day_18").lines())),
-        Solution::from(part_2(load_input("inputs/day_18").lines())),
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
     )
 }
 

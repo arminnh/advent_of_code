@@ -48,6 +48,7 @@ fn parse_grid(lines: Lines) -> Grid {
     grid
 }
 
+#[allow(dead_code)]
 fn print_grid(grid: &Grid) {
     grid.iter().for_each(|row| {
         row.iter().for_each(|c| print!("{c}"));

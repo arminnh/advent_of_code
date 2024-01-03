@@ -27,7 +27,7 @@ impl Category {
 enum Condition {
     LT(Category, usize),
     GT(Category, usize),
-    True,
+    NOOP,
 }
 
 impl Condition {
@@ -120,7 +120,7 @@ impl Rule {
         let condition = match self.condition {
             Condition::LT(category, target) => part.get(category) < target,
             Condition::GT(category, target) => part.get(category) > target,
-            Condition::True => true,
+            Condition::NOOP => true,
         };
 
         if condition {
@@ -137,10 +137,59 @@ impl Rule {
                 decision: Decision::from_str(dec),
             },
             [dec] => Rule {
-                condition: Condition::True,
+                condition: Condition::NOOP,
                 decision: Decision::from_str(dec),
             },
             _ => panic!("Invalid rule {s:?}"),
+        }
+    }
+
+    // For the given ranges (tuples (from, to)) of variables [X, M, A, S], adapt the range
+    // this rule operates on into a variant that passes this rule and one that fails this rule.
+    fn generate_pass_and_fail_ranges(
+        &self,
+        part_ranges: [(usize, usize); 4],
+    ) -> (Option<[(usize, usize); 4]>, Option<[(usize, usize); 4]>) {
+        match self.condition {
+            Condition::LT(category, target) => {
+                let index = category as usize;
+                let (from, to) = part_ranges[index];
+                if target <= from {
+                    // Range starts higher than target -> can only fail
+                    (None, Some(part_ranges))
+                } else if target <= to {
+                    // Target fits in range -> split the range into pass and fail variants
+                    let mut pass = part_ranges.clone();
+                    pass[index] = (from, target - 1);
+                    let mut fail = part_ranges;
+                    fail[index] = (target, to);
+
+                    (Some(pass), Some(fail))
+                } else {
+                    // Whole range is less than target -> can only pass
+                    (Some(part_ranges), None)
+                }
+            }
+            Condition::GT(category, target) => {
+                let index = category as usize;
+                let (from, to) = part_ranges[index];
+                if target < from {
+                    // Range starts higher than target -> can only pass
+                    (Some(part_ranges), None)
+                } else if target < to {
+                    // Target fits in range -> split the range into pass and fail variants
+                    let mut pass = part_ranges.clone();
+                    pass[index] = (target + 1, to);
+                    let mut fail = part_ranges;
+                    fail[index] = (from, target);
+
+                    (Some(pass), Some(fail))
+                } else {
+                    // Whole range is less than target -> can only fail
+                    (None, Some(part_ranges))
+                }
+            }
+            Condition::NOOP => (Some(part_ranges), None),
         }
     }
 }
@@ -210,12 +259,62 @@ fn part_1(input: String) -> usize {
         .sum()
 }
 
-fn part_2(_lines: String) -> usize {
-    0
+// Take all possible flows through the workflows, starting from "in", and generate the ranges of
+// parts that eventually get accepted.
+fn generate_possible_part_ranges(workflows: &Workflows) -> Vec<[(usize, usize); 4]> {
+    let mut result: Vec<[(usize, usize); 4]> = Vec::new();
+    let mut candidates: Vec<(String, [(usize, usize); 4])> = Vec::from([(
+        "in".to_string(),
+        [(1, 4000), (1, 4000), (1, 4000), (1, 4000)],
+    )]);
+
+    while let Some((workflow_name, mut candidate)) = candidates.pop() {
+        let rules = &workflows.get(workflow_name.as_str()).unwrap().rules;
+        for rule in rules {
+            // For each rule, generate the two branches that would pass and fail the current rule
+            let (pass, fail) = rule.generate_pass_and_fail_ranges(candidate);
+
+            // Handle the branch that passes the current rule
+            if let Some(pass) = pass {
+                match &rule.decision {
+                    // Found an accepted set of ranges!
+                    Decision::Accept => result.push(pass),
+                    // Do nothing for rejected candidate. Is now popped from the stack.
+                    Decision::Reject => (),
+                    // Rule transfers to another workflow -> push new candidate to be handled by later rules
+                    Decision::Transfer(next) => candidates.push((next.clone(), pass)),
+                }
+            }
+
+            if let Some(fail) = fail {
+                // If there is a failing branch, it is the starting point for the next rule
+                candidate = fail
+            } else {
+                break;
+            }
+        }
+    }
+
+    result
+}
+
+// Consider only your list of workflows; the list of part ratings
+// that the Elves wanted you to sort is no longer relevant.
+// How many distinct combinations of ratings will be accepted by the Elves' workflows?
+fn part_2(input: String) -> usize {
+    let workflows = match input.split("\n\n").collect::<Vec<&str>>()[..] {
+        [workflows, _] => parse_workflows(workflows),
+        _ => panic!("Invalid input. Could not split workflows and parts."),
+    };
+
+    generate_possible_part_ranges(&workflows)
+        .iter()
+        .map(|r| r.iter().map(|(from, to)| to - from + 1).product::<usize>())
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_17");
+    let input = load_input("inputs/day_19");
     (
         Solution::from(part_1(input.clone())),
         Solution::from(part_2(input)),
@@ -257,11 +356,11 @@ hdj{m>838:A,pv}
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.to_string()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT.to_string()), 167409079868000);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_19")), 0);
+        assert_eq!(part_2(load_input("inputs/day_19")), 134906204068564);
     }
 }

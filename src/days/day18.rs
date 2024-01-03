@@ -53,6 +53,7 @@ fn neighbors(p: &Position, max_x: i32, max_y: i32) -> Vec<Position> {
     .collect()
 }
 
+#[allow(dead_code)]
 fn print_lagoon(lagoon: &HashSet<Position>, highlight: Option<&HashSet<Position>>) {
     let max_x = lagoon.iter().max_by_key(|pos| pos.0).unwrap().0;
     let max_y = lagoon.iter().max_by_key(|pos| pos.1).unwrap().1;
@@ -99,7 +100,7 @@ fn flood_fill(lagoon: &HashSet<Position>) -> usize {
         }
     }
 
-    print_lagoon(&lagoon, Some(&visited));
+    // print_lagoon(&lagoon, Some(&visited));
     (max_x as usize + 1) * (max_y as usize + 1) - visited.len()
 }
 
@@ -107,11 +108,11 @@ fn flood_fill(lagoon: &HashSet<Position>) -> usize {
 fn part_1(lines: Lines) -> usize {
     let lagoon = parse_lagoon(lines);
 
-    print_lagoon(&lagoon, None);
+    // print_lagoon(&lagoon, None);
     flood_fill(&lagoon)
 }
 
-fn part_2(_lines: Lines) -> i32 {
+fn part_2(_lines: Lines) -> usize {
     0
 }
 
@@ -154,7 +155,7 @@ U 2 (#7a21e3)";
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 952408144115);
     }
 
     #[test]

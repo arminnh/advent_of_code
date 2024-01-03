@@ -68,6 +68,7 @@ impl Grid {
         self.grid[index]
     }
 
+    #[allow(dead_code)]
     fn at_coordinates(&self, x: usize, y: usize) -> &u8 {
         &self.grid[x * self.width + y]
     }

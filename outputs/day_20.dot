@@ -1,0 +1,60 @@
+digraph {
+    vb -> ∧_ck
+    pb -> xv
+    ∧_gt -> ∧_jq
+    hj -> lk, ∧_hh
+    zd -> fm
+    hr -> ∧_hh
+    rg -> tp
+    tf -> ∧_ck, tx
+    pp -> vs, ∧_hh
+    vx -> df
+    tx -> mr, ∧_ck
+    nh -> vx
+    sc -> ∧_ck, vb
+    cc -> ∧_ck, rj
+    tn -> ∧_kz, lt
+    fp -> rb
+    hc -> ∧_kz
+    rb -> ∧_ns, mf
+    pc -> vh
+    broadcaster -> tf, br, zn, nc
+    zn -> ∧_kz, fv
+    ∧_ns -> pb, ∧_lr, br, fp, gp, gv, jl
+    nc -> ∧_hh, hj
+    mf -> ∧_ns, gp
+    xv -> ∧_ns, kh
+    rj -> ∧_ck, sc
+    tg -> cc
+    gp -> pb
+    jz -> lj, ∧_ns
+    jl -> fp
+    ∧_vr -> ∧_jq
+    ∧_jq -> rx
+    ∧_kz -> zf, ∧_nl, df, zn, vx, nh
+    gv -> jl
+    gf -> zf, ∧_kz
+    df -> gf
+    kq -> pp
+    lk -> ∧_hh, zd
+    vs -> bp
+    lt -> ls, ∧_kz
+    ∧_nl -> ∧_jq
+    mr -> rg
+    zf -> qf
+    br -> gv, ∧_ns
+    rk -> ∧_hh, hr
+    qf -> ∧_kz, tn
+    rv -> rk, ∧_hh
+    ls -> hc, ∧_kz
+    fm -> kq
+    ∧_ck -> tp, ∧_vr, pc, tg, mr, tf, rg
+    fv -> nh, ∧_kz
+    tp -> pc
+    vh -> ∧_ck, tg
+    ∧_hh -> vs, kq, ∧_gt, nc, zd, fm
+    ∧_lr -> ∧_jq
+    kh -> ∧_ns, jz
+    bp -> ∧_hh, rv
+    lj -> ∧_ns
+}

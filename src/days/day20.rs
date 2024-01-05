@@ -60,12 +60,11 @@ impl CommunicationModule for FlipFlop {
         match pulse {
             Pulse::High => None,
             Pulse::Low => {
-                let was_on = self.on;
                 self.on = !self.on;
-                if was_on {
-                    Some(Pulse::Low)
-                } else {
+                if self.on {
                     Some(Pulse::High)
+                } else {
+                    Some(Pulse::Low)
                 }
             }
         }
@@ -246,8 +245,76 @@ fn part_1(lines: Lines) -> usize {
     low_pulses * high_pulses
 }
 
-fn part_2(_lines: Lines) -> usize {
-    0
+fn gcd(a: usize, b: usize) -> usize {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn lcm(a: usize, b: usize) -> usize {
+    if a == 0 || b == 0 {
+        0
+    } else {
+        (a * b) / gcd(a, b)
+    }
+}
+
+// Waiting for all pulses to be fully handled after each button press, what is the fewest number of
+// button presses required to deliver a single low pulse to the module named `rx`?
+fn part_2(lines: Lines) -> usize {
+    let (mut modules, module_destinations, broadcaster) = parse_input(lines);
+
+    /* The broadcaster sends signals to 4 subgraphs of modules (see visualization /outputs/day_20.png).
+    Each subgraph counts up to a number and sends a pulse to a conjunction when that number is reached.
+    Those 4 conjunctions then feed the final conjunction that feeds the sink `rx`.
+    -> rx's conjunction will send a low pulse when all 4 subgraphs reach their number
+    -> find the lowest common multiple of those 4 numbers */
+
+    // First, find the 4 conjunctions that need to be triggered
+    let rx_index: usize = modules.len() - 1;
+    let rx_conjunction: usize = module_destinations
+        .iter()
+        .position(|destinations| destinations.contains(&rx_index))
+        .unwrap();
+    let mut subgraph_conjunctions: Vec<usize> = module_destinations
+        .iter()
+        .enumerate()
+        .filter(|(_, destinations)| destinations.contains(&rx_conjunction))
+        .map(|(index, _)| index)
+        .collect();
+
+    // Then, for each broadcast target, count the number of presses until one of the conjunctions get triggered
+    let mut numbers: Vec<usize> = Vec::new();
+    let mut button_presses = 0;
+    // When a subgraph has completed, remove it from the list. Keep pressing the button until list is empty.
+    while !subgraph_conjunctions.is_empty() {
+        button_presses += 1;
+        // Each signal is pushed to the back of the signals queue to ensure correct order of processing
+        let mut signals: VecDeque<(usize, usize, Pulse)> = broadcaster
+            .iter()
+            .map(|&destination| (0, destination, Pulse::Low))
+            .collect();
+
+        while let Some((source, destination, pulse)) = signals.pop_front() {
+            if pulse == Pulse::Low && subgraph_conjunctions.contains(&destination) {
+                numbers.push(button_presses);
+                subgraph_conjunctions.retain(|&i| i != destination);
+            }
+
+            if let Some(new_pulse) = modules[destination].process_pulse(source, pulse) {
+                module_destinations[destination]
+                    .iter()
+                    .for_each(|&new_destination| {
+                        signals.push_back((destination, new_destination, new_pulse))
+                    });
+            }
+        }
+    }
+
+    // LCM of the 4 numbers
+    numbers.into_iter().fold(1, |result, num| lcm(result, num))
 }
 
 pub fn solve() -> SolutionPair {
@@ -290,12 +357,17 @@ mod tests {
     }
 
     #[test]
-    fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+    fn test_lcm() {
+        assert_eq!(lcm(2, 3), 6);
+        assert_eq!(lcm(2, 4), 4);
+        assert_eq!(lcm(2, 5), 10);
+        assert_eq!(lcm(6, 10), 30);
+        assert_eq!(lcm(30, 105), 210);
+        assert_eq!(lcm(60, 84), 420);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_20").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_20").lines()), 237878264003759);
     }
 }

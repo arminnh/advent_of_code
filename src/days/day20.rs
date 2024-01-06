@@ -201,6 +201,7 @@ fn handle_button_press(
     modules: &mut Vec<Box<dyn CommunicationModule>>,
     module_destinations: &Vec<Vec<usize>>,
     broadcaster: &Broadcaster,
+    mut part_2_conjunction_handler: impl FnMut(Pulse, usize),
 ) -> (usize, usize) {
     let mut low_pulse_count = 1;
     let mut high_pulse_count = 0;
@@ -211,6 +212,7 @@ fn handle_button_press(
         .collect();
 
     while let Some((source, destination, pulse)) = signals.pop_front() {
+        part_2_conjunction_handler(pulse, destination);
         // println!("{source} ---{pulse:?}--> {destination}");
         match pulse {
             Pulse::High => high_pulse_count += 1,
@@ -237,7 +239,8 @@ fn part_1(lines: Lines) -> usize {
 
     // 1000 is low enough to brute force quickly
     let (low_pulses, high_pulses) = (0..1000).fold((0, 0), |(low_count, high_count), _| {
-        let (low, high) = handle_button_press(&mut modules, &module_destinations, &broadcaster);
+        let (low, high) =
+            handle_button_press(&mut modules, &module_destinations, &broadcaster, |_, _| ());
         // println!("{}, {}", low_count + low, high_count + high);
         (low_count + low, high_count + high)
     });
@@ -272,7 +275,7 @@ fn part_2(lines: Lines) -> usize {
     -> rx's conjunction will send a low pulse when all 4 subgraphs reach their number
     -> find the lowest common multiple of those 4 numbers */
 
-    // First, find the 4 conjunctions that need to be triggered
+    // First, find the 4 conjunctions that need to be triggered by going backwards from `rx`
     let rx_index: usize = modules.len() - 1;
     let rx_conjunction: usize = module_destinations
         .iter()
@@ -285,32 +288,26 @@ fn part_2(lines: Lines) -> usize {
         .map(|(index, _)| index)
         .collect();
 
-    // Then, for each broadcast target, count the number of presses until one of the conjunctions get triggered
-    let mut numbers: Vec<usize> = Vec::new();
+    // Then count the numbers of button presses until each of the conjunctions get triggered.
+    // Once one gets triggered, remove it from the list. Keep handling button presses until the list is empty.
     let mut button_presses = 0;
-    // When a subgraph has completed, remove it from the list. Keep pressing the button until list is empty.
+    let mut numbers: Vec<usize> = Vec::new();
     while !subgraph_conjunctions.is_empty() {
         button_presses += 1;
-        // Each signal is pushed to the back of the signals queue to ensure correct order of processing
-        let mut signals: VecDeque<(usize, usize, Pulse)> = broadcaster
-            .iter()
-            .map(|&destination| (0, destination, Pulse::Low))
-            .collect();
 
-        while let Some((source, destination, pulse)) = signals.pop_front() {
+        let mut handle_conjunction_triggered = |pulse: Pulse, destination: usize| {
             if pulse == Pulse::Low && subgraph_conjunctions.contains(&destination) {
                 numbers.push(button_presses);
                 subgraph_conjunctions.retain(|&i| i != destination);
             }
+        };
 
-            if let Some(new_pulse) = modules[destination].process_pulse(source, pulse) {
-                module_destinations[destination]
-                    .iter()
-                    .for_each(|&new_destination| {
-                        signals.push_back((destination, new_destination, new_pulse))
-                    });
-            }
-        }
+        handle_button_press(
+            &mut modules,
+            &module_destinations,
+            &broadcaster,
+            &mut handle_conjunction_triggered,
+        );
     }
 
     // LCM of the 4 numbers

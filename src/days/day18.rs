@@ -341,61 +341,78 @@ fn can_slice(
     edges.iter().enumerate().all(|(j, e)| {
         !point_in_rectangle(e.from, rectangle_from, rectangle_to)
             || (grandparent_index <= j && j <= grandparent_index + 4)
+            || (grandparent_index >= edges.len() - 2 && j < 1)
     })
 }
 
 // Calculate area by slicing rectangles off of the polygon until only one rectangle remains
+// This whole thing would have been much easier by searching rectangles based on the corner points,
+// but I wanted to make it work using the directions in the given input.
 fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i32 {
     let mut area = 0;
     let mut rectangles: Vec<(Edge, Edge)> = Vec::new();
 
     while edges.len() > 4 {
-        // println!("{edges:?}");
         let mut next_edges: Vec<Edge> = Vec::with_capacity(edges.len());
         let mut i = 0;
-        let mut angle = edges[0].direction.angle(edges[1].direction);
+        let mut angle = edges[i].direction.angle(edges[i + 1].direction);
         while i < edges.len() {
-            let grandparent = &edges[i];
-            let parent = &edges[(i + 1) % edges.len()];
-            let current = &edges[(i + 2) % edges.len()];
+            let grandparent = edges[i];
+            let parent = edges[(i + 1) % edges.len()];
+            let current = edges[(i + 2) % edges.len()];
             angle += parent.direction.angle(current.direction);
 
-            if !can_slice(&edges, i, grandparent, current, angle) {
-                next_edges.push(edges[i].clone());
+            if !can_slice(&edges, i, &grandparent, &current, angle)
+                || next_edges.len() + edges.len() - i == 4
+            {
+                next_edges.push(grandparent);
+                println!("{i}, cannot slice");
                 i += 1;
                 continue;
             }
 
             angle = 0;
             if current.distance == grandparent.distance {
+                println!("{} -> Clean cut", i);
                 // Clean cut -> connect before & after rectangle by extending the last pushed edge
                 area += current.distance * (parent.distance + 1);
-                rectangles.push((parent.clone(), current.clone()));
+                rectangles.push((parent, current));
 
-                println!("Clean cut, {i:?} --------------------------------> {area:}");
-                let next = &edges[(i + 3) % edges.len()];
+                let next = &edges[i + 3];
                 // extend most recent new edge by the length of the sliced rectangle
                 // and by the next edge after the rectangle
                 let most_recent = next_edges.last_mut().unwrap();
-                *most_recent = most_recent.extend(parent.distance + next.distance);
+                if next.direction == parent.direction {
+                    *most_recent = most_recent.extend(parent.distance + next.distance);
+                } else {
+                    area += next.distance; // add area of sliced edge which will not be part of a future rectangle
+                    *most_recent = most_recent.extend(parent.distance - next.distance);
+                }
 
                 i += 4;
             } else if current.distance < grandparent.distance {
+                println!("{} -> Current edge is shorter", i);
                 // Current edge is shorter -> shorten grandparent, drop parent and current, move and extend next
                 area += current.distance * (parent.distance + 1);
-                println!("{grandparent:?}, ");
-                println!("{parent:?}");
-                println!("{current:?}");
-                println!("Grandparent longer, {i:?} --------------------------------> {area:}");
-                rectangles.push((parent.clone(), current.clone()));
+                rectangles.push((parent, current));
 
                 // shorten grandparent
                 let new_grandparent = grandparent.shrink(current.distance);
-                next_edges.push(new_grandparent.clone());
+                next_edges.push(new_grandparent);
 
                 // move and extend next
-                let next = &edges[(i + 3) % edges.len()];
-                println!("{next:?}");
+                let next = if i < edges.len() - 2 {
+                    edges[i + 3]
+                } else {
+                    if i == edges.len() - 1 {
+                        // pop parent
+                        next_edges.remove(0);
+                    }
+                    // pop current
+                    next_edges.remove(0);
+                    // pop and return next
+                    next_edges.remove(0)
+                };
                 if next.direction == parent.direction {
                     next_edges.push(
                         next.translate(next.direction.opposite(), parent.distance)
@@ -403,7 +420,6 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i32 {
                     );
                 } else {
                     area += next.distance; // add area of sliced edge which will not be part of a future rectangle
-                    println!("  -->  {area:}");
                     next_edges.push(Edge {
                         from: new_grandparent.to,
                         to: next.to,
@@ -415,62 +431,68 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i32 {
 
                 i += 4;
             } else {
+                println!("{} -> Current edge is longer", i);
                 // Current edge is longer -> drop grandparent & parent, extend great grandparent, move and shrink current
                 area += grandparent.distance * (parent.distance + 1);
-                println!("Current longer, {i:?} --------------------------------> {area:}");
-                rectangles.push((parent.clone(), grandparent.clone()));
+                rectangles.push((parent, grandparent));
 
                 // Extend great grandparent
-                let great_grandparent = next_edges.last_mut().unwrap();
-                *great_grandparent = great_grandparent.extend(parent.distance);
+                if i == 0 {
+                    // great grandparent is actually last element of the list of edges currently iterating over
+                    let xxxx = edges.len() - 1;
+                    let great_grandparent = edges[xxxx];
+                    edges[xxxx] = great_grandparent.extend(parent.distance);
+                } else {
+                    let great_grandparent = next_edges.last_mut().unwrap();
+                    *great_grandparent = great_grandparent.extend(parent.distance);
+                }
 
                 // move and shrink current
-                next_edges.push(
-                    current
+                if i < edges.len() - 2 {
+                    println!("{i:?} / {} -> aaaaaaaaaaaaaaaaaaaa", edges.len());
+                    next_edges.push(
+                        current
+                            .translate(current.direction, grandparent.distance)
+                            .shrink(grandparent.distance),
+                    );
+                } else {
+                    if i == edges.len() - 1 {
+                        next_edges.remove(0);
+                    }
+                    println!("{i:?} / {} -> bbbbbbbbbbbbbbbbbbbbb", edges.len());
+                    // next edge is actually first edge of the next_edges vec, so update that one
+                    next_edges[0] = next_edges[0]
                         .translate(current.direction, grandparent.distance)
-                        .shrink(grandparent.distance),
-                );
+                        .shrink(grandparent.distance);
+                }
 
                 i += 3;
             }
-            draw_lagoon(&edges, &rectangles);
 
+            // next_edges.iter().for_each(|e| println!("{e:?}"));
+            // draw_lagoon(&edges, &rectangles);
             // next_edges.append(&mut edges[i..].to_vec());
             // break;
         }
-
-        draw_lagoon(&next_edges, &rectangles);
         edges = next_edges;
+        edges.iter().for_each(|e| println!("{e:?}"));
+        draw_lagoon(&edges, &rectangles);
     }
 
-    println!("{edges:?}");
+    rectangles.push((edges[0], edges[1]));
+    draw_lagoon(&Vec::new(), &rectangles);
 
     area + (edges[0].distance + 1) * (edges[1].distance + 1)
 }
 
 // Calculate the volume of the lagoon formed by the perimeter. Each position is a 1 meter cube.
 fn part_1(lines: Lines) -> i32 {
-    area_of_rectilinear_polygon(parse_edges(lines))
+    let edges = parse_edges(lines);
+    draw_lagoon(&edges, &Vec::new());
+    area_of_rectilinear_polygon(edges)
 }
 
 fn draw_lagoon(edges: &Vec<Edge>, rectangles: &Vec<(Edge, Edge)>) {
-    // let mut edges = edges.clone();
-    // for xxx in 0..=10 {
-    //     edges.insert(0, Edge {
-    //         from: Point::from(xxx, 0),
-    //         to: Point::from(xxx, 10),
-    //         direction: Direction::Right,
-    //         distance: 10,
-    //         color: Rgb([50, 50, 50])
-    //     });
-    //     edges.insert(0, Edge {
-    //         from: Point::from(0, xxx),
-    //         to: Point::from(10, xxx),
-    //         direction: Direction::Right,
-    //         distance: 10,
-    //         color: Rgb([50, 50, 50])
-    //     });
-    // }
     let (width, height): (u32, u32) = (800, 800);
     let (x_min, x_max, y_min, y_max) = edges
         .iter()
@@ -493,11 +515,6 @@ fn draw_lagoon(edges: &Vec<Edge>, rectangles: &Vec<(Edge, Edge)>) {
 
     let mut img = ImageBuffer::new(width, height);
     for (e1, e2) in rectangles {
-        let c = if &(*e1, *e2) == rectangles.last().unwrap() {
-            Rgb([255, 255, 255])
-        } else {
-            e1.color
-        };
         draw_line(
             &mut img,
             x_scaled(
@@ -524,23 +541,26 @@ fn draw_lagoon(edges: &Vec<Edge>, rectangles: &Vec<(Edge, Edge)>) {
                     .max()
                     .unwrap(),
             ),
-            c,
+            e1.color,
         );
     }
-    for edge in edges {
+    for (iiii, edge) in edges.iter().enumerate() {
         let (x0, y0) = (x_scaled(edge.from.y), y_scaled(edge.from.x));
         let (x1, y1) = (x_scaled(edge.to.y), y_scaled(edge.to.x));
-        draw_line(&mut img, x0, y0, x1, y1, edge.color);
+        if iiii == edges.len() - 1 {
+            draw_line(&mut img, x0, y0, x1, y1, Rgb([255, 255, 255]));
+        } else {
+            draw_line(&mut img, x0, y0, x1, y1, edge.color);
+        }
     }
     // img.save(format!("outputs/day_18_{}.png", rectangles.len()))
     img.save("outputs/day_18.png")
         .expect("Failed to save image");
 
-    println!("Press enter");
-    let mut input = String::new();
-    std::io::stdin()
-        .read_line(&mut input)
-        .expect("can not read user input");
+    // let mut input = String::new();
+    // std::io::stdin()
+    //     .read_line(&mut input)
+    //     .expect("can not read user input");
 }
 
 fn draw_line(img: &mut RgbImage, x0: u32, y0: u32, x1: u32, y1: u32, color: Rgb<u8>) {
@@ -567,16 +587,6 @@ pub fn solve() -> SolutionPair {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_part_1_rectangles_shortened() {
-        assert_eq!(part_1(load_input("inputs/day_18_shortened").lines()), 5532);
-    }
-
-    #[test]
-    fn test_part_1_rectangles_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 62);
-    }
-
     const EXAMPLE_INPUT_1: &str = "R 6 (#70c710)
 D 5 (#0dc571)
 L 2 (#5713f0)
@@ -600,13 +610,46 @@ U 2 (#7a21e3)";
             5532
         );
         assert_eq!(
+            part_1_flood_fill(load_input("inputs/day_18_shortened_2").lines()),
+            17891
+        );
+        assert_eq!(
+            part_1_flood_fill(load_input("inputs/day_18_shortened_3").lines()),
+            1704
+        );
+        assert_eq!(
             part_1_flood_fill(load_input("inputs/day_18").lines()),
             33491
         );
     }
 
     #[test]
+    fn test_part_1_rectangles_example() {
+        let mut lines = EXAMPLE_INPUT_1.split("\n").collect::<Vec<&str>>();
+        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        lines.rotate_left(1);
+        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        lines.rotate_left(5);
+        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        lines.rotate_left(1);
+        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        lines.rotate_left(1);
+        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        lines.rotate_left(1);
+        assert_eq!(part_1(lines.join("\n").lines()), 62);
+    }
+
+    #[test]
     fn test_part_1_rectangles() {
+        assert_eq!(part_1(load_input("inputs/day_18_shortened").lines()), 5532);
+        assert_eq!(
+            part_1(load_input("inputs/day_18_shortened_3").lines()),
+            1704
+        );
+        assert_eq!(
+            part_1(load_input("inputs/day_18_shortened_2").lines()),
+            17891
+        );
         assert_eq!(part_1(load_input("inputs/day_18").lines()), 33491);
     }
 

@@ -22,6 +22,19 @@ impl Point {
             y: self.y + y_diff * distance,
         }
     }
+
+    fn in_bounds(&self, max_x: i32, max_y: i32) -> bool {
+        self.x > 0 && self.x < max_x && self.y > 0 && self.y < max_y
+    }
+
+    fn in_rectangle(&self, rectangle_from: Point, rectangle_to: Point) -> bool {
+        let x_from = rectangle_from.x.min(rectangle_to.x);
+        let x_to = rectangle_from.x.max(rectangle_to.x);
+        let y_from = rectangle_from.y.min(rectangle_to.y);
+        let y_to = rectangle_from.y.max(rectangle_to.y);
+
+        self.x >= x_from && self.x <= x_to && self.y >= y_from && self.y <= y_to
+    }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
@@ -92,12 +105,7 @@ impl Direction {
 }
 
 #[allow(dead_code)]
-fn in_bounds(p: &Point, max_x: i32, max_y: i32) -> bool {
-    p.x > 0 && p.x < max_x && p.y > 0 && p.y < max_y
-}
-
-#[allow(dead_code)]
-fn parse_lagoon(lines: Lines<'_>) -> HashSet<Point> {
+fn parse_lagoon(lines: Lines) -> HashSet<Point> {
     let mut lagoon: HashSet<Point> = HashSet::new();
 
     lines.fold(Point::from(0, 0), |position, line| {
@@ -130,7 +138,7 @@ fn neighbors(p: &Point, max_x: i32, max_y: i32) -> Vec<Point> {
         Point::from(p.x, p.y - 1),
     ]
     .into_iter()
-    .filter(|p| in_bounds(p, max_x, max_y))
+    .filter(|p| p.in_bounds(max_x, max_y))
     .collect()
 }
 
@@ -188,6 +196,7 @@ fn flood_fill(lagoon: &HashSet<Point>) -> usize {
 }
 
 // Calculate the volume of the lagoon formed by the perimeter. Each position is a 1 meter cube.
+#[allow(dead_code)]
 fn part_1_flood_fill(lines: Lines) -> usize {
     let lagoon = parse_lagoon(lines);
     // print_lagoon(&lagoon, None);
@@ -213,24 +222,6 @@ impl Edge {
             color,
         }
     }
-
-    // fn extend(&mut self, distance: i32) -> &Self {
-    //     self.to = next_position(self.to, self.direction, distance);
-    //     self.distance += distance;
-    //     self
-    // }
-
-    // fn shrink(&mut self, distance: i32) -> &Self {
-    //     self.to = next_position(self.to, self.direction.opposite(), distance);
-    //     self.distance -= distance;
-    //     self
-    // }
-
-    // fn translate(&mut self, direction: Direction, distance: i32) -> &Self {
-    //     self.from = next_position(self.from, direction, distance);
-    //     self.to = next_position(self.to, direction, distance);
-    //     self
-    // }
 
     fn extend(&self, distance: i32) -> Self {
         Edge {
@@ -263,30 +254,6 @@ impl Edge {
     }
 }
 
-fn edges_to_lagoon(edges: &[Edge]) -> HashSet<Point> {
-    let mut out = HashSet::new();
-    edges.iter().fold(Point::from(0, 0), |position, edge| {
-        let (x_diff, y_diff) = edge.direction.to_coords();
-        (0..edge.distance).fold(position, |p, _| {
-            let next = Point::from(p.x + x_diff, p.y + y_diff);
-            out.insert(next);
-            next
-        })
-    });
-    out
-}
-
-fn edge_to_positions(direction: Direction, distance: i32, position: Point) -> HashSet<Point> {
-    let mut edge_positions = HashSet::new();
-    let (x_diff, y_diff) = direction.to_coords();
-    (0..distance).fold(position, |p, _| {
-        let next = Point::from(p.x + x_diff, p.y + y_diff);
-        edge_positions.insert(next);
-        next
-    });
-    edge_positions
-}
-
 fn parse_edges(lines: Lines) -> Vec<Edge> {
     let mut edges = Vec::new();
     lines.fold(Point::from(0, 0), |from, line| -> Point {
@@ -309,24 +276,20 @@ fn parse_edges(lines: Lines) -> Vec<Edge> {
     edges
 }
 
-fn point_in_rectangle(point: Point, rectangle_from: Point, rectangle_to: Point) -> bool {
-    let x_from = rectangle_from.x.min(rectangle_to.x);
-    let x_to = rectangle_from.x.max(rectangle_to.x);
-    let y_from = rectangle_from.y.min(rectangle_to.y);
-    let y_to = rectangle_from.y.max(rectangle_to.y);
-
-    point.x >= x_from && point.x <= x_to && point.y >= y_from && point.y <= y_to
-}
-
 // Rectangle can be sliced if no other edge lies in it
 fn can_slice(
     edges: &Vec<Edge>,
+    next_edges_len: usize,
     grandparent_index: usize,
     grandparent: &Edge,
     current: &Edge,
     angle: i32,
 ) -> bool {
-    if grandparent.direction != current.direction.opposite() || angle < 0 {
+    if grandparent.direction != current.direction.opposite()
+        || angle < 0
+        // if nr of edges done + remaining edges == 4, we're done
+        || next_edges_len + edges.len() - grandparent_index == 4
+    {
         return false;
     }
 
@@ -339,7 +302,7 @@ fn can_slice(
     };
 
     edges.iter().enumerate().all(|(j, e)| {
-        !point_in_rectangle(e.from, rectangle_from, rectangle_to)
+        !e.from.in_rectangle(rectangle_from, rectangle_to)
             || (grandparent_index <= j && j <= grandparent_index + 4)
             || (grandparent_index >= edges.len() - 2 && j < 3)
     })
@@ -350,78 +313,88 @@ fn can_slice(
 // but I wanted to make it work using the directions in the given input.
 fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i32 {
     let mut area = 0;
-    let mut rectangles: Vec<(Edge, Edge)> = Vec::new();
+    // let mut rectangles: Vec<(Edge, Edge)> = Vec::new();
 
     while edges.len() > 4 {
-        let mut next_edges: Vec<Edge> = Vec::with_capacity(edges.len());
+        let nr_of_edges = edges.len();
+        let mut next_edges: Vec<Edge> = Vec::with_capacity(nr_of_edges);
         let mut i = 0;
         let mut angle = edges[i].direction.angle(edges[i + 1].direction);
-        while i < edges.len() {
+
+        while i < nr_of_edges {
             let grandparent = edges[i];
-            let parent = edges[(i + 1) % edges.len()];
-            let current = edges[(i + 2) % edges.len()];
+            let parent = if i + 1 < nr_of_edges {
+                edges[i + 1]
+            } else {
+                next_edges[(i + 1) % nr_of_edges]
+            };
+            let current = if i + 2 < nr_of_edges {
+                edges[i + 2]
+            } else {
+                next_edges[(i + 2) % nr_of_edges]
+            };
             angle += parent.direction.angle(current.direction);
 
-            if !can_slice(&edges, i, &grandparent, &current, angle)
-                || next_edges.len() + edges.len() - i == 4
-            {
+            if !can_slice(&edges, next_edges.len(), i, &grandparent, &current, angle) {
                 next_edges.push(grandparent);
-                println!("{i}, cannot slice");
                 i += 1;
                 continue;
             }
 
+            // If can slice and wrapped back to the start, slice off first elements of next_edges
+            if i + 1 >= nr_of_edges {
+                next_edges.remove(0);
+            }
+            if i + 2 >= nr_of_edges {
+                next_edges.remove(0);
+            }
+
             angle = 0;
             if current.distance == grandparent.distance {
-                println!("{} -> Clean cut", i);
-                // Clean cut -> connect before & after rectangle by extending the last pushed edge
+                // Clean cut -> connect before & after rectangle by extending the one before
                 area += current.distance * (parent.distance + 1);
-                rectangles.push((parent, current));
+                // rectangles.push((parent, current));
 
-                let next = if i < edges.len() - 3 {
+                let next = if i < nr_of_edges - 3 {
                     edges[i + 3]
                 } else {
-                    // clean cut happens at the wrap around to the start of the next_edges -> remove
-                    for _ in 0..(i+3)%edges.len() {
-                        next_edges.remove(0);
-                    }
+                    // clean cut happens at the wrap around to the start of the next_edges
                     next_edges.remove(0)
                 };
 
-                // extend most recent new edge by the length of the sliced rectangle
-                // and by the next edge after the rectangle
-                let most_recent = next_edges.last_mut().unwrap();
-                if next.direction == parent.direction {
-                    *most_recent = most_recent.extend(parent.distance + next.distance);
+                // distance to add to the great_grandparent = length of the rectangle and next edge after current
+                let distance = if next.direction == parent.direction {
+                    parent.distance + next.distance
                 } else {
                     area += next.distance; // add area of sliced edge which will not be part of a future rectangle
-                    *most_recent = most_recent.extend(parent.distance - next.distance);
+                    parent.distance - next.distance
+                };
+
+                // extend great_grandparent
+                if let Some(great_grandparent) = next_edges.last_mut() {
+                    *great_grandparent = great_grandparent.extend(distance);
+                } else {
+                    // no edges in `next_edges` yet, so great grandparent is last element of `edges`
+                    edges[nr_of_edges - 1] = edges[nr_of_edges - 1].extend(parent.distance);
                 }
 
                 i += 4;
             } else if current.distance < grandparent.distance {
-                println!("{} -> Current edge is shorter", i);
-                // Current edge is shorter -> shorten grandparent, drop parent and current, move and extend next
+                // Current edge is shorter
                 area += current.distance * (parent.distance + 1);
-                rectangles.push((parent, current));
+                // rectangles.push((parent, current));
 
                 // shorten grandparent
                 let new_grandparent = grandparent.shrink(current.distance);
                 next_edges.push(new_grandparent);
 
                 // move and extend next
-                let next = if i < edges.len() - 2 {
+                let next = if i < nr_of_edges - 2 {
                     edges[i + 3]
                 } else {
-                    if i == edges.len() - 1 {
-                        // pop parent
-                        next_edges.remove(0);
-                    }
-                    // pop current
-                    next_edges.remove(0);
-                    // pop and return next
                     next_edges.remove(0)
                 };
+
                 if next.direction == parent.direction {
                     next_edges.push(
                         next.translate(next.direction.opposite(), parent.distance)
@@ -440,58 +413,36 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i32 {
 
                 i += 4;
             } else {
-                println!("{} -> Current edge is longer", i);
-                // Current edge is longer -> drop grandparent & parent, extend great grandparent, move and shrink current
+                // Current edge is longer
                 area += grandparent.distance * (parent.distance + 1);
-                rectangles.push((parent, grandparent));
+                // rectangles.push((parent, grandparent));
 
                 // Extend great grandparent
-                if i == 0 {
-                    // great grandparent is actually last element of the list of edges currently iterating over
-                    let xxxx = edges.len() - 1;
-                    let great_grandparent = edges[xxxx];
-                    edges[xxxx] = great_grandparent.extend(parent.distance);
-                } else {
-                    let great_grandparent = next_edges.last_mut().unwrap();
+                if let Some(great_grandparent) = next_edges.last_mut() {
                     *great_grandparent = great_grandparent.extend(parent.distance);
+                } else {
+                    // no edges in `next_edges` yet, so great grandparent is last element of `edges`
+                    edges[nr_of_edges - 1] = edges[nr_of_edges - 1].extend(parent.distance);
                 }
 
                 // move and shrink current
-                if i < edges.len() - 2 {
-                    println!("{i:?} / {} -> aaaaaaaaaaaaaaaaaaaa", edges.len());
-                    next_edges.push(
-                        current
-                            .translate(current.direction, grandparent.distance)
-                            .shrink(grandparent.distance),
-                    );
-                } else {
-                    if i == edges.len() - 1 {
-                        next_edges.remove(0);
-                    }
-                    println!("{i:?} / {} -> bbbbbbbbbbbbbbbbbbbbb", edges.len());
-                    // next edge is actually first edge of the next_edges vec, so update that one
-                    next_edges[0] = next_edges[0]
+                next_edges.push(
+                    current
                         .translate(current.direction, grandparent.distance)
-                        .shrink(grandparent.distance);
-                }
+                        .shrink(grandparent.distance),
+                );
 
                 i += 3;
             }
-
-            // next_edges.iter().for_each(|e| println!("{e:?}"));
-            // if rectangles.len() > 8 {
-            // draw_lagoon(&edges, &rectangles);
-            // }
-            // next_edges.append(&mut edges[i..].to_vec());
-            // break;
         }
+
         edges = next_edges;
-        edges.iter().for_each(|e| println!("{e:?}"));
-        draw_lagoon(&edges, &rectangles);
+        // draw_lagoon(&edges, &rectangles);
     }
 
-    rectangles.push((edges[0], edges[1]));
-    draw_lagoon(&Vec::new(), &rectangles);
+    // rectangles.push((edges[0], edges[1]));
+    // rectangles.push((edges[2], edges[3]));
+    // draw_lagoon(&Vec::new(), &rectangles);
 
     area + (edges[0].distance + 1) * (edges[1].distance + 1)
 }
@@ -499,10 +450,12 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i32 {
 // Calculate the volume of the lagoon formed by the perimeter. Each position is a 1 meter cube.
 fn part_1(lines: Lines) -> i32 {
     let edges = parse_edges(lines);
-    draw_lagoon(&edges, &Vec::new());
+    // edges.iter().for_each(|e| println!("{e:?}"));
+    // draw_lagoon(&edges, &Vec::new());
     area_of_rectilinear_polygon(edges)
 }
 
+#[allow(dead_code)]
 fn draw_lagoon(edges: &Vec<Edge>, rectangles: &Vec<(Edge, Edge)>) {
     let (width, height): (u32, u32) = (800, 800);
     let (x_min, x_max, y_min, y_max) = edges
@@ -555,10 +508,10 @@ fn draw_lagoon(edges: &Vec<Edge>, rectangles: &Vec<(Edge, Edge)>) {
             e1.color,
         );
     }
-    for (iiii, edge) in edges.iter().enumerate() {
+    for (edge_index, edge) in edges.iter().enumerate() {
         let (x0, y0) = (x_scaled(edge.from.y), y_scaled(edge.from.x));
         let (x1, y1) = (x_scaled(edge.to.y), y_scaled(edge.to.x));
-        if iiii == edges.len() - 1 {
+        if edge_index == edges.len() - 1 {
             draw_line(&mut img, x0, y0, x1, y1, Rgb([255, 255, 255]));
         } else {
             draw_line(&mut img, x0, y0, x1, y1, edge.color);
@@ -574,6 +527,7 @@ fn draw_lagoon(edges: &Vec<Edge>, rectangles: &Vec<(Edge, Edge)>) {
     //     .expect("can not read user input");
 }
 
+#[allow(dead_code)]
 fn draw_line(img: &mut RgbImage, x0: u32, y0: u32, x1: u32, y1: u32, color: Rgb<u8>) {
     for x in x0.min(x1)..=x1.max(x0) {
         for y in y0.min(y1)..=y1.max(y0) {
@@ -652,25 +606,25 @@ U 2 (#7a21e3)";
 
     #[test]
     fn test_part_1_rectangles() {
-        // assert_eq!(part_1(load_input("inputs/day_18_shortened").lines()), 5532);
+        assert_eq!(part_1(load_input("inputs/day_18_shortened").lines()), 5532);
         assert_eq!(
             part_1(load_input("inputs/day_18_shortened_3").lines()),
             1704
         );
-        // assert_eq!(
-        //     part_1(load_input("inputs/day_18_shortened_2").lines()),
-        //     17891
-        // );
-        // assert_eq!(part_1(load_input("inputs/day_18").lines()), 33491);
+        assert_eq!(
+            part_1(load_input("inputs/day_18_shortened_2").lines()),
+            17891
+        );
+        assert_eq!(part_1(load_input("inputs/day_18").lines()), 33491);
     }
 
-    #[test]
-    fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 952408144115);
-    }
+    // #[test]
+    // fn test_part_2_example() {
+    //     assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 952408144115);
+    // }
 
-    #[test]
-    fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_18").lines()), 0);
-    }
+    // #[test]
+    // fn test_part_2() {
+    //     assert_eq!(part_2(load_input("inputs/day_18").lines()), 0);
+    // }
 }

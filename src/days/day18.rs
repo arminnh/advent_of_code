@@ -6,16 +6,16 @@ use std::str::Lines;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct Point {
-    x: i32,
-    y: i32,
+    x: i64,
+    y: i64,
 }
 
 impl Point {
-    fn from(x: i32, y: i32) -> Self {
+    fn from(x: i64, y: i64) -> Self {
         Point { x, y }
     }
 
-    fn translate(&self, direction: Direction, distance: i32) -> Point {
+    fn translate(&self, direction: Direction, distance: i64) -> Point {
         let (x_diff, y_diff) = direction.to_coords();
         Point {
             x: self.x + x_diff * distance,
@@ -23,7 +23,7 @@ impl Point {
         }
     }
 
-    fn in_bounds(&self, max_x: i32, max_y: i32) -> bool {
+    fn in_bounds(&self, max_x: i64, max_y: i64) -> bool {
         self.x > 0 && self.x < max_x && self.y > 0 && self.y < max_y
     }
 
@@ -65,7 +65,7 @@ impl Direction {
         }
     }
 
-    fn to_coords(&self) -> (i32, i32) {
+    fn to_coords(&self) -> (i64, i64) {
         match self {
             Direction::Up => (-1, 0),
             Direction::Down => (1, 0),
@@ -74,7 +74,7 @@ impl Direction {
         }
     }
 
-    fn angle(&self, other: Direction) -> i32 {
+    fn angle(&self, other: Direction) -> i64 {
         match self {
             Direction::Up => match other {
                 Direction::Up => 0,
@@ -110,7 +110,7 @@ fn parse_lagoon(lines: Lines) -> HashSet<Point> {
 
     lines.fold(Point::from(0, 0), |position, line| {
         match line.split_whitespace().collect::<Vec<&str>>()[..] {
-            [direction, count, _] => (0..count.parse::<i32>().unwrap()).fold(position, |p, _| {
+            [direction, count, _] => (0..count.parse::<i64>().unwrap()).fold(position, |p, _| {
                 let (x_diff, y_diff) = Direction::from_str(direction).to_coords();
                 let next = Point::from(p.x + x_diff, p.y + y_diff);
                 lagoon.insert(next);
@@ -130,7 +130,7 @@ fn parse_lagoon(lines: Lines) -> HashSet<Point> {
 }
 
 #[allow(dead_code)]
-fn neighbors(p: &Point, max_x: i32, max_y: i32) -> Vec<Point> {
+fn neighbors(p: &Point, max_x: i64, max_y: i64) -> Vec<Point> {
     vec![
         Point::from(p.x + 1, p.y),
         Point::from(p.x - 1, p.y),
@@ -208,12 +208,12 @@ struct Edge {
     from: Point,
     to: Point,
     direction: Direction,
-    distance: i32,
+    distance: i64,
     color: Rgb<u8>,
 }
 
 impl Edge {
-    fn from(from: Point, to: Point, direction: Direction, distance: i32, color: Rgb<u8>) -> Self {
+    fn from(from: Point, to: Point, direction: Direction, distance: i64, color: Rgb<u8>) -> Self {
         Edge {
             from,
             to,
@@ -223,7 +223,7 @@ impl Edge {
         }
     }
 
-    fn extend(&self, distance: i32) -> Self {
+    fn extend(&self, distance: i64) -> Self {
         Edge {
             from: self.from,
             to: self.to.translate(self.direction, distance),
@@ -233,7 +233,7 @@ impl Edge {
         }
     }
 
-    fn shrink(&self, distance: i32) -> Self {
+    fn shrink(&self, distance: i64) -> Self {
         Edge {
             from: self.from,
             to: self.to.translate(self.direction.opposite(), distance),
@@ -243,7 +243,7 @@ impl Edge {
         }
     }
 
-    fn translate(&self, direction: Direction, distance: i32) -> Self {
+    fn translate(&self, direction: Direction, distance: i64) -> Self {
         Edge {
             from: self.from.translate(direction, distance),
             to: self.to.translate(direction, distance),
@@ -254,13 +254,108 @@ impl Edge {
     }
 }
 
-fn parse_edges(lines: Lines) -> Vec<Edge> {
+#[allow(dead_code)]
+fn draw_lagoon(edges: &Vec<Edge>, rectangles: &Vec<(Edge, Edge)>) {
+    let (width, height): (u32, u32) = (800, 800);
+    let (x_min, x_max, y_min, y_max) = edges
+        .iter()
+        .chain(rectangles.iter().flat_map(|(e1, e2)| vec![e1, e2]))
+        .fold(
+            (i64::MAX, i64::MIN, i64::MAX, i64::MIN),
+            |(x_min, x_max, y_min, y_max), edge| {
+                (
+                    x_min.min(edge.from.y),
+                    x_max.max(edge.from.y),
+                    y_min.min(edge.from.x),
+                    y_max.max(edge.from.x),
+                )
+            },
+        );
+    let x_range = x_max - x_min;
+    let y_range = y_max - y_min;
+    let x_scaled = |x| ((x - x_min) as f64 * (width - 1) as f64 / x_range as f64).round() as u32;
+    let y_scaled = |y| ((y - y_min) as f64 * (height - 1) as f64 / y_range as f64).round() as u32;
+
+    let mut img = ImageBuffer::new(width, height);
+    for (e1, e2) in rectangles {
+        draw_line(
+            &mut img,
+            x_scaled(
+                [e1.from.y, e1.to.y, e2.from.y, e2.to.y]
+                    .into_iter()
+                    .min()
+                    .unwrap(),
+            ),
+            y_scaled(
+                [e1.from.x, e1.to.x, e2.from.x, e2.to.x]
+                    .into_iter()
+                    .min()
+                    .unwrap(),
+            ),
+            x_scaled(
+                [e1.from.y, e1.to.y, e2.from.y, e2.to.y]
+                    .into_iter()
+                    .max()
+                    .unwrap(),
+            ),
+            y_scaled(
+                [e1.from.x, e1.to.x, e2.from.x, e2.to.x]
+                    .into_iter()
+                    .max()
+                    .unwrap(),
+            ),
+            e1.color,
+        );
+    }
+    for (edge_index, edge) in edges.iter().enumerate() {
+        let (x0, y0) = (x_scaled(edge.from.y), y_scaled(edge.from.x));
+        let (x1, y1) = (x_scaled(edge.to.y), y_scaled(edge.to.x));
+        if edge_index == edges.len() - 1 {
+            draw_line(&mut img, x0, y0, x1, y1, Rgb([255, 255, 255]));
+        } else {
+            draw_line(&mut img, x0, y0, x1, y1, edge.color);
+        }
+    }
+    img.save(format!("outputs/day_18_{}.png", rectangles.len()))
+    // img.save("outputs/day_18.png")
+        .expect("Failed to save image");
+
+    // let mut input = String::new();
+    // std::io::stdin()
+    //     .read_line(&mut input)
+    //     .expect("can not read user input");
+}
+
+#[allow(dead_code)]
+fn draw_line(img: &mut RgbImage, x0: u32, y0: u32, x1: u32, y1: u32, color: Rgb<u8>) {
+    for x in x0.min(x1)..=x1.max(x0) {
+        for y in y0.min(y1)..=y1.max(y0) {
+            img.put_pixel(x, y, color);
+        }
+    }
+}
+
+fn parse_edges(lines: Lines, part_2: bool) -> Vec<Edge> {
     let mut edges = Vec::new();
     lines.fold(Point::from(0, 0), |from, line| -> Point {
         match line.split_whitespace().collect::<Vec<&str>>()[..] {
             [direction, distance, color] => {
-                let distance = distance.parse::<i32>().unwrap();
-                let direction = Direction::from_str(direction);
+                let distance: i64 = if !part_2 {
+                    distance.parse::<i64>().unwrap()
+                } else {
+                    i64::from_str_radix(&color[2..7], 16).unwrap()
+                };
+                let direction = if !part_2 {
+                    Direction::from_str(direction)
+                } else {
+                    match &color[7..8] {
+                        "0" => Direction::Right,
+                        "1" => Direction::Down,
+                        "2" => Direction::Left,
+                        "3" => Direction::Up,
+                        _ => panic!("Could not parse direction {:?}", &color[7..8]),
+                    }
+                };
                 let to = from.translate(direction, distance);
                 let color = Rgb([
                     u8::from_str_radix(&color[2..4], 16).unwrap(),
@@ -283,7 +378,7 @@ fn can_slice(
     grandparent_index: usize,
     grandparent: &Edge,
     current: &Edge,
-    angle: i32,
+    angle: i64,
 ) -> bool {
     if grandparent.direction != current.direction.opposite()
         || angle < 0
@@ -311,8 +406,8 @@ fn can_slice(
 // Calculate area by slicing rectangles off of the polygon until only one rectangle remains
 // This whole thing would have been much easier by searching rectangles based on the corner points,
 // but I wanted to make it work using the directions in the given input.
-fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i32 {
-    let mut area = 0;
+fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i64 {
+    let mut area: i64 = 0;
     // let mut rectangles: Vec<(Edge, Edge)> = Vec::new();
 
     while edges.len() > 4 {
@@ -435,7 +530,6 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i32 {
                 i += 3;
             }
         }
-
         edges = next_edges;
         // draw_lagoon(&edges, &rectangles);
     }
@@ -448,96 +542,18 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i32 {
 }
 
 // Calculate the volume of the lagoon formed by the perimeter. Each position is a 1 meter cube.
-fn part_1(lines: Lines) -> i32 {
-    let edges = parse_edges(lines);
+fn part_1(lines: Lines) -> i64 {
+    let edges = parse_edges(lines, false);
     // edges.iter().for_each(|e| println!("{e:?}"));
     // draw_lagoon(&edges, &Vec::new());
     area_of_rectilinear_polygon(edges)
 }
 
-#[allow(dead_code)]
-fn draw_lagoon(edges: &Vec<Edge>, rectangles: &Vec<(Edge, Edge)>) {
-    let (width, height): (u32, u32) = (800, 800);
-    let (x_min, x_max, y_min, y_max) = edges
-        .iter()
-        .chain(rectangles.iter().flat_map(|(e1, e2)| vec![e1, e2]))
-        .fold(
-            (i32::MAX, i32::MIN, i32::MAX, i32::MIN),
-            |(x_min, x_max, y_min, y_max), edge| {
-                (
-                    x_min.min(edge.from.y),
-                    x_max.max(edge.from.y),
-                    y_min.min(edge.from.x),
-                    y_max.max(edge.from.x),
-                )
-            },
-        );
-    let x_range = x_max - x_min;
-    let y_range = y_max - y_min;
-    let x_scaled = |x| ((x - x_min) as f64 * (width - 1) as f64 / x_range as f64).round() as u32;
-    let y_scaled = |y| ((y - y_min) as f64 * (height - 1) as f64 / y_range as f64).round() as u32;
-
-    let mut img = ImageBuffer::new(width, height);
-    for (e1, e2) in rectangles {
-        draw_line(
-            &mut img,
-            x_scaled(
-                [e1.from.y, e1.to.y, e2.from.y, e2.to.y]
-                    .into_iter()
-                    .min()
-                    .unwrap(),
-            ),
-            y_scaled(
-                [e1.from.x, e1.to.x, e2.from.x, e2.to.x]
-                    .into_iter()
-                    .min()
-                    .unwrap(),
-            ),
-            x_scaled(
-                [e1.from.y, e1.to.y, e2.from.y, e2.to.y]
-                    .into_iter()
-                    .max()
-                    .unwrap(),
-            ),
-            y_scaled(
-                [e1.from.x, e1.to.x, e2.from.x, e2.to.x]
-                    .into_iter()
-                    .max()
-                    .unwrap(),
-            ),
-            e1.color,
-        );
-    }
-    for (edge_index, edge) in edges.iter().enumerate() {
-        let (x0, y0) = (x_scaled(edge.from.y), y_scaled(edge.from.x));
-        let (x1, y1) = (x_scaled(edge.to.y), y_scaled(edge.to.x));
-        if edge_index == edges.len() - 1 {
-            draw_line(&mut img, x0, y0, x1, y1, Rgb([255, 255, 255]));
-        } else {
-            draw_line(&mut img, x0, y0, x1, y1, edge.color);
-        }
-    }
-    // img.save(format!("outputs/day_18_{}.png", rectangles.len()))
-    img.save("outputs/day_18.png")
-        .expect("Failed to save image");
-
-    // let mut input = String::new();
-    // std::io::stdin()
-    //     .read_line(&mut input)
-    //     .expect("can not read user input");
-}
-
-#[allow(dead_code)]
-fn draw_line(img: &mut RgbImage, x0: u32, y0: u32, x1: u32, y1: u32, color: Rgb<u8>) {
-    for x in x0.min(x1)..=x1.max(x0) {
-        for y in y0.min(y1)..=y1.max(y0) {
-            img.put_pixel(x, y, color);
-        }
-    }
-}
-
-fn part_2(_lines: Lines) -> usize {
-    0
+fn part_2(lines: Lines) -> i64 {
+    let edges = parse_edges(lines, true);
+    // edges.iter().for_each(|e| println!("{e:?}"));
+    draw_lagoon(&edges, &Vec::new());
+    area_of_rectilinear_polygon(edges)
 }
 
 pub fn solve() -> SolutionPair {
@@ -618,13 +634,13 @@ U 2 (#7a21e3)";
         assert_eq!(part_1(load_input("inputs/day_18").lines()), 33491);
     }
 
-    // #[test]
-    // fn test_part_2_example() {
-    //     assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 952408144115);
-    // }
+    #[test]
+    fn test_part_2_example() {
+        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 952408144115);
+    }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(load_input("inputs/day_18").lines()), 0);
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(load_input("inputs/day_18").lines()), 101029016139262);
+    }
 }

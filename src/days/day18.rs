@@ -79,23 +79,23 @@ impl Direction {
             Direction::Up => match other {
                 Direction::Up => 0,
                 Direction::Down => 180,
-                Direction::Left => -90,
+                Direction::Left => 270,
                 Direction::Right => 90,
             },
             Direction::Down => match other {
                 Direction::Up => 180,
                 Direction::Down => 0,
                 Direction::Left => 90,
-                Direction::Right => -90,
+                Direction::Right => 270,
             },
             Direction::Left => match other {
                 Direction::Up => 90,
-                Direction::Down => -90,
+                Direction::Down => 270,
                 Direction::Left => 0,
                 Direction::Right => 180,
             },
             Direction::Right => match other {
-                Direction::Up => -90,
+                Direction::Up => 270,
                 Direction::Down => 90,
                 Direction::Left => 180,
                 Direction::Right => 0,
@@ -316,9 +316,9 @@ fn draw_lagoon(edges: &Vec<Edge>, rectangles: &Vec<(Edge, Edge)>) {
             draw_line(&mut img, x0, y0, x1, y1, edge.color);
         }
     }
-    img.save(format!("outputs/day_18_{}.png", rectangles.len()))
+    // img.save(format!("outputs/day_18/day_18_{}.png", rectangles.len()))
     // img.save("outputs/day_18.png")
-        .expect("Failed to save image");
+    //     .expect("Failed to save image");
 
     // let mut input = String::new();
     // std::io::stdin()
@@ -377,11 +377,12 @@ fn can_slice(
     next_edges_len: usize,
     grandparent_index: usize,
     grandparent: &Edge,
+    parent: &Edge,
     current: &Edge,
-    angle: i64,
 ) -> bool {
     if grandparent.direction != current.direction.opposite()
-        || angle < 0
+        || grandparent.direction.angle(parent.direction) != 90
+        || parent.direction.angle(current.direction) != 90
         // if nr of edges done + remaining edges == 4, we're done
         || next_edges_len + edges.len() - grandparent_index == 4
     {
@@ -414,7 +415,6 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i64 {
         let nr_of_edges = edges.len();
         let mut next_edges: Vec<Edge> = Vec::with_capacity(nr_of_edges);
         let mut i = 0;
-        let mut angle = edges[i].direction.angle(edges[i + 1].direction);
 
         while i < nr_of_edges {
             let grandparent = edges[i];
@@ -428,9 +428,8 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i64 {
             } else {
                 next_edges[(i + 2) % nr_of_edges]
             };
-            angle += parent.direction.angle(current.direction);
 
-            if !can_slice(&edges, next_edges.len(), i, &grandparent, &current, angle) {
+            if !can_slice(&edges, next_edges.len(), i, &grandparent, &parent, &current) {
                 next_edges.push(grandparent);
                 i += 1;
                 continue;
@@ -444,7 +443,6 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i64 {
                 next_edges.remove(0);
             }
 
-            angle = 0;
             if current.distance == grandparent.distance {
                 // Clean cut -> connect before & after rectangle by extending the one before
                 area += current.distance * (parent.distance + 1);
@@ -544,15 +542,13 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i64 {
 // Calculate the volume of the lagoon formed by the perimeter. Each position is a 1 meter cube.
 fn part_1(lines: Lines) -> i64 {
     let edges = parse_edges(lines, false);
-    // edges.iter().for_each(|e| println!("{e:?}"));
     // draw_lagoon(&edges, &Vec::new());
     area_of_rectilinear_polygon(edges)
 }
 
 fn part_2(lines: Lines) -> i64 {
     let edges = parse_edges(lines, true);
-    // edges.iter().for_each(|e| println!("{e:?}"));
-    draw_lagoon(&edges, &Vec::new());
+    // draw_lagoon(&edges, &Vec::new());
     area_of_rectilinear_polygon(edges)
 }
 

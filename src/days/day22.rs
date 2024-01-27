@@ -7,8 +7,114 @@ use std::usize;
 use three_d::*;
 
 type BrickID = usize;
-type Point3D = (usize, usize, usize);
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+struct Pos3D {
+    x: i32,
+    y: i32,
+    z: i32,
+}
+
+impl Pos3D {
+    fn from(x: i32, y: i32, z: i32) -> Self {
+        Self { x, y, z }
+    }
+
+    fn from_str(s: &str) -> Self {
+        match s
+            .split(",")
+            .map(|n| n.parse::<i32>().unwrap())
+            .collect::<Vec<i32>>()[..]
+        {
+            [x, y, z] => Self { x, y, z },
+            _ => panic!("Invalid point {}", s),
+        }
+    }
+}
+
+impl std::ops::Add for Pos3D {
+    type Output = Pos3D;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Pos3D {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl std::ops::Sub for Pos3D {
+    type Output = Pos3D;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Pos3D {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Orientation {
+    Horizontal,
+    Vertical,
+}
+
+#[derive(Debug, Clone)]
+struct Brick {
+    start: Pos3D,
+    end: Pos3D,
+    orientation: Orientation,
+}
+
+impl Brick {
+    fn from(mut start: Pos3D, mut end: Pos3D) -> Self {
+        if start.z > end.z {
+            std::mem::swap(&mut start, &mut end);
+        }
+
+        Brick {
+            start,
+            end,
+            orientation: if start.z == end.z {
+                Orientation::Horizontal
+            } else {
+                Orientation::Vertical
+            },
+        }
+    }
+
+    fn from_str(s: &str) -> Self {
+        match s.split("~").collect::<Vec<&str>>()[..] {
+            [from, to] => Brick::from(Pos3D::from_str(from), Pos3D::from_str(to)),
+            _ => panic!("Invalid brick {:?}", s),
+        }
+    }
+
+    fn translate(&self, p: Pos3D) -> Self {
+        Brick {
+            start: self.start + p,
+            end: self.end + p,
+            orientation: self.orientation,
+        }
+    }
+
+    fn points(&self) -> Vec<Pos3D> {
+        let mut out = Vec::new();
+        for x in self.start.x..=self.end.x {
+            for y in self.start.y..=self.end.y {
+                for z in self.start.z..=self.end.z {
+                    out.push(Pos3D { x, y, z });
+                }
+            }
+        }
+        out
+    }
+}
+
+#[allow(dead_code)]
 fn color_palette() -> Vec<(u8, u8, u8)> {
     vec![
         (255, 0, 0),   // Red
@@ -24,7 +130,8 @@ fn color_palette() -> Vec<(u8, u8, u8)> {
     ]
 }
 
-fn render(brick_points: &HashMap<Point3D, BrickID>, connections: &HashMap<Point3D, Point3D>) {
+#[allow(dead_code)]
+fn render(brick_points: &HashMap<Pos3D, BrickID>, connections: &HashMap<Pos3D, Pos3D>) {
     let window = Window::new(WindowSettings {
         title: "Shapes!".to_string(),
         max_size: Some((600, 720)),
@@ -49,7 +156,7 @@ fn render(brick_points: &HashMap<Point3D, BrickID>, connections: &HashMap<Point3
 
     let colors = color_palette();
     let mut shapes: Vec<Gm<Mesh, PhysicalMaterial>> = Vec::new();
-    for (&(x, y, z), brick_id) in brick_points.iter() {
+    for (pos, brick_id) in brick_points.iter() {
         let mut cube = Gm::new(
             Mesh::new(&context, &CpuMesh::cube()),
             PhysicalMaterial::new_transparent(
@@ -66,7 +173,8 @@ fn render(brick_points: &HashMap<Point3D, BrickID>, connections: &HashMap<Point3
             ),
         );
         cube.set_transformation(
-            Mat4::from_translation(vec3(x as f32, z as f32, y as f32)) * Mat4::from_scale(0.5),
+            Mat4::from_translation(vec3(pos.x as f32, pos.z as f32, pos.y as f32))
+                * Mat4::from_scale(0.5),
         );
         shapes.push(cube);
 
@@ -81,12 +189,13 @@ fn render(brick_points: &HashMap<Point3D, BrickID>, connections: &HashMap<Point3
             ),
         );
         sphere.set_transformation(
-            Mat4::from_translation(vec3(x as f32, z as f32, y as f32)) * Mat4::from_scale(0.17),
+            Mat4::from_translation(vec3(pos.x as f32, pos.z as f32, pos.y as f32))
+                * Mat4::from_scale(0.17),
         );
         shapes.push(sphere);
     }
 
-    for (from, &to) in connections.iter() {
+    for (from, to) in connections.iter() {
         let brick_id = brick_points.get(from).unwrap();
         let mut connection = Gm::new(
             Mesh::new(&context, &CpuMesh::arrow(10.0, 0.3, 5)),
@@ -104,10 +213,10 @@ fn render(brick_points: &HashMap<Point3D, BrickID>, connections: &HashMap<Point3
             ),
         );
         connection.set_transformation(
-            Mat4::from_translation(vec3(to.0 as f32, to.2 as f32, to.1 as f32))
+            Mat4::from_translation(vec3(to.x as f32, to.z as f32, to.y as f32))
                 * Mat4::from_scale(0.1 as f32)
                 * Mat4::from_angle_z(Rad(PI / 2.0))
-                * Mat4::from_nonuniform_scale((from.2 - to.2) as f32, 1.0, 1.0),
+                * Mat4::from_nonuniform_scale((from.z - to.z) as f32, 1.0, 1.0),
         );
         shapes.push(connection);
     }
@@ -130,60 +239,75 @@ fn render(brick_points: &HashMap<Point3D, BrickID>, connections: &HashMap<Point3
     });
 }
 
-fn parse_brick(s: &str) -> Point3D {
-    match s
-        .split(",")
-        .map(|n| n.parse::<usize>().unwrap())
-        .collect::<Vec<usize>>()[..]
-    {
-        [x, y, z] => (x, y, z),
-        _ => panic!("Invalid brick {}", s),
+// Drop bricks down the z axis as far as possible
+fn drop_bricks(mut bricks: Vec<Brick>) -> Vec<Brick> {
+    // sort bricks by height. Each brick will be dropped as low as possible
+    bricks.sort_by(|a, b| a.start.z.cmp(&b.start.z));
+    // keep track of highest z occupied by brick for each x,y position
+    let mut height_map: HashMap<(i32, i32), i32> = HashMap::new();
+
+    let mut new_bricks: Vec<Brick> = Vec::new();
+    for b in bricks {
+        let dz: i32 = match b.orientation {
+            Orientation::Horizontal => {
+                let prev_heights: Vec<&i32> = b
+                    .points()
+                    .into_iter()
+                    .filter_map(|p| height_map.get(&(p.x, p.y)))
+                    .collect();
+
+                if let Some(max_height) = prev_heights.into_iter().max() {
+                    1 - (b.start.z - max_height)
+                } else {
+                    1 - b.start.z
+                }
+            }
+            Orientation::Vertical => match height_map.get(&(b.start.x, b.start.y)) {
+                Some(prev_z) => 1 - (b.start.z - prev_z),
+                None => 1 - b.start.z,
+            },
+        };
+
+        let dropped = b.translate(Pos3D::from(0, 0, dz));
+        dropped.points().iter().for_each(|p| {
+            height_map.insert((p.x, p.y), p.z);
+        });
+        new_bricks.push(dropped);
     }
+
+    new_bricks
 }
 
-fn parse_bricks(lines: Lines) -> Vec<(Point3D, Point3D)> {
-    lines
-        .map(|line| match line.split("~").collect::<Vec<&str>>()[..] {
-            [from, to] => (parse_brick(from), parse_brick(to)),
-            _ => panic!("Invalid line {:?}", line),
-        })
-        .collect()
-}
-
-fn brick_points(bricks: &Vec<(Point3D, Point3D)>) -> HashMap<Point3D, BrickID> {
+// Map all points of each brick to the ID of the brick, ID being the index in the vec of bricks.
+fn brick_points(bricks: &Vec<Brick>) -> HashMap<Pos3D, BrickID> {
     bricks
         .iter()
         .enumerate()
-        .flat_map(|(brick_id, (brick_from, brick_to))| {
-            (brick_from.0..=brick_to.0).flat_map(move |x| {
-                (brick_from.1..=brick_to.1).flat_map(move |y| {
-                    (brick_from.2..=brick_to.2).map(move |z| ((x, y, z), brick_id))
-                })
-            })
-        })
+        .flat_map(|(brick_id, brick)| brick.points().into_iter().map(move |p| (p, brick_id)))
         .collect()
 }
 
-fn detect_connections(brick_points: &HashMap<Point3D, BrickID>) -> HashMap<Point3D, Point3D> {
-    let max_x = brick_points.iter().max_by_key(|(p, _)| p.0).unwrap().0 .0;
-    let max_y = brick_points.iter().max_by_key(|(p, _)| p.1).unwrap().0 .1;
-    let max_z = brick_points.iter().max_by_key(|(p, _)| p.2).unwrap().0 .2;
-    let mut connections: HashMap<Point3D, Point3D> = HashMap::new();
-    // Iterate in plane from top to bottom, keeping track of last seen cube above
-    let mut plane: HashMap<(usize, usize), (Point3D, BrickID)> = HashMap::new();
-    dbg!(&max_x, &max_y, &max_z);
+// Build graph of connections between brick points. Points are connected if one is directly above another with
+// no other points between
+fn point_support_graph(brick_points: &HashMap<Pos3D, BrickID>) -> HashMap<Pos3D, Pos3D> {
+    let max_x = brick_points.iter().max_by_key(|(p, _)| p.x).unwrap().0.x;
+    let max_y = brick_points.iter().max_by_key(|(p, _)| p.y).unwrap().0.y;
+    let max_z = brick_points.iter().max_by_key(|(p, _)| p.z).unwrap().0.z;
+    let mut connections: HashMap<Pos3D, Pos3D> = HashMap::new();
+    // Iterate in xy planes from top to bottom, keeping track of last seen cube above
+    let mut height_map: HashMap<(i32, i32), (Pos3D, BrickID)> = HashMap::new();
 
     for z in (0..=max_z).rev() {
         for x in 0..=max_x {
             for y in 0..=max_y {
-                let current_pos = (x, y, z);
+                let current_pos = Pos3D { x, y, z };
                 if let Some(&brick_id) = brick_points.get(&current_pos) {
-                    if let Some(&(prev_p, prev_brick_id)) = plane.get(&(x, y)) {
-                        if brick_id != prev_brick_id {
-                            connections.insert(prev_p, current_pos);
+                    if let Some((prev_p, prev_brick_id)) = height_map.get(&(x, y)) {
+                        if brick_id != *prev_brick_id && prev_p.z - z == 1 {
+                            connections.insert(prev_p.clone(), current_pos.clone());
                         }
                     }
-                    plane.insert((x, y), (current_pos, brick_id));
+                    height_map.insert((x, y), (current_pos, brick_id));
                 }
             }
         }
@@ -192,56 +316,47 @@ fn detect_connections(brick_points: &HashMap<Point3D, BrickID>) -> HashMap<Point
     connections
 }
 
+// Figure how the blocks will settle based on the snapshot. Once they've settled, consider
+// disintegrating a single brick; how many bricks could be safely chosen as the one to get disintegrated?
 fn part_1(lines: Lines) -> usize {
-    let bricks: Vec<(Point3D, Point3D)> = parse_bricks(lines);
-    let brick_points: HashMap<Point3D, BrickID> = brick_points(&bricks);
-    let connections: HashMap<Point3D, Point3D> = detect_connections(&brick_points);
-    let connection_targets: HashSet<&Point3D> = connections.values().collect();
+    let bricks: Vec<Brick> = drop_bricks(lines.map(|line| Brick::from_str(line)).collect());
+    // map each brick point/block to the ID of the brick it belongs to
+    let brick_points: HashMap<Pos3D, BrickID> = brick_points(&bricks);
+    // map parent blocks to the child blocks they lie directly on top of
+    let connections: HashMap<Pos3D, Pos3D> = point_support_graph(&brick_points);
+    let mut parents_to_children: HashMap<BrickID, HashSet<BrickID>> = HashMap::new();
+    let mut children_to_parents: HashMap<BrickID, HashSet<BrickID>> = HashMap::new();
 
-    println!("bricks: {:?}\n", bricks);
-    println!("brick_points: {:?}\n", brick_points);
-    println!("connections: {:?}\n", connections);
+    for (parent_point, child_point) in connections.clone() {
+        if let Some(&parent_id) = brick_points.get(&parent_point) {
+            if let Some(&child_id) = brick_points.get(&child_point) {
+                parents_to_children
+                    .entry(parent_id)
+                    .or_insert(HashSet::new())
+                    .insert(child_id);
 
-    let mut nr_of_connections_per_brick: HashMap<usize, usize> = HashMap::new();
-    for (p, brick_id) in brick_points.iter() {
-        if connections.contains_key(p) {
-            nr_of_connections_per_brick
-                .entry(*brick_id)
-                .and_modify(|c| *c += 1)
-                .or_insert(1);
+                children_to_parents
+                    .entry(child_id)
+                    .or_insert(HashSet::new())
+                    .insert(parent_id);
+            }
         }
     }
-    println!(
-        "nr_of_connections_per_brick: {:?}\n",
-        nr_of_connections_per_brick
-    );
-    println!(
-        "sum of children - 1 for each node: {}",
-        nr_of_connections_per_brick
-            .iter()
-            .fold(0, |result, (_, c)| result + c - 1)
-    );
-    let bricks_with_parents: HashSet<usize> = brick_points
-        .iter()
-        .filter_map(|(k, v)| {
-            if connection_targets.contains(k) {
-                Some(*v)
-            } else {
-                None
-            }
+
+    let result = children_to_parents
+        .values()
+        .filter(|parents| {
+            // each child can be disintegrated if its parent has more than 1 children
+            parents
+                .iter()
+                .all(|p| parents_to_children.get(p).unwrap().len() > 1)
         })
-        .collect();
-    println!("total bricks: {}", bricks.len());
-    println!("bricks with parents: {:?}", bricks_with_parents.len());
-    println!("bricks without parents: {:?}", bricks.len() - bricks_with_parents.len());
-    println!("result: {:?}", bricks.len() - bricks_with_parents.len() +
-    nr_of_connections_per_brick
-        .iter()
-        .fold(0, |result, (_, c)| result + c - 1));
+        .count();
+    let orphans = bricks.len() - children_to_parents.len();
 
-    render(&brick_points, &connections);
+    // render(&brick_points, &connections);
 
-    0
+    result + orphans
 }
 
 fn part_2(_lines: Lines) -> usize {
@@ -251,10 +366,7 @@ fn part_2(_lines: Lines) -> usize {
 pub fn solve() -> SolutionPair {
     let input = load_input("inputs/day_22");
     (
-        Solution::from(part_1(
-            input
-                .lines(),
-        )),
+        Solution::from(part_1(input.lines())),
         Solution::from(part_2(input.lines())),
     )
 }
@@ -278,7 +390,7 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_22").lines()), 0);
+        assert_eq!(part_1(load_input("inputs/day_22").lines()), 499);
     }
 
     #[test]

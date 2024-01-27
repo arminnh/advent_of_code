@@ -14,13 +14,12 @@ pub type SolutionPair = (Solution, Solution);
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        panic!("Please provide the day(s) to run as a command-line argument.");
-    }
-
-    let days: Vec<u8> = args[1..].iter()
+    let days: Vec<u8> = if args.len() >= 2 { args[1..].iter()
         .map(|x| x.parse().unwrap_or_else(|v| panic!("Not a valid day: {}", v)))
-        .collect();
+        .collect()
+    } else {
+        (1..=25).collect()
+    };
 
     let mut runtime = 0.0;
 
@@ -30,7 +29,7 @@ fn main() {
         let time = Instant::now();
         let (p1, p2) = func();
         let elapsed_ms = time.elapsed().as_nanos() as f64 / 1_000_000.0;
-        
+
         println!("\n=== Day {:02} ===", day);
         println!("  · Part 1: {}", p1);
         println!("  · Part 2: {}", p2);

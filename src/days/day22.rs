@@ -1,6 +1,6 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::f32::consts::PI;
 use std::str::Lines;
 use std::usize;
@@ -316,14 +316,14 @@ fn point_support_graph(brick_points: &HashMap<Pos3D, BrickID>) -> HashMap<Pos3D,
     connections
 }
 
-// Figure how the blocks will settle based on the snapshot. Once they've settled, consider
-// disintegrating a single brick; how many bricks could be safely chosen as the one to get disintegrated?
-fn part_1(lines: Lines) -> usize {
-    let bricks: Vec<Brick> = drop_bricks(lines.map(|line| Brick::from_str(line)).collect());
-    // map each brick point/block to the ID of the brick it belongs to
-    let brick_points: HashMap<Pos3D, BrickID> = brick_points(&bricks);
-    // map parent blocks to the child blocks they lie directly on top of
-    let connections: HashMap<Pos3D, Pos3D> = point_support_graph(&brick_points);
+// Convert connections between points to connections between parent and child bricks in both directions
+fn bidirectional_support_graph(
+    connections: HashMap<Pos3D, Pos3D>,
+    brick_points: HashMap<Pos3D, usize>,
+) -> (
+    HashMap<usize, HashSet<usize>>,
+    HashMap<usize, HashSet<usize>>,
+) {
     let mut parents_to_children: HashMap<BrickID, HashSet<BrickID>> = HashMap::new();
     let mut children_to_parents: HashMap<BrickID, HashSet<BrickID>> = HashMap::new();
 
@@ -343,6 +343,20 @@ fn part_1(lines: Lines) -> usize {
         }
     }
 
+    (parents_to_children, children_to_parents)
+}
+
+// Figure how the blocks will settle based on the snapshot. Once they've settled, consider
+// disintegrating a single brick; how many bricks could be safely chosen as the one to get disintegrated?
+fn part_1(lines: Lines) -> usize {
+    let bricks: Vec<Brick> = drop_bricks(lines.map(|line| Brick::from_str(line)).collect());
+    // map each brick point/block to the ID of the brick it belongs to
+    let brick_points: HashMap<Pos3D, BrickID> = brick_points(&bricks);
+    // map parent blocks to the child blocks they lie directly on top of
+    let connections: HashMap<Pos3D, Pos3D> = point_support_graph(&brick_points);
+    let (parents_to_children, children_to_parents) =
+        bidirectional_support_graph(connections, brick_points);
+
     let result = children_to_parents
         .values()
         .filter(|parents| {
@@ -359,8 +373,40 @@ fn part_1(lines: Lines) -> usize {
     result + orphans
 }
 
-fn part_2(_lines: Lines) -> usize {
-    0
+// For each brick, determine how many other bricks would fall if that brick were disintegrated.
+// What is the sum of the number of other bricks that would fall?
+fn part_2(lines: Lines) -> usize {
+    let bricks: Vec<Brick> = drop_bricks(lines.map(|line| Brick::from_str(line)).collect());
+    let brick_points: HashMap<Pos3D, BrickID> = brick_points(&bricks);
+    let connections: HashMap<Pos3D, Pos3D> = point_support_graph(&brick_points);
+    let (parents_to_children, children_to_parents) =
+        bidirectional_support_graph(connections, brick_points);
+
+    (0..bricks.len())
+        .map(|i| {
+            // build the chain reaction (BFS) for each brick
+            let mut q = VecDeque::from([i]);
+            let mut falling = HashSet::from([i]);
+
+            while let Some(j) = q.pop_front() {
+                if let Some(parents) = children_to_parents.get(&j) {
+                    for p in parents {
+                        if parents_to_children
+                            .get(p)
+                            .unwrap()
+                            .iter()
+                            .all(|c| falling.contains(c))
+                        {
+                            falling.insert(*p);
+                            q.push_back(*p);
+                        }
+                    }
+                }
+            }
+
+            falling.len() - 1
+        })
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -395,11 +441,11 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 7);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_22").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/day_22").lines()), 95059);
     }
 }

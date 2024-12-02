@@ -1,4 +1,4 @@
-use crate::days::util::load_input;
+use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
 use core::fmt;
 use std::collections::{HashMap, HashSet, VecDeque};

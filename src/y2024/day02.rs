@@ -1,4 +1,4 @@
-use crate::days::util::load_input;
+use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::str::Lines;
 use std::usize;
@@ -31,39 +31,40 @@ fn part_1(lines: Lines) -> usize {
 
 // Can tolerate one bad entry
 fn is_safe_with_tolerance(report: &Vec<i32>) -> bool {
-    let (positives, negatives, extremes) =
-        report
-            .windows(2)
-            .map(|w| w[1] - w[0])
-            .fold((0, 0, 0), |(pos, neg, ex), diff| {
-                if diff == 0 || diff.abs() > 3 {
-                    (pos, neg, ex + 1)
-                } else if diff > 0 {
-                    (pos + 1, neg, ex)
-                } else {
-                    (pos, neg + 1, ex)
-                }
-            });
-
-    println!("{:?}", (positives, negatives, extremes));
-    // If there are positives, there can only be 1 negative or extreme value
-    if positives > 0 {
-        (negatives == 0 && extremes <= 2) || (negatives <= 1 && extremes == 0)
-    } else {
-        (positives == 0 && extremes <= 2) || (positives <= 1 && extremes == 0)
+    // bruteforce version
+    if is_safe(report) {
+        return true;
     }
+    for i in 0..report.len() {
+        let mut r = report.clone();
+        r.remove(i);
+        if is_safe(&r) {
+            return true;
+        }
+    }
+    false
 
-    // if is_safe(report) {
-    //     return true;
+    // let (positives, negatives, extremes) =
+    //     report
+    //         .windows(2)
+    //         .map(|w| w[1] - w[0])
+    //         .fold((0, 0, 0), |(pos, neg, ex), diff| {
+    //             if diff == 0 || diff.abs() > 3 {
+    //                 (pos, neg, ex + 1)
+    //             } else if diff > 0 {
+    //                 (pos + 1, neg, ex)
+    //             } else {
+    //                 (pos, neg + 1, ex)
+    //             }
+    //         });
+
+    // println!("{:?}", (positives, negatives, extremes));
+    // // If there are positives, there can only be 1 negative or extreme value
+    // if positives > 0 {
+    //     (negatives == 0 && extremes <= 2) || (negatives <= 1 && extremes == 0)
+    // } else {
+    //     (positives == 0 && extremes <= 2) || (positives <= 1 && extremes == 0)
     // }
-    // for i in 0..report.len() {
-    //     let mut r = report.clone();
-    //     r.remove(i);
-    //     if is_safe(&r) {
-    //         return true;
-    //     }
-    // }
-    // false
 }
 
 fn part_2(lines: Lines) -> i32 {

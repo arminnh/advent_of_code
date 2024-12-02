@@ -1,4 +1,4 @@
-use crate::days::util::load_input;
+use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::HashSet;
 use std::str::Lines;

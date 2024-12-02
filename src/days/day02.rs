@@ -1,104 +1,81 @@
 use crate::days::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::collections::HashMap;
-use std::str::{FromStr, Lines};
+use std::str::Lines;
 use std::usize;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-enum Color {
-    Red,
-    Green,
-    Blue,
-}
-
-#[derive(Debug)]
-struct InvalidColorError;
-impl FromStr for Color {
-    type Err = InvalidColorError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "red" => Ok(Self::Red),
-            "green" => Ok(Self::Green),
-            "blue" => Ok(Self::Blue),
-            _ => Err(InvalidColorError),
-        }
-    }
-}
-
-fn parse_game_id(game: &str) -> usize {
-    game.split_at(5).1.parse().unwrap()
-}
-
-fn parse_sets(sets: &str) -> Vec<HashMap<Color, i32>> {
-    sets.split(";")
-        .map(|set| {
-            set.split(",")
-                .map(
-                    |cube| match cube.split_ascii_whitespace().collect::<Vec<&str>>()[..] {
-                        [amount, color] => (
-                            Color::from_str(color).unwrap(),
-                            amount.parse::<i32>().unwrap(),
-                        ),
-                        _ => panic!("Invalid cube '{:?}' in set '{:?}'", cube, set),
-                    },
-                )
-                .collect()
-        })
+fn parse_report(line: &str) -> Vec<i32> {
+    line.split_whitespace()
+        .map(|s| s.parse::<i32>().expect("Could not parse number"))
         .collect()
 }
 
-fn is_possible(sets: Vec<HashMap<Color, i32>>, max_counts: &HashMap<Color, i32>) -> bool {
-    for set in sets {
-        for (k, v) in set {
-            if v > *max_counts.get(&k).unwrap() {
-                return false;
-            }
-        }
-    }
+// Report is safe if all increasing or decreasing by at least 1 and most 3
+fn is_safe(report: &Vec<i32>) -> bool {
+    let (min, max) = report
+        .windows(2)
+        .fold((i32::MAX, i32::MIN), |(min, max), window| {
+            let diff = window[1] - window[0];
+            (min.min(diff), max.max(diff))
+        });
 
-    true
+    (min >= 1 && max <= 3) || (min >= -3 && max <= -1)
 }
 
+// How many reports are safe?
 fn part_1(lines: Lines) -> usize {
-    let max_counts = HashMap::from([(Color::Red, 12), (Color::Green, 13), (Color::Blue, 14)]);
-
     lines
-        .map(|line| match line.split(":").collect::<Vec<&str>>()[..] {
-            [game, sets] => (parse_game_id(game), parse_sets(sets)),
-            _ => panic!("Unsupported input: {:?}", line),
-        })
-        .filter_map(|(game_id, sets)| {
-            if is_possible(sets, &max_counts) {
-                Some(game_id)
-            } else {
-                None
-            }
-        })
+        .map(|line| parse_report(line))
+        .filter_map(|report| if is_safe(&report) { Some(1) } else { None })
         .sum()
 }
 
-fn calculate_power(sets: Vec<HashMap<Color, i32>>) -> i32 {
-    let mut result_set = HashMap::new();
+// Can tolerate one bad entry
+fn is_safe_with_tolerance(report: &Vec<i32>) -> bool {
+    let (positives, negatives, extremes) =
+        report
+            .windows(2)
+            .map(|w| w[1] - w[0])
+            .fold((0, 0, 0), |(pos, neg, ex), diff| {
+                if diff == 0 || diff.abs() > 3 {
+                    (pos, neg, ex + 1)
+                } else if diff > 0 {
+                    (pos + 1, neg, ex)
+                } else {
+                    (pos, neg + 1, ex)
+                }
+            });
 
-    for set in sets {
-        for (k, v) in set {
-            if v > *result_set.get(&k).unwrap_or(&0) {
-                result_set.insert(k, v);
-            }
-        }
+    println!("{:?}", (positives, negatives, extremes));
+    // If there are positives, there can only be 1 negative or extreme value
+    if positives > 0 {
+        (negatives == 0 && extremes <= 2) || (negatives <= 1 && extremes == 0)
+    } else {
+        (positives == 0 && extremes <= 2) || (positives <= 1 && extremes == 0)
     }
 
-    result_set.values().fold(1, |result, count| result * count)
+    // if is_safe(report) {
+    //     return true;
+    // }
+    // for i in 0..report.len() {
+    //     let mut r = report.clone();
+    //     r.remove(i);
+    //     if is_safe(&r) {
+    //         return true;
+    //     }
+    // }
+    // false
 }
 
 fn part_2(lines: Lines) -> i32 {
     lines
-        .map(|line| match line.split(":").collect::<Vec<&str>>()[..] {
-            [_, sets] => parse_sets(sets),
-            _ => panic!("Unsupported input: {:?}", line),
+        .map(|line| parse_report(line))
+        .filter_map(|report| {
+            if is_safe_with_tolerance(&report) {
+                Some(1)
+            } else {
+                None
+            }
         })
-        .map(|sets| calculate_power(sets))
         .sum()
 }
 
@@ -114,87 +91,66 @@ pub fn solve() -> SolutionPair {
 mod tests {
     use super::*;
 
-    const EXAMPLE_INPUT_1: &str = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
-Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
-Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
-Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
-Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
-
-    #[test]
-    fn test_parse_game_id() {
-        assert_eq!(parse_game_id("Game 0"), 0);
-        assert_eq!(parse_game_id("Game 1"), 1);
-        assert_eq!(parse_game_id("Game 99"), 99);
-        assert_eq!(parse_game_id("Game 100"), 100);
-    }
-
-    #[test]
-    fn test_parse_sets() {
-        assert_eq!(
-            parse_sets("3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"),
-            vec![
-                HashMap::from([(Color::Red, 4), (Color::Blue, 3)]),
-                HashMap::from([(Color::Red, 1), (Color::Green, 2), (Color::Blue, 6)]),
-                HashMap::from([(Color::Green, 2)])
-            ]
-        );
-        assert_eq!(
-            parse_sets("1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red"),
-            vec![
-                HashMap::from([(Color::Red, 3), (Color::Green, 1), (Color::Blue, 6)]),
-                HashMap::from([(Color::Red, 6), (Color::Green, 3)]),
-                HashMap::from([(Color::Red, 14), (Color::Green, 3), (Color::Blue, 15)])
-            ]
-        );
-        assert_eq!(
-            parse_sets("18 red, 11 green, 3 blue; 2 blue, 19 red, 7 green; 4 green, 1 blue, 6 red; 4 green, 2 red, 4 blue; 10 green, 5 red, 2 blue; 13 red, 12 green, 4 blue"),
-            vec![
-                HashMap::from([(Color::Red, 18), (Color::Green, 11), (Color::Blue, 3)]),
-                HashMap::from([(Color::Red, 19), (Color::Green, 7), (Color::Blue, 2)]),
-                HashMap::from([(Color::Red, 6), (Color::Green, 4), (Color::Blue, 1)]),
-                HashMap::from([(Color::Red, 2), (Color::Green, 4), (Color::Blue, 4)]),
-                HashMap::from([(Color::Red, 5), (Color::Green, 10), (Color::Blue, 2)]),
-                HashMap::from([(Color::Red, 13), (Color::Green, 12), (Color::Blue, 4)])
-            ]);
-    }
+    const EXAMPLE_INPUT: &str = "7 6 4 2 1
+1 2 7 8 9
+9 7 6 2 1
+1 3 2 4 5
+8 6 4 4 1
+1 3 6 7 9";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 8);
+        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 2);
+    }
+
+    #[test]
+    fn test_is_safe() {
+        assert_eq!(is_safe(&Vec::from([1, 1, 1, 1])), false);
+        assert_eq!(is_safe(&Vec::from([1, 2, 3, 4, 5])), true);
+        assert_eq!(is_safe(&Vec::from([5, 4, 3, 2, 1])), true);
+        assert_eq!(is_safe(&Vec::from([1, 4, 7, 10, 13])), true);
+        assert_eq!(is_safe(&Vec::from([13, 10, 7, 4, 1])), true);
+        assert_eq!(is_safe(&Vec::from([5, 4, 3, 2, 1, 2, 3, 4, 5])), false);
+        assert_eq!(is_safe(&Vec::from([10, 13, 7, 5, 3, 1, 4])), false);
+        assert_eq!(is_safe(&Vec::from([60, 56, 54, 51, 49, 49, 48, 46])), false);
+        assert_eq!(is_safe(&Vec::from([85, 80, 79, 78, 74, 73, 71, 69])), false);
+        assert_eq!(is_safe(&Vec::from([41, 39, 37, 35, 33, 31, 32, 32])), false);
+        assert_eq!(is_safe(&Vec::from([29, 32, 29, 30, 35])), false);
+        assert_eq!(is_safe(&Vec::from([18, 21, 23, 24, 27, 29, 31, 32])), true);
+        assert_eq!(is_safe(&Vec::from([2, 4, 5, 8, 11, 13])), true);
+        assert_eq!(is_safe(&Vec::from([43, 47, 48, 50, 51, 52])), false);
+        assert_eq!(is_safe(&Vec::from([16, 22, 23, 26, 29, 32, 35, 37])), false);
+        assert_eq!(is_safe(&Vec::from([91, 92, 92, 89, 86])), false);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_2").lines()), 2600);
-    }
-
-    #[test]
-    fn test_calculate_power() {
-        assert_eq!(
-            calculate_power(vec![
-                HashMap::from([(Color::Red, 4), (Color::Blue, 3)]),
-                HashMap::from([(Color::Red, 1), (Color::Green, 2), (Color::Blue, 6)]),
-                HashMap::from([(Color::Green, 2)])
-            ]),
-            48
-        );
-        assert_eq!(
-            calculate_power(vec![
-                HashMap::from([(Color::Red, 3), (Color::Green, 1), (Color::Blue, 6)]),
-                HashMap::from([(Color::Red, 6), (Color::Green, 3)]),
-                HashMap::from([(Color::Red, 14), (Color::Green, 3), (Color::Blue, 15)])
-            ]),
-            630
-        );
+        assert_eq!(part_1(load_input("inputs/day_2").lines()), 202);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 2286);
+        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 4);
+    }
+
+    #[test]
+    fn test_is_safe_with_tolerance() {
+        assert_eq!(is_safe_with_tolerance(&Vec::from([1, 1, 2])), true);
+        assert_eq!(is_safe_with_tolerance(&Vec::from([2, 10, 1])), true);
+        assert_eq!(is_safe_with_tolerance(&Vec::from([1, 1, 1, 1])), false);
+        assert_eq!(is_safe_with_tolerance(&Vec::from([1, 2, 3, 4, 5])), true);
+        assert_eq!(
+            is_safe_with_tolerance(&Vec::from([43, 47, 48, 50, 51, 52])),
+            true
+        );
+        assert_eq!(
+            is_safe_with_tolerance(&Vec::from([16, 22, 23, 26, 29, 32, 35, 37])),
+            true
+        );
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_2").lines()), 86036);
+        assert_eq!(part_2(load_input("inputs/day_2").lines()), 271);
     }
 }

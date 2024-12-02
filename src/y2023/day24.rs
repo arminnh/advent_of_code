@@ -126,7 +126,7 @@ fn part_2(_lines: Lines) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_24");
+    let input = load_input("inputs/2023/day_24");
     (
         Solution::from(part_1(
             input.lines(),
@@ -156,7 +156,7 @@ mod tests {
     fn test_part_1() {
         assert_eq!(
             part_1(
-                load_input("inputs/day_24").lines(),
+                load_input("inputs/2023/day_24").lines(),
                 200_000_000_000_000.0,
                 400_000_000_000_000.0
             ),
@@ -171,6 +171,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_24").lines()), 0);
+        assert_eq!(part_2(load_input("inputs/2023/day_24").lines()), 0);
     }
 }

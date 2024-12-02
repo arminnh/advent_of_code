@@ -553,7 +553,7 @@ fn part_2(lines: Lines) -> i64 {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_18");
+    let input = load_input("inputs/2023/day_18");
     (
         Solution::from(part_1(input.lines())),
         Solution::from(part_2(input.lines())),
@@ -583,19 +583,19 @@ U 2 (#7a21e3)";
     fn test_part_1_flood_fill() {
         assert_eq!(part_1_flood_fill(EXAMPLE_INPUT_1.lines()), 62);
         assert_eq!(
-            part_1_flood_fill(load_input("inputs/day_18_shortened").lines()),
+            part_1_flood_fill(load_input("inputs/2023/day_18_shortened").lines()),
             5532
         );
         assert_eq!(
-            part_1_flood_fill(load_input("inputs/day_18_shortened_2").lines()),
+            part_1_flood_fill(load_input("inputs/2023/day_18_shortened_2").lines()),
             17891
         );
         assert_eq!(
-            part_1_flood_fill(load_input("inputs/day_18_shortened_3").lines()),
+            part_1_flood_fill(load_input("inputs/2023/day_18_shortened_3").lines()),
             1704
         );
         assert_eq!(
-            part_1_flood_fill(load_input("inputs/day_18").lines()),
+            part_1_flood_fill(load_input("inputs/2023/day_18").lines()),
             33491
         );
     }
@@ -618,16 +618,16 @@ U 2 (#7a21e3)";
 
     #[test]
     fn test_part_1_rectangles() {
-        assert_eq!(part_1(load_input("inputs/day_18_shortened").lines()), 5532);
+        assert_eq!(part_1(load_input("inputs/2023/day_18_shortened").lines()), 5532);
         assert_eq!(
-            part_1(load_input("inputs/day_18_shortened_3").lines()),
+            part_1(load_input("inputs/2023/day_18_shortened_3").lines()),
             1704
         );
         assert_eq!(
-            part_1(load_input("inputs/day_18_shortened_2").lines()),
+            part_1(load_input("inputs/2023/day_18_shortened_2").lines()),
             17891
         );
-        assert_eq!(part_1(load_input("inputs/day_18").lines()), 33491);
+        assert_eq!(part_1(load_input("inputs/2023/day_18").lines()), 33491);
     }
 
     #[test]
@@ -637,6 +637,6 @@ U 2 (#7a21e3)";
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_18").lines()), 101029016139262);
+        assert_eq!(part_2(load_input("inputs/2023/day_18").lines()), 101029016139262);
     }
 }

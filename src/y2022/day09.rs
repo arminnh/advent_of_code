@@ -87,7 +87,7 @@ fn part_2(lines: Lines) -> usize {
 
 /// Day 9: Rope Bridge
 fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/day_9") {
+    if let Ok(contents) = fs::read_to_string("inputs/2022/day_9") {
         println!("{}", part_1(contents.lines()));
         println!("{}", part_2(contents.lines()));
     }

@@ -65,7 +65,7 @@ fn part_2(mut lines: Lines) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_6");
+    let input = load_input("inputs/2023/day_6");
     (
         Solution::from(part_1(input.lines())),
         Solution::from(part_2(input.lines())),
@@ -86,11 +86,11 @@ Distance:  9  40  200";
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_6").lines()), 840336)
+        assert_eq!(part_1(load_input("inputs/2023/day_6").lines()), 840336)
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_6").lines()), 41382569)
+        assert_eq!(part_2(load_input("inputs/2023/day_6").lines()), 41382569)
     }
 }

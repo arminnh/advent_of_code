@@ -4,13 +4,13 @@ use std::fs;
 
 /// Find the Elf carrying the most Calories. How many total Calories is that Elf carrying?
 fn day_1_part_1() {
-    // let file: File = File::open("inputs/day_1").unwrap();
+    // let file: File = File::open("inputs/2022/day_1").unwrap();
     // BufReader::new(file)
     //     .split(b'\n')
     //     .for_each(|elf| println!("elf: {:?}", elf.unwrap()));
     // .for_each(|line: Result<String, io::Error>| println!("{}", line.unwrap()));
 
-    let contents = fs::read_to_string("inputs/day_1");
+    let contents = fs::read_to_string("inputs/2022/day_1");
     match contents {
         Ok(c) => {
             let elves: std::str::Split<&str> = c.split("\n\n");
@@ -30,7 +30,7 @@ fn day_1_part_1() {
 ///
 /// Find the top three Elves carrying the most Calories. How many Calories are those Elves carrying in total?
 fn day_1_part_2() {
-    let contents = fs::read_to_string("inputs/day_1");
+    let contents = fs::read_to_string("inputs/2022/day_1");
     match contents {
         Ok(c) => {
             let elves: std::str::Split<&str> = c.split("\n\n");

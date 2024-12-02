@@ -40,7 +40,7 @@ fn part_2(lines: Lines) -> i32 {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_9");
+    let input = load_input("inputs/2023/day_9");
     (
         Solution::from(part_1(input.lines())),
         Solution::from(part_2(input.lines())),
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_9").lines()), 1972648895);
+        assert_eq!(part_1(load_input("inputs/2023/day_9").lines()), 1972648895);
     }
 
     #[test]
@@ -114,6 +114,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_9").lines()), 919);
+        assert_eq!(part_2(load_input("inputs/2023/day_9").lines()), 919);
     }
 }

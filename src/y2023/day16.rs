@@ -117,7 +117,7 @@ fn part_2(lines: Lines) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_16");
+    let input = load_input("inputs/2023/day_16");
     (
         Solution::from(part_1(input.lines())),
         Solution::from(part_2(input.lines())),
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_16").lines()), 7199);
+        assert_eq!(part_1(load_input("inputs/2023/day_16").lines()), 7199);
     }
 
     #[test]
@@ -156,6 +156,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_16").lines()), 7438);
+        assert_eq!(part_2(load_input("inputs/2023/day_16").lines()), 7438);
     }
 }

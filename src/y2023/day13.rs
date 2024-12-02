@@ -108,7 +108,7 @@ fn part_2(input: String) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_13");
+    let input = load_input("inputs/2023/day_13");
     (
         Solution::from(part_1(input.clone())),
         Solution::from(part_2(input)),
@@ -238,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_13")), 34100);
+        assert_eq!(part_1(load_input("inputs/2023/day_13")), 34100);
     }
 
     #[test]
@@ -248,6 +248,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_13")), 33106);
+        assert_eq!(part_2(load_input("inputs/2023/day_13")), 33106);
     }
 }

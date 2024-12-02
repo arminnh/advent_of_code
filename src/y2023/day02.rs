@@ -103,7 +103,7 @@ fn part_2(lines: Lines) -> i32 {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_2");
+    let input = load_input("inputs/2023/day_2");
     (
         Solution::from(part_1(input.lines())),
         Solution::from(part_2(input.lines())),
@@ -165,7 +165,7 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_2").lines()), 2600);
+        assert_eq!(part_1(load_input("inputs/2023/day_2").lines()), 2600);
     }
 
     #[test]
@@ -195,6 +195,6 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_2").lines()), 86036);
+        assert_eq!(part_2(load_input("inputs/2023/day_2").lines()), 86036);
     }
 }

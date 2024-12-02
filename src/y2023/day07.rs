@@ -155,7 +155,7 @@ fn part_2(lines: Lines) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_7");
+    let input = load_input("inputs/2023/day_7");
 
     (
         Solution::from(part_1(input.lines())),

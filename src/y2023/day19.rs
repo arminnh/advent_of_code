@@ -314,7 +314,7 @@ fn part_2(input: String) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_19");
+    let input = load_input("inputs/2023/day_19");
     (
         Solution::from(part_1(input.clone())),
         Solution::from(part_2(input)),
@@ -351,7 +351,7 @@ hdj{m>838:A,pv}
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_19")), 401674);
+        assert_eq!(part_1(load_input("inputs/2023/day_19")), 401674);
     }
 
     #[test]
@@ -361,6 +361,6 @@ hdj{m>838:A,pv}
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_19")), 134906204068564);
+        assert_eq!(part_2(load_input("inputs/2023/day_19")), 134906204068564);
     }
 }

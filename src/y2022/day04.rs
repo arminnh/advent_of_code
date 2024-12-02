@@ -10,7 +10,7 @@ use std::fs;
 /// In how many assignment pairs does one range fully contain the other?
 /// Part 2: In how many assignment pairs do the ranges overlap?
 fn main() {
-    let Ok(contents) = fs::read_to_string("inputs/day_4") else { return };
+    let Ok(contents) = fs::read_to_string("inputs/2022/day_4") else { return };
 
     let result: i32 = contents.lines().fold(0, |acc, line| {
         let values: Vec<i32> = line

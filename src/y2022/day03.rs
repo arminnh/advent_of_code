@@ -75,7 +75,7 @@ fn part_2_sum_of_priorities_in_groups(lines: &mut Lines) -> u32 {
 }
 
 fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/day_3") {
+    if let Ok(contents) = fs::read_to_string("inputs/2022/day_3") {
         part_1_sum_of_priorities_in_rucksacks(contents.lines());
         part_2_sum_of_priorities_in_groups(&mut contents.lines());
     }

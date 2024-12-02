@@ -123,7 +123,7 @@ fn lines_to_grid(lines: Lines) -> Vec<Vec<u32>> {
 
 /// Day 8: Treetop Tree House
 fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/day_8") {
+    if let Ok(contents) = fs::read_to_string("inputs/2022/day_8") {
         let grid = lines_to_grid(contents.lines());
         println!("{}", part_1(&grid));
         println!("{}", part_2(&grid));

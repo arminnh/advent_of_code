@@ -84,7 +84,7 @@ fn select_move_for_target_outcome(opponent_move: &Move, target_outcome: &Outcome
 
 /// What would your total score be if everything goes exactly according to your strategy guide?
 fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/day_2") {
+    if let Ok(contents) = fs::read_to_string("inputs/2022/day_2") {
         let score = contents.lines().fold(0, |acc, line| {
             let opponent_move: Move = parse_move(&line.chars().nth(0).unwrap()).unwrap();
             // let my_move: Move = parse_move(line.chars().nth(2).unwrap()).unwrap();

@@ -70,7 +70,7 @@ fn part_2(lines: Lines) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_4");
+    let input = load_input("inputs/2023/day_4");
     (
         Solution::from(part_1(input.lines())),
         Solution::from(part_2(input.lines())),
@@ -95,7 +95,7 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/day_4").lines()), 26914);
+        assert_eq!(part_1(load_input("inputs/2023/day_4").lines()), 26914);
     }
 
     #[test]
@@ -105,6 +105,6 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/day_4").lines()), 13080971);
+        assert_eq!(part_2(load_input("inputs/2023/day_4").lines()), 13080971);
     }
 }

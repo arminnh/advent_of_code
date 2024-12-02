@@ -92,13 +92,13 @@ fn part_2(mut lines: Lines<BufReader<File>>) -> String {
     out
 }
 
-fn get_lines(path: String) -> Lines<BufReader<File>> {
+fn get_lines(path: &str) -> Lines<BufReader<File>> {
     BufReader::new(File::open(path).expect("Could not open file.")).lines()
 }
 
 fn main() {
-    part_1(get_lines("inputs/day_10"));
-    let part_2 = part_2(get_lines("inputs/day_10"));
+    part_1(get_lines("inputs/2022/day_10"));
+    let part_2 = part_2(get_lines("inputs/2022/day_10"));
     println!("{}", part_2);
 }
 
@@ -108,12 +108,12 @@ mod tests {
 
     #[test]
     fn test_part_1_example_1() {
-        assert_eq!(part_1(get_lines("inputs/day_10_example_1")), 0)
+        assert_eq!(part_1(get_lines("inputs/2022/day_10_example_1")), 0)
     }
 
     #[test]
     fn test_part_1_example_2() {
-        assert_eq!(part_1(get_lines("inputs/day_10_example_2")), 13140)
+        assert_eq!(part_1(get_lines("inputs/2022/day_10_example_2")), 13140)
     }
 
     #[test]
@@ -125,6 +125,6 @@ mod tests {
 #####     #####     #####     #####     \n\
 ######      ######      ######      ####\n\
 #######       #######       #######     \n ";
-        assert_eq!(part_2(get_lines("inputs/day_10_example_2")), expected)
+        assert_eq!(part_2(get_lines("inputs/2022/day_10_example_2")), expected)
     }
 }

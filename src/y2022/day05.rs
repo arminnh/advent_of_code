@@ -71,7 +71,7 @@ fn main() {
     (0..9).for_each(|_| stacks.push(Vec::new()));
     print_stacks(&stacks);
 
-    if let Ok(contents) = fs::read_to_string("inputs/day_5") {
+    if let Ok(contents) = fs::read_to_string("inputs/2022/day_5") {
         contents.lines().for_each(|line| {
             if line.len() > 0 {
                 match line.chars().nth(0).unwrap() {

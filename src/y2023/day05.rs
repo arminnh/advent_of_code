@@ -117,7 +117,7 @@ fn part_2(input: &str) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/day_5");
+    let input = load_input("inputs/2023/day_5");
     (
         Solution::from(part_1(&input)),
         Solution::from(part_2(&input)),
@@ -169,7 +169,7 @@ humidity-to-location map:
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(&load_input("inputs/day_5")), 424490994);
+        assert_eq!(part_1(&load_input("inputs/2023/day_5")), 424490994);
     }
 
     #[test]
@@ -179,6 +179,6 @@ humidity-to-location map:
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(&load_input("inputs/day_5")), 15290096);
+        assert_eq!(part_2(&load_input("inputs/2023/day_5")), 15290096);
     }
 }

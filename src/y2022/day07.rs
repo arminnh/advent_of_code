@@ -169,7 +169,7 @@ fn part_2(lines: &mut Lines) -> u32 {
 
 /// Day 7: No Space Left On Device
 fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/day_7") {
+    if let Ok(contents) = fs::read_to_string("inputs/2022/day_7") {
         part_1(&mut contents.lines());
         part_2(&mut contents.lines());
     }

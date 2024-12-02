@@ -287,8 +287,8 @@ fn get_lines(path: &str) -> Lines<BufReader<File>> {
 }
 
 fn main() {
-    // part_1(get_lines("inputs/day_11"));
-    part_2(get_lines("inputs/day_11"));
+    // part_1(get_lines("inputs/2022/day_11"));
+    part_2(get_lines("inputs/2022/day_11"));
 }
 
 #[cfg(test)]
@@ -297,21 +297,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(get_lines("inputs/day_11_example")), 10_605)
+        assert_eq!(part_1(get_lines("inputs/2022/day_11_example")), 10_605)
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(get_lines("inputs/day_11")), 100_345)
+        assert_eq!(part_1(get_lines("inputs/2022/day_11")), 100_345)
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(get_lines("inputs/day_11_example")), 2_713_310_158)
+        assert_eq!(part_2(get_lines("inputs/2022/day_11_example")), 2_713_310_158)
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(get_lines("inputs/day_11")), 28_537_348_205)
+        assert_eq!(part_2(get_lines("inputs/2022/day_11")), 28_537_348_205)
     }
 }

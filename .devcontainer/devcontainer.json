@@ -6,7 +6,7 @@
 	"image": "mcr.microsoft.com/devcontainers/rust:1-1-bullseye",
 	"features": {
 		"ghcr.io/devcontainers/features/rust:1": {}
-	}
+	},
 
 	// Use 'mounts' to make the cargo cache persistent in a Docker Volume.
 	// "mounts": [
@@ -31,4 +31,14 @@
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
+	// .devcontainer.json
+	"customizations": {
+	  "codespaces": {
+		"repositories": {
+		  "arminnh/advent_of_code_inputs": {
+			"permissions": "read-all"
+		  }
+		}
+	  }
+	}
 }

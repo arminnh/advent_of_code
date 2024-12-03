@@ -1,5 +1,6 @@
+use crate::util::util::load_input;
+use crate::{Solution, SolutionPair};
 use std::collections::HashSet;
-use std::fs;
 use std::hash::Hash;
 use std::str::Lines;
 
@@ -24,8 +25,8 @@ where
     })
 }
 
-/// Lowercase item types a through z have priorities 1 through 26.
-/// Uppercase item types A through Z have priorities 27 through 52.
+// Lowercase item types a through z have priorities 1 through 26.
+// Uppercase item types A through Z have priorities 27 through 52.
 fn get_priority(item: &char) -> u8 {
     if item.is_lowercase() {
         (*item as u8) - 'a' as u8 + 1
@@ -34,13 +35,8 @@ fn get_priority(item: &char) -> u8 {
     }
 }
 
-/// The Elves have made a list of all of the items currently in each rucksack
-/// (your puzzle input), but they need your help finding the errors. Every item
-/// type is identified by a single lowercase or uppercase letter (that is,
-/// a and A refer to different types of items).
-/// Part 1: Find the item type that appears in both compartments of each rucksack.
-/// What is the sum of the priorities of those item types?
-fn part_1_sum_of_priorities_in_rucksacks(lines: Lines) -> u32 {
+// What is the sum of the priorities of item types that appear in both compartments of each rucksack?
+fn part_1(lines: Lines) -> u32 {
     let mut total: u32 = 0;
     lines.for_each(|rucksack: &str| {
         if rucksack.len() > 0 {
@@ -58,9 +54,8 @@ fn part_1_sum_of_priorities_in_rucksacks(lines: Lines) -> u32 {
     total
 }
 
-/// Part 2: Find the item type that corresponds to the badges of each three-Elf group.
-/// What is the sum of the priorities of those item types?
-fn part_2_sum_of_priorities_in_groups(lines: &mut Lines) -> u32 {
+// What is the sum of the priorities of those item types that correspond to the badges of each three-Elf group?
+fn part_2(lines: &mut Lines) -> u32 {
     let mut total: u32 = 0;
     while let (Some(l1), Some(l2), Some(l3)) = (lines.next(), lines.next(), lines.next()) {
         let duplicates_l1_l2: String = get_duplicates(l1.chars(), l2.chars())
@@ -74,11 +69,12 @@ fn part_2_sum_of_priorities_in_groups(lines: &mut Lines) -> u32 {
     total
 }
 
-fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/2022/day_3") {
-        part_1_sum_of_priorities_in_rucksacks(contents.lines());
-        part_2_sum_of_priorities_in_groups(&mut contents.lines());
-    }
+pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/2022/day_3");
+    (
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(&mut input.lines())),
+    )
 }
 
 #[cfg(test)]
@@ -87,14 +83,8 @@ mod tests {
 
     #[test]
     fn test_part_1_single_line() {
-        assert_eq!(
-            part_1_sum_of_priorities_in_rucksacks("vJrwpWtwJgWrhcsFMMfFFhFp".lines()),
-            16
-        );
-        assert_eq!(
-            part_1_sum_of_priorities_in_rucksacks("PmmdzqPrVvPwwTWBwg".lines()),
-            42
-        );
+        assert_eq!(part_1("vJrwpWtwJgWrhcsFMMfFFhFp".lines()), 16);
+        assert_eq!(part_1("PmmdzqPrVvPwwTWBwg".lines()), 42);
     }
 
     #[test]
@@ -106,7 +96,7 @@ wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
 ttgJtRGJQctTZtZT
 CrZsJsPPZsGzwwsLwLmpwMDw";
 
-        assert_eq!(part_1_sum_of_priorities_in_rucksacks(input.lines()), 157)
+        assert_eq!(part_1(input.lines()), 157)
     }
 
     #[test]
@@ -118,6 +108,6 @@ wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
 ttgJtRGJQctTZtZT
 CrZsJsPPZsGzwwsLwLmpwMDw";
 
-        assert_eq!(part_2_sum_of_priorities_in_groups(&mut input.lines()), 70)
+        assert_eq!(part_2(&mut input.lines()), 70)
     }
 }

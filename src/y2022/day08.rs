@@ -1,5 +1,20 @@
-use std::fs;
+use crate::util::util::load_input;
+use crate::{Solution, SolutionPair};
 use std::str::Lines;
+
+fn parse_grid(lines: Lines) -> Vec<Vec<u32>> {
+    lines
+        .map(|l| {
+            let row = l
+                .chars()
+                .map(|c| c.to_digit(10).unwrap())
+                .collect::<Vec<u32>>();
+            println!("{:?}", row);
+            row
+
+        })
+        .collect::<Vec<Vec<u32>>>()
+}
 
 fn print_visbility(visibility: &Vec<Vec<bool>>) {
     println!();
@@ -8,11 +23,11 @@ fn print_visbility(visibility: &Vec<Vec<bool>>) {
     }
 }
 
-/// Consider your map; how many trees are visible from outside the grid?
-/// A tree is visible if all of the other trees between it and an edge of
-/// the grid are shorter than it. Only consider trees in the same row or column;
-/// that is, only look up, down, left, or right from any given tree.
-fn part_1(grid: &Vec<Vec<u32>>) -> u32 {
+// A tree is visible if all of the other trees between it and an edge of
+// the grid are shorter than it. Only consider trees in the same row or column;
+// that is, only look up, down, left, or right from any given tree.
+fn part_1(lines: Lines) -> u32 {
+    let grid: Vec<Vec<u32>> = parse_grid(lines);
     let size: usize = grid.len();
     let mut visibility: Vec<Vec<bool>> = vec![vec![false; size]; size];
 
@@ -56,7 +71,7 @@ fn part_1(grid: &Vec<Vec<u32>>) -> u32 {
     })
 }
 
-/// A tree's scenic score is found by multiplying together its viewing distance in each of the four directions.
+// A tree's scenic score is found by multiplying together its viewing distance in each of the four directions.
 fn scenic_score(grid: &Vec<Vec<u32>>, i: usize, j: usize, size: usize) -> u32 {
     let height: u32 = grid[i][j];
     let mut view_dist: [u32; 4] = [0, 0, 0, 0];
@@ -93,14 +108,15 @@ fn scenic_score(grid: &Vec<Vec<u32>>, i: usize, j: usize, size: usize) -> u32 {
     view_dist[0] * view_dist[1] * view_dist[2] * view_dist[3]
 }
 
-/// Consider each tree on your map. What is the highest scenic score possible for any tree?
-fn part_2(grid: &Vec<Vec<u32>>) -> u32 {
+// Consider each tree on your map. What is the highest scenic score possible for any tree?
+fn part_2(lines: Lines) -> u32 {
+    let grid: Vec<Vec<u32>> = parse_grid(lines);
     let mut max: u32 = 0;
     let size: usize = grid.len();
 
     for i in 1..size - 1 {
         for j in 1..size - 1 {
-            let score: u32 = scenic_score(grid, i, j, size);
+            let score: u32 = scenic_score(&grid, i, j, size);
             max = std::cmp::max(max, score);
         }
     }
@@ -108,26 +124,12 @@ fn part_2(grid: &Vec<Vec<u32>>) -> u32 {
     max
 }
 
-fn lines_to_grid(lines: Lines) -> Vec<Vec<u32>> {
-    lines
-        .map(|l| {
-            let row = l
-                .chars()
-                .map(|c| c.to_digit(10).unwrap())
-                .collect::<Vec<u32>>();
-            println!("{:?}", row);
-            row
-        })
-        .collect::<Vec<Vec<u32>>>()
-}
-
-/// Day 8: Treetop Tree House
-fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/2022/day_8") {
-        let grid = lines_to_grid(contents.lines());
-        println!("{}", part_1(&grid));
-        println!("{}", part_2(&grid));
-    }
+pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/2022/day_8");
+    (
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
+    )
 }
 
 #[cfg(test)]
@@ -142,13 +144,11 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        let grid = lines_to_grid(INPUT.lines());
-        assert_eq!(part_1(&grid), 21)
+        assert_eq!(part_1(INPUT.lines()), 21)
     }
 
     #[test]
     fn test_part_2() {
-        let grid = lines_to_grid(INPUT.lines());
-        assert_eq!(part_2(&grid), 8)
+        assert_eq!(part_2(INPUT.lines()), 8)
     }
 }

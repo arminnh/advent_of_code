@@ -1,4 +1,7 @@
-use std::{collections::HashSet, fs, hash::Hash};
+use crate::util::util::load_input;
+use crate::{Solution, SolutionPair};
+use std::str::Lines;
+use std::{collections::HashSet, hash::Hash};
 
 fn no_duplicates<T>(iter: T) -> bool
 where
@@ -10,28 +13,31 @@ where
     iter.into_iter().all(move |x| unique.insert(x))
 }
 
-/// How many characters need to be processed before the first start-of-packet marker is detected?
-fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/2022/day_6") {
-        let nr_of_distinct_characters = 14; // 4 for part 1, 14 for part 2
-        contents.lines().for_each(|line| {
-            if line.len() > 0 {
-                for chars in line
-                    .char_indices()
-                    .into_iter()
-                    .collect::<Vec<(usize, char)>>()
-                    .windows(nr_of_distinct_characters)
-                {
-                    if no_duplicates(chars.iter().map(|(_, c)| c)) {
-                        println!("{:?}", chars);
-                        println!(
-                            "Nr of characters to be processed: {}",
-                            chars[nr_of_distinct_characters - 1].0 + 1
-                        );
-                        return;
-                    }
+// How many characters need to be processed before the first start-of-packet marker is detected?
+fn find_start_of_packet_marker(lines: Lines, nr_of_distinct_chars: usize) -> usize {
+    for line in lines {
+        if line.len() > 0 {
+            for chars in line
+                .char_indices()
+                .into_iter()
+                .collect::<Vec<(usize, char)>>()
+                .windows(nr_of_distinct_chars)
+            {
+                if no_duplicates(chars.iter().map(|(_, c)| c)) {
+                    println!("{:?}", chars);
+                    return chars[nr_of_distinct_chars - 1].0 + 1;
                 }
             }
-        });
+        }
     }
+
+    0
+}
+
+pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/2022/day_6");
+    (
+        Solution::from(find_start_of_packet_marker(input.lines(), 4)),
+        Solution::from(find_start_of_packet_marker(input.lines(), 14)),
+    )
 }

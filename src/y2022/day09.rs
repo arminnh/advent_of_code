@@ -1,5 +1,6 @@
+use crate::util::util::load_input;
+use crate::{Solution, SolutionPair};
 use std::collections::HashSet;
-use std::fs;
 use std::str::Lines;
 
 fn move_head(head: (i32, i32), direction: &str) -> (i32, i32) {
@@ -12,10 +13,10 @@ fn move_head(head: (i32, i32), direction: &str) -> (i32, i32) {
     }
 }
 
-/// If the head is ever two steps directly up, down, left, or right from the tail,
-/// the tail must also move one step in that direction so it remains close enough.
-/// Otherwise, if the head and tail aren't touching and aren't in the same row or column,
-/// the tail always moves one step diagonally to keep up:
+// If the head is ever two steps directly up, down, left, or right from the tail,
+// the tail must also move one step in that direction so it remains close enough.
+// Otherwise, if the head and tail aren't touching and aren't in the same row or column,
+// the tail always moves one step diagonally to keep up:
 fn move_tail(head: &(i32, i32), tail: &(i32, i32)) -> (i32, i32) {
     if head == tail
         || head.0 == tail.0 && (head.1 - tail.1).abs() < 2
@@ -37,8 +38,8 @@ fn move_tail(head: &(i32, i32), tail: &(i32, i32)) -> (i32, i32) {
     }
 }
 
-/// Simulate your complete hypothetical series of motions.
-/// How many positions does the tail of the rope visit at least once?
+// Simulate your complete hypothetical series of motions.
+// How many positions does the tail of the rope visit at least once?
 fn part_1(lines: Lines) -> usize {
     let mut head: (i32, i32) = (0, 0);
     let mut tail: (i32, i32) = (0, 0);
@@ -61,8 +62,8 @@ fn part_1(lines: Lines) -> usize {
     visited.len()
 }
 
-/// Simulate your complete series of motions on a larger rope with ten knots.
-/// How many positions does the tail of the rope visit at least once?
+// Simulate your complete series of motions on a larger rope with ten knots.
+// How many positions does the tail of the rope visit at least once?
 fn part_2(lines: Lines) -> usize {
     let mut snake: Vec<(i32, i32)> = vec![(0, 0); 10];
     let mut visited: HashSet<(i32, i32)> = HashSet::new();
@@ -85,12 +86,12 @@ fn part_2(lines: Lines) -> usize {
     visited.len()
 }
 
-/// Day 9: Rope Bridge
-fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/2022/day_9") {
-        println!("{}", part_1(contents.lines()));
-        println!("{}", part_2(contents.lines()));
-    }
+pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/2022/day_9");
+    (
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
+    )
 }
 
 #[cfg(test)]

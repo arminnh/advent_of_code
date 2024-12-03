@@ -52,21 +52,21 @@ fn main() {
 
 fn get_day_solver(year: usize, day: &u8) -> fn() -> SolutionPair {
     match year {
-        // 2022 => match day {
-        //     1 => y2022::day01::solve,
-        //     2 => y2022::day02::solve,
-        //     3 => y2022::day03::solve,
-        //     4 => y2022::day04::solve,
-        //     5 => y2022::day05::solve,
-        //     6 => y2022::day06::solve,
-        //     7 => y2022::day07::solve,
-        //     8 => y2022::day08::solve,
-        //     9 => y2022::day09::solve,
-        //     10 => y2022::day10::solve,
-        //     11 => y2022::day11::solve,
-        //     12 => y2022::day12::solve,
-        //     _ => unimplemented!(),
-        // },
+        2022 => match day {
+            1 => y2022::day01::solve,
+            2 => y2022::day02::solve,
+            3 => y2022::day03::solve,
+            4 => y2022::day04::solve,
+            5 => y2022::day05::solve,
+            6 => y2022::day06::solve,
+            7 => y2022::day07::solve,
+            8 => y2022::day08::solve,
+            9 => y2022::day09::solve,
+            10 => y2022::day10::solve,
+            11 => y2022::day11::solve,
+            12 => y2022::day12::solve,
+            _ => unimplemented!(),
+        },
         2023 => match day {
             1 => y2023::day01::solve,
             2 => y2023::day02::solve,

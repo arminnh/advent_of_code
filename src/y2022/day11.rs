@@ -1,18 +1,19 @@
+use crate::util::util::load_input;
+use crate::{Solution, SolutionPair};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::error::Error;
-use std::fs::File;
-use std::io::{BufRead, BufReader, Lines};
+use std::str::Lines;
 
 type Item = usize;
 
-fn parse_items(s: String) -> Result<VecDeque<Item>, Box<dyn Error>> {
-    Ok(s.split_once(":")
-        .ok_or("Could not split on ':'")?
+fn parse_items(s: &str) -> VecDeque<Item> {
+    s.split_once(":")
+        .expect("Could not split on ':'")
         .1
         .split(",")
         .map(|i| i.trim().parse().expect("Item is not a valid number."))
-        .collect())
+        .collect()
 }
 
 #[derive(Debug)]
@@ -62,7 +63,7 @@ struct Operation {
 }
 
 impl Operation {
-    fn from_str(s: String) -> Result<Self, Box<dyn Error>> {
+    fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
         if let [left, op, right] = s
             .split_once("=")
             .ok_or("Could not split on '='")?
@@ -98,7 +99,7 @@ struct Action {
 }
 
 impl Action {
-    fn from_str(s_test: String, s_true: String, s_false: String) -> Result<Self, Box<dyn Error>> {
+    fn from_str(s_test: &str, s_true: &str, s_false: &str) -> Result<Self, Box<dyn Error>> {
         Ok(Action {
             denominator: s_test
                 .split_once("divisible by")
@@ -149,14 +150,14 @@ struct Monkey {
 struct Monkeys(HashMap<i32, RefCell<Monkey>>);
 
 impl Monkey {
-    fn from_str(lines: &mut Lines<BufReader<File>>) -> Result<Self, Box<dyn Error>> {
+    fn from_str(lines: &mut Lines) -> Result<Self, Box<dyn Error>> {
         Ok(Monkey {
-            items: parse_items(lines.next().ok_or("EOL while reading items")??)?,
-            operation: Operation::from_str(lines.next().ok_or("EOL while reading operation")??)?,
+            items: parse_items(lines.next().expect("EOL while reading items")),
+            operation: Operation::from_str(lines.next().expect("EOL while reading operation"))?,
             action: Action::from_str(
-                lines.next().ok_or("EOL while reading test")??,
-                lines.next().ok_or("EOL while reading test true case")??,
-                lines.next().ok_or("EOL while reading test false case")??,
+                lines.next().expect("EOL while reading test"),
+                lines.next().expect("EOL while reading test true case"),
+                lines.next().expect("EOL while reading test false case"),
             )?,
             inspections: 0,
         })
@@ -198,10 +199,10 @@ impl Monkey {
 }
 
 impl Monkeys {
-    fn from_str(mut lines: Lines<BufReader<File>>) -> Monkeys {
+    fn from_str(mut lines: Lines) -> Monkeys {
         let mut out = HashMap::new();
 
-        while let Some(Ok(monkey_line)) = lines.next() {
+        while let Some(monkey_line) = lines.next() {
             let i: u32 = monkey_line.chars().nth(7).unwrap().to_digit(10).unwrap();
             if let Ok(monkey) = Monkey::from_str(&mut lines) {
                 out.insert(i.try_into().unwrap(), RefCell::new(monkey));
@@ -259,13 +260,13 @@ impl Monkeys {
     }
 }
 
-fn part_1(lines: Lines<BufReader<File>>) -> usize {
+fn part_1(lines: Lines) -> usize {
     let monkeys: Monkeys = Monkeys::from_str(lines);
     monkeys.do_rounds(20, None);
     monkeys.calc_monkey_business()
 }
 
-fn part_2(lines: Lines<BufReader<File>>) -> usize {
+fn part_2(lines: Lines) -> usize {
     let monkeys: Monkeys = Monkeys::from_str(lines);
     let lowest_common_multiple = Some(
         monkeys
@@ -282,13 +283,13 @@ fn part_2(lines: Lines<BufReader<File>>) -> usize {
     monkeys.calc_monkey_business()
 }
 
-fn get_lines(path: &str) -> Lines<BufReader<File>> {
-    BufReader::new(File::open(path).expect("Could not open file.")).lines()
-}
 
-fn main() {
-    // part_1(get_lines("inputs/2022/day_11"));
-    part_2(get_lines("inputs/2022/day_11"));
+pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/2022/day_11");
+    (
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
+    )
 }
 
 #[cfg(test)]
@@ -297,21 +298,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(get_lines("inputs/2022/day_11_example")), 10_605)
+        assert_eq!(part_1(load_input("inputs/2022/day_11_example").lines()), 10_605)
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(get_lines("inputs/2022/day_11")), 100_345)
+        assert_eq!(part_1(load_input("inputs/2022/day_11").lines()), 100_345)
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(get_lines("inputs/2022/day_11_example")), 2_713_310_158)
+        assert_eq!(part_2(load_input("inputs/2022/day_11_example").lines()), 2_713_310_158)
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(get_lines("inputs/2022/day_11")), 28_537_348_205)
+        assert_eq!(part_2(load_input("inputs/2022/day_11").lines()), 28_537_348_205)
     }
 }

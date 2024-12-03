@@ -1,39 +1,38 @@
-use std::fs::File;
-use std::io::{BufRead, BufReader, Lines};
+use crate::util::util::load_input;
+use crate::{Solution, SolutionPair};
+use std::str::Lines;
 
 type HeightMap = Vec<Vec<usize>>;
 
-fn parse_input(lines: Lines<BufReader<File>>) -> (HeightMap, (usize, usize), (usize, usize)) {
+fn parse_input(lines: Lines) -> (HeightMap, (usize, usize), (usize, usize)) {
     let mut map: Vec<Vec<usize>> = Vec::new();
     let mut start = (0, 0);
     let mut end = (0, 0);
 
     lines.enumerate().for_each(|(i, line)| {
         println!("{i}, {line:?}");
-        if let Ok(line) = line {
-            let mut row: Vec<usize> = Vec::new();
-            for (j, c) in line.chars().enumerate() {
-                match c {
-                    'a'..='z' => row.push(c as usize - 'a' as usize + 1),
-                    'S' => {
-                        row.push(0);
-                        start = (i, j);
-                    }
-                    'E' => {
-                        row.push(26);
-                        end = (i, j);
-                    }
-                    _ => todo!(),
+        let mut row: Vec<usize> = Vec::new();
+        for (j, c) in line.chars().enumerate() {
+            match c {
+                'a'..='z' => row.push(c as usize - 'a' as usize + 1),
+                'S' => {
+                    row.push(0);
+                    start = (i, j);
                 }
+                'E' => {
+                    row.push(26);
+                    end = (i, j);
+                }
+                _ => todo!(),
             }
-            map.push(row);
         }
+        map.push(row);
     });
 
     (map, start, end)
 }
 
-fn part_1(lines: Lines<BufReader<File>>) -> usize {
+fn part_1(lines: Lines) -> usize {
     let (height_map, start, end) = parse_input(lines);
     println!("{height_map:#?}");
     println!("{start:?}");
@@ -41,17 +40,16 @@ fn part_1(lines: Lines<BufReader<File>>) -> usize {
     todo!()
 }
 
-// fn part_2(lines: Lines<BufReader<File>>) -> usize {
-//     0
-// }
-
-fn get_lines(path: &str) -> Lines<BufReader<File>> {
-    BufReader::new(File::open(path).expect("Could not open file.")).lines()
+fn part_2(lines: Lines) -> usize {
+    0
 }
 
-fn main() {
-    part_1(get_lines("inputs/2022/day_12_example"));
-    // part_2(get_lines("inputs/2022/day_12"));
+pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/2022/day_12");
+    (
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
+    )
 }
 
 #[cfg(test)]
@@ -60,21 +58,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(get_lines("inputs/2022/day_12_example")), 0)
+        assert_eq!(part_1(load_input("inputs/2022/day_12_example").lines()), 0)
     }
 
     // #[test]
     // fn test_part_1() {
-    //     assert_eq!(part_1(get_lines("inputs/2022/day_12")), 0)
+    //     assert_eq!(part_1(load_input("inputs/2022/day_12").lines()), 0)
     // }
 
     // #[test]
     // fn test_part_2_example() {
-    //     assert_eq!(part_2(get_lines("inputs/2022/day_12_example")), 0)
+    //     assert_eq!(part_2(load_input("inputs/2022/day_12_example").lines()), 0)
     // }
 
     // #[test]
     // fn test_part_2() {
-    //     assert_eq!(part_2(get_lines("inputs/2022/day_12")), 0)
+    //     assert_eq!(part_2(load_input("inputs/2022/day_12").lines()), 0)
     // }
 }

@@ -1,4 +1,5 @@
-use std::fs;
+use crate::util::util::load_input;
+use crate::{Solution, SolutionPair};
 
 #[derive(Debug)]
 enum Move {
@@ -13,9 +14,6 @@ enum Outcome {
     Draw,
 }
 
-/// The first column is what your opponent is going to play: A for Rock, B for Paper,
-/// and C for Scissors. The second column, you reason, must be what you should play in
-/// response: X for Rock, Y for Paper, and Z for Scissors.
 fn parse_move(c: &char) -> Option<Move> {
     match c {
         'A' | 'X' => Some(Move::Rock),
@@ -25,9 +23,6 @@ fn parse_move(c: &char) -> Option<Move> {
     }
 }
 
-/// The Elf finishes helping with the tent and sneaks back over to you. "Anyway, the second
-/// column says how the round needs to end: X means you need to lose, Y means you need to end
-/// the round in a draw, and Z means you need to win. Good luck!"
 fn parse_outcome(c: &char) -> Option<Outcome> {
     match c {
         'X' => Some(Outcome::Lose),
@@ -37,9 +32,9 @@ fn parse_outcome(c: &char) -> Option<Outcome> {
     }
 }
 
-/// The score for a single round is the score for the shape you selected
-/// (1 for Rock, 2 for Paper, and 3 for Scissors) plus the score for the outcome of
-/// the round (0 if you lost, 3 if the round was a draw, and 6 if you won).
+// The score for a single round is the score for the shape you selected
+// (1 for Rock, 2 for Paper, and 3 for Scissors) plus the score for the outcome of
+// the round (0 if you lost, 3 if the round was a draw, and 6 if you won).
 fn calculate_score(opponent_move: &Move, my_move: &Move) -> u32 {
     match opponent_move {
         Move::Rock => match my_move {
@@ -60,8 +55,8 @@ fn calculate_score(opponent_move: &Move, my_move: &Move) -> u32 {
     }
 }
 
-/// The total score is still calculated in the same way, but now you need to figure out
-/// what shape to choose so the round ends as indicated.
+// The total score is still calculated in the same way, but now you need to figure out
+// what shape to choose so the round ends as indicated.
 fn select_move_for_target_outcome(opponent_move: &Move, target_outcome: &Outcome) -> Move {
     match opponent_move {
         Move::Rock => match target_outcome {
@@ -82,16 +77,24 @@ fn select_move_for_target_outcome(opponent_move: &Move, target_outcome: &Outcome
     }
 }
 
-/// What would your total score be if everything goes exactly according to your strategy guide?
-fn main() {
-    if let Ok(contents) = fs::read_to_string("inputs/2022/day_2") {
-        let score = contents.lines().fold(0, |acc, line| {
-            let opponent_move: Move = parse_move(&line.chars().nth(0).unwrap()).unwrap();
-            // let my_move: Move = parse_move(line.chars().nth(2).unwrap()).unwrap();
-            let target_outcome: Outcome = parse_outcome(&line.chars().nth(2).unwrap()).unwrap();
-            let my_move: Move = select_move_for_target_outcome(&opponent_move, &target_outcome);
-            acc + calculate_score(&opponent_move, &my_move)
-        });
-        println!("Score is: {}", score);
-    }
+fn part_1(input: &str) -> u32 { 0}
+
+// What would your total score be if everything goes exactly according to your strategy guide?
+fn part_2(input: &str) -> u32 {
+    input.lines().fold(0, |acc, line| {
+        let opponent_move: Move = parse_move(&line.chars().nth(0).unwrap()).unwrap();
+        // let my_move: Move = parse_move(line.chars().nth(2).unwrap()).unwrap();
+        let target_outcome: Outcome = parse_outcome(&line.chars().nth(2).unwrap()).unwrap();
+        let my_move: Move = select_move_for_target_outcome(&opponent_move, &target_outcome);
+        acc + calculate_score(&opponent_move, &my_move)
+    })
+}
+
+
+pub fn solve() -> SolutionPair {
+    let input = load_input("inputs/2022/day_2");
+    (
+        Solution::from(part_1(&input)),
+        Solution::from(part_2(&input)),
+    )
 }

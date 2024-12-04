@@ -35,7 +35,7 @@ fn part_2(input: &str) -> usize {
 }
 
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_2");
+    let input = load_input("inputs/2024/day_3");
     (
         Solution::from(part_1(&input)),
         Solution::from(part_2(&input)),

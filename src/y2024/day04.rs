@@ -20,10 +20,6 @@ fn directions() -> Vec<Direction> {
     ]
 }
 
-fn in_bounds(pos: Position, max_x: i32, max_y: i32) -> bool {
-    pos.0 >= 0 && pos.0 < max_x && pos.1 >= 0 && pos.1 < max_y
-}
-
 fn search_in_direction(
     grid: &Vec<Vec<char>>,
     mut pos: Position,
@@ -34,7 +30,9 @@ fn search_in_direction(
 ) -> usize {
     for c in word.chars() {
         pos = (pos.0 + dir.0, pos.1 + dir.1);
-        if !in_bounds(pos, max_x, max_y) || grid[pos.0 as usize][pos.1 as usize] != c {
+        let in_bounds = pos.0 >= 0 && pos.0 < max_x && pos.1 >= 0 && pos.1 < max_y;
+
+        if !in_bounds || grid[pos.0 as usize][pos.1 as usize] != c {
             return 0;
         }
     }
@@ -70,53 +68,52 @@ fn part_1(lines: Lines) -> usize {
     result
 }
 
+fn check_ass(
+    grid: &HashMap<(i32, i32), char>,
+    pos: Position,
+    a: Direction,
+    s1: Direction,
+    s2: Direction,
+) -> bool {
+    match (
+        grid.get(&(pos.0 + a.0, pos.1 + a.1)),
+        grid.get(&(pos.0 + s1.0, pos.1 + s1.1)),
+        grid.get(&(pos.0 + s2.0, pos.1 + s2.1)),
+    ) {
+        (Some('A'), Some('S'), Some('S')) => true,
+        _ => false,
+    }
+}
+
 fn count_shapes(grid: &HashMap<(i32, i32), char>, x: i32, y: i32) -> usize {
-    // check for M two spots right or down. Don't check up or left to avoid counting duplicates.
-    let vertical_m = grid.get(&(x + 2, y)).map(|&c| c == 'M').unwrap_or(false);
-    let horizontal_m = grid.get(&(x, y + 2)).map(|&c| c == 'M').unwrap_or(false);
+    // Find first M
+    if grid.get(&(x, y)) != Some(&'M') {
+        return 0;
+    }
 
     let mut result = 0;
-    if vertical_m {
-        // Check for A right and S in right corners
-        match (
-            grid.get(&(x + 1, y + 1)),
-            grid.get(&(x, y + 2)),
-            grid.get(&(x + 2, y + 2)),
-        ) {
-            (Some('A'), Some('S'), Some('S')) => result += 1,
-            _ => (),
-        }
 
-        // Check for A left and S in left corners
-        match (
-            grid.get(&(x + 1, y - 1)),
-            grid.get(&(x, y - 2)),
-            grid.get(&(x + 2, y - 2)),
-        ) {
-            (Some('A'), Some('S'), Some('S')) => result += 1,
-            _ => (),
+    // Check for second M two spots right or down. Don't search for M up or left to avoid counting duplicates.
+    // Once orientation of the two M's is determined (vertical/horizontal), we know where the rest of the shape can be.
+    if let Some('M') = grid.get(&(x + 2, y)) {
+        // Check right
+        if check_ass(grid, (x, y), (1, 1), (0, 2), (2, 2)) {
+            result += 1;
+        }
+        // Check left
+        if check_ass(grid, (x, y), (1, -1), (0, -2), (2, -2)) {
+            result += 1;
         }
     }
 
-    if horizontal_m {
-        // Check for A down and S in bottom corners
-        match (
-            grid.get(&(x + 1, y + 1)),
-            grid.get(&(x + 2, y)),
-            grid.get(&(x + 2, y + 2)),
-        ) {
-            (Some('A'), Some('S'), Some('S')) => result += 1,
-            _ => (),
+    if let Some('M') = grid.get(&(x, y + 2)) {
+        // Check down
+        if check_ass(grid, (x, y), (1, 1), (2, 0), (2, 2)) {
+            result += 1;
         }
-
-        // Check for A up and S in upper corners
-        match (
-            grid.get(&(x - 1, y + 1)),
-            grid.get(&(x - 2, y)),
-            grid.get(&(x - 2, y + 2)),
-        ) {
-            (Some('A'), Some('S'), Some('S')) => result += 1,
-            _ => (),
+        // Check up
+        if check_ass(grid, (x, y), (-1, 1), (-2, 0), (-2, 2)) {
+            result += 1;
         }
     }
 
@@ -132,15 +129,7 @@ fn part_2(lines: Lines) -> usize {
         }
     }
 
-    grid.iter()
-        .map(|((x, y), c)| {
-            if c == &'M' {
-                count_shapes(&grid, *x, *y)
-            } else {
-                0
-            }
-        })
-        .sum()
+    grid.keys().map(|(x, y)| count_shapes(&grid, *x, *y)).sum()
 }
 
 pub fn solve() -> SolutionPair {

@@ -1,5 +1,6 @@
 use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
+use std::collections::HashMap;
 use std::str::Lines;
 use std::usize;
 
@@ -69,25 +70,77 @@ fn part_1(lines: Lines) -> usize {
     result
 }
 
+fn count_shapes(grid: &HashMap<(i32, i32), char>, x: i32, y: i32) -> usize {
+    // check for M two spots right or down. Don't check up or left to avoid counting duplicates.
+    let vertical_m = grid.get(&(x + 2, y)).map(|&c| c == 'M').unwrap_or(false);
+    let horizontal_m = grid.get(&(x, y + 2)).map(|&c| c == 'M').unwrap_or(false);
+
+    let mut result = 0;
+    if vertical_m {
+        // Check for A right and S in right corners
+        match (
+            grid.get(&(x + 1, y + 1)),
+            grid.get(&(x, y + 2)),
+            grid.get(&(x + 2, y + 2)),
+        ) {
+            (Some('A'), Some('S'), Some('S')) => result += 1,
+            _ => (),
+        }
+
+        // Check for A left and S in left corners
+        match (
+            grid.get(&(x + 1, y - 1)),
+            grid.get(&(x, y - 2)),
+            grid.get(&(x + 2, y - 2)),
+        ) {
+            (Some('A'), Some('S'), Some('S')) => result += 1,
+            _ => (),
+        }
+    }
+
+    if horizontal_m {
+        // Check for A down and S in bottom corners
+        match (
+            grid.get(&(x + 1, y + 1)),
+            grid.get(&(x + 2, y)),
+            grid.get(&(x + 2, y + 2)),
+        ) {
+            (Some('A'), Some('S'), Some('S')) => result += 1,
+            _ => (),
+        }
+
+        // Check for A up and S in upper corners
+        match (
+            grid.get(&(x - 1, y + 1)),
+            grid.get(&(x - 2, y)),
+            grid.get(&(x - 2, y + 2)),
+        ) {
+            (Some('A'), Some('S'), Some('S')) => result += 1,
+            _ => (),
+        }
+    }
+
+    result
+}
+
 // How many times does MAS appear in the shape of an X?
 fn part_2(lines: Lines) -> usize {
-    // let grid: Vec<Vec<char>> = lines.map(|l| l.chars().collect()).collect();
-    // let max_x = grid.len();
-    // let max_y = grid[0].len();
+    let mut grid: HashMap<Position, char> = HashMap::new();
+    for (x, line) in lines.enumerate() {
+        for (y, c) in line.char_indices() {
+            grid.insert((x as i32, y as i32), c);
+        }
+    }
 
-    // let mut result = 0;
-    // for x in 0..max_x {
-    //     for y in 0..max_y {
-    //         if grid[x][y] == 'X' {
-    //             let cnt =
-    //                 count_occurences(&grid, x as i32, y as i32, max_x as i32, max_y as i32, "MAS");
-    //             println!("FOUND FROM {:?}: {}", (x, y), cnt);
-    //             result += cnt;
-    //         }
-    //     }
-    // }
-    // result
-    0
+    grid.iter()
+        .map(|((x, y), c)| {
+            if c == &'M' {
+                count_shapes(&grid, *x, *y)
+            } else {
+                0
+            }
+        })
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -149,10 +202,11 @@ M.S";
     #[test]
     fn test_part_2_example() {
         assert_eq!(part_2(EXAMPLE_INPUT_4.lines()), 1);
+        assert_eq!(part_2(EXAMPLE_INPUT_2.lines()), 9);
     }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(load_input("inputs/2024/day_4")), 100450138);
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(load_input("inputs/2024/day_4").lines()), 1873);
+    }
 }

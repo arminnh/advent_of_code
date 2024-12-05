@@ -14,12 +14,7 @@ fn parse_rules(input: &str) -> Rules {
             .map(|s| s.parse::<usize>().expect("could not parse number in rule"))
             .collect();
 
-        rules
-            .entry(rule_parts[0])
-            .and_modify(|v| {
-                v.insert(rule_parts[1]);
-            })
-            .or_insert(HashSet::from([rule_parts[1]]));
+        rules.entry(rule_parts[0]).or_default().insert(rule_parts[1]);
     }
     rules
 }

@@ -1,63 +1,98 @@
 use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::collections::HashMap;
-use std::str::Lines;
+use std::collections::{HashMap, HashSet};
 use std::usize;
 
-fn part_1(input: String) -> usize {
-    let mut before: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut after: HashMap<usize, Vec<usize>> = HashMap::new();
+type Rules = HashMap<usize, HashSet<usize>>;
 
-    let parts: Vec<&str> = input.split("\n\n").collect();
-
-    for rule in parts[0].lines() {
+/// Map each number in the input to set of numbers it should be before
+fn parse_rules(input: &str) -> Rules {
+    let mut rules: Rules = HashMap::new();
+    for rule in input.lines() {
         let rule_parts: Vec<usize> = rule
             .split("|")
-            .map(|s| s.parse::<usize>().expect("could not parse number"))
+            .map(|s| s.parse::<usize>().expect("could not parse number in rule"))
             .collect();
-        let first = rule_parts[0];
-        let second = rule_parts[1];
-        before
-            .entry(first)
-            .and_modify(|v| v.push(second))
-            .or_insert(Vec::from([second]));
-        after
-            .entry(second)
-            .and_modify(|v| v.push(first))
-            .or_insert(Vec::from([first]));
-    }
 
-    let updates: Vec<Vec<usize>> = parts[1]
+        rules
+            .entry(rule_parts[0])
+            .and_modify(|v| {
+                v.insert(rule_parts[1]);
+            })
+            .or_insert(HashSet::from([rule_parts[1]]));
+    }
+    rules
+}
+
+/// Page updates are given as lines of comma separated lists
+fn parse_updates(input: &str) -> Vec<Vec<usize>> {
+    input
         .lines()
         .map(|line| {
             line.split(",")
-                .map(|c| c.parse::<usize>().expect("could not parse number"))
+                .map(|c| {
+                    c.parse::<usize>()
+                        .expect("could not parse number in update")
+                })
                 .collect()
         })
-        .collect();
+        .collect()
+}
+
+/// An update is correctly ordered if all page numbers are in the correct order as per the rules
+fn is_update_correctly_ordered(update: &Vec<usize>, rules: &Rules) -> bool {
+    for (i, page_before) in update.iter().enumerate() {
+        for page_after in &update[i..update.len()] {
+            if rules
+                .get(page_after)
+                .map(|rules| rules.contains(page_before))
+                .unwrap_or(false)
+            {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+// What do you get if you add up the middle page number from the correctly-ordered updates?
+fn part_1(input: String) -> usize {
+    let parts: Vec<&str> = input.split("\n\n").collect();
+    // Map of each number to set of numbers it should be before
+    let rules: Rules = parse_rules(parts[0]);
+    let updates = parse_updates(parts[1]);
 
     updates
         .iter()
-        .filter(|update| {
-            for (i, u) in update.iter().enumerate() {
-                for j in i..update.len() {
-                    if after
-                        .get(u)
-                        .map(|rules| rules.contains(&update[j]))
-                        .unwrap_or(false)
-                    {
-                        return false;
-                    }
-                }
-            }
-            true
-        })
+        .filter(|update| is_update_correctly_ordered(update, &rules))
         .map(|update| update[update.len() / 2])
         .sum()
 }
 
+/// Updates should be ordered in accordance with the rules
+fn update_ordering(a: &usize, b: &usize, rules: &Rules) -> std::cmp::Ordering {
+    if rules.get(b).map(|rules| rules.contains(a)).unwrap_or(false) {
+        std::cmp::Ordering::Less
+    } else {
+        std::cmp::Ordering::Greater
+    }
+}
+
+// For each of the incorrectly-ordered updates, use the page ordering rules to put the page numbers in the right order.
+// What do you get if you add up the middle page numbers after correctly ordering just those updates?
 fn part_2(input: String) -> usize {
-    0
+    let parts: Vec<&str> = input.split("\n\n").collect();
+    let rules: Rules = parse_rules(parts[0]);
+    let updates = parse_updates(parts[1]);
+
+    updates
+        .into_iter()
+        .filter(|update| !is_update_correctly_ordered(update, &rules))
+        .map(|mut update| {
+            update.sort_by(|a, b| update_ordering(a, b, &rules));
+            update[update.len() / 2]
+        })
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -72,7 +107,7 @@ pub fn solve() -> SolutionPair {
 mod tests {
     use super::*;
 
-    const EXAMPLE_INPUT_1: &str = "47|53
+    const EXAMPLE_INPUT: &str = "47|53
 97|13
 97|61
 97|47
@@ -103,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.to_string()), 143);
+        assert_eq!(part_1(EXAMPLE_INPUT.to_string()), 143);
     }
 
     #[test]
@@ -111,14 +146,13 @@ mod tests {
         assert_eq!(part_1(load_input("inputs/2024/day_5")), 4281);
     }
 
-    // #[test]
-    // fn test_part_2_example() {
-    //     assert_eq!(part_2(EXAMPLE_INPUT_4.lines()), 1);
-    //     assert_eq!(part_2(EXAMPLE_INPUT_2.lines()), 9);
-    // }
+    #[test]
+    fn test_part_2_example() {
+        assert_eq!(part_2(EXAMPLE_INPUT.to_string()), 123);
+    }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(load_input("inputs/2024/day_4").lines()), 1873);
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(load_input("inputs/2024/day_5")), 5466);
+    }
 }

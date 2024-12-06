@@ -1,11 +1,39 @@
 use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash)]
+struct Guard {
+    position: Position,
+    direction: Direction,
+}
+
+impl Guard {
+    fn in_bounds(&self, grid: &Grid) -> bool {
+        self.position.0 >= 0
+            && self.position.0 < grid.max_x
+            && self.position.1 >= 0
+            && self.position.1 < grid.max_y
+    }
+
+    fn next_position(&self) -> Position {
+        let (offset_x, offset_y) = self.direction.offsets();
+        (self.position.0 + offset_x, self.position.1 + offset_y)
+    }
+}
+
+#[derive(Clone)]
+struct Grid {
+    obstacles: HashSet<Position>,
+    max_x: i32,
+    max_y: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash)]
 enum Direction {
     North,
     East,
@@ -45,92 +73,117 @@ impl std::fmt::Display for Direction {
     }
 }
 
-fn move_pos(pos: Position, direction: &Direction) -> Position {
-    let (offset_x, offset_y) = direction.offsets();
-    (pos.0 + offset_x, pos.1 + offset_y)
-}
-
-fn simulate_steps(
-    pos: Position,
-    direction: Direction,
-    obstacles: &HashSet<Position>,
-    visited: &mut HashSet<Position>,
-    max_x: i32,
-    max_y: i32,
-) -> Option<Position> {
-    visited.insert(pos);
-    print_grid(obstacles, visited, pos, &direction, max_x, max_y);
-    let next_pos = move_pos(pos, &direction);
-
-    // if next position is not in bounds, guard leaves the area
-    let in_bounds = pos.0 >= 0 && pos.0 < max_x && pos.1 >= 0 && pos.1 < max_y;
-    if !in_bounds {
-        None
-    } else if obstacles.contains(&next_pos) {
-        let next_dir = direction.turn_right();
-        simulate_steps(pos, next_dir, obstacles, visited, max_x, max_y)
-    } else {
-        simulate_steps(next_pos, direction, obstacles, visited, max_x, max_y)
-    }
-}
-
-fn print_grid(
-    obstacles: &HashSet<Position>,
-    visited: &HashSet<Position>,
-    pos: Position,
-    dir: &Direction,
-    max_x: i32,
-    max_y: i32,
-) {
-    for x in 0..max_x {
-        for y in 0..max_y {
-            if obstacles.contains(&(x, y)) {
-                print!("#");
-            } else if visited.contains(&(x, y)) {
-                print!("█");
-            } else if x == pos.0 && y == pos.1 {
-                print!("{}", dir)
-            } else {
-                print!(".")
-            }
-        }
-        println!("");
-    }
-    println!("\n");
-}
-
-// Predict the path of the guard. How many distinct positions will the guard visit before leaving the mapped area?
-fn part_1(lines: Lines) -> usize {
-    let mut visited: HashSet<Position> = HashSet::new();
+fn parse_input(lines: Lines) -> (Grid, Guard) {
     let mut obstacles: HashSet<Position> = HashSet::new();
     let mut max_x = 0;
     let mut max_y = 0;
-    let mut start_pos = (0, 0);
+    let mut position = (0, 0);
     for (x, line) in lines.enumerate() {
         for (y, ch) in line.chars().enumerate() {
             if ch == '#' {
                 obstacles.insert((x as i32, y as i32));
             } else if ch == '^' {
-                start_pos = (x as i32, y as i32);
+                position = (x as i32, y as i32);
             }
             max_y = max_y.max((y + 1) as i32);
         }
         max_x = max_x.max((x + 1) as i32);
     }
 
-    simulate_steps(
-        start_pos,
-        Direction::North,
-        &obstacles,
-        &mut visited,
-        max_x,
-        max_y,
-    );
-    visited.len() - 1
+    (
+        Grid {
+            obstacles,
+            max_x,
+            max_y,
+        },
+        Guard {
+            position,
+            direction: Direction::North,
+        },
+    )
 }
 
+fn walk_path(mut guard: Guard, grid: &Grid) -> HashSet<Position> {
+    let mut visited = HashSet::new();
+    // if position is not in bounds, guard left the area
+    while guard.in_bounds(&grid) {
+        visited.insert(guard.position);
+
+        if grid.obstacles.contains(&guard.next_position()) {
+            guard.direction = guard.direction.turn_right();
+        } else {
+            guard.position = guard.next_position();
+        }
+    }
+    visited
+}
+
+// Predict the path of the guard. How many distinct positions will the guard visit before leaving the mapped area?
+fn part_1(lines: Lines) -> usize {
+    let (grid, guard) = parse_input(lines);
+    walk_path(guard, &grid).len()
+}
+
+// fn print_grid(grid: &Grid, visited: &HashSet<Guard>, guard: Guard) {
+//     for x in 0..grid.max_x {
+//         for y in 0..grid.max_y {
+//             if x == guard.position.0 && y == guard.position.1 {
+//                 print!("{}", guard.direction)
+//             } else if grid.obstacles.contains(&(x, y)) {
+//                 print!("#");
+//             } else if visited
+//                 .intersection(&HashSet::from([
+//                     ((x, y), Direction::North),
+//                     ((x, y), Direction::East),
+//                     ((x, y), Direction::South),
+//                     ((x, y), Direction::West),
+//                 ]))
+//                 .count()
+//                 > 0
+//             {
+//                 print!("█");
+//             } else {
+//                 print!(".")
+//             }
+//         }
+//         println!("");
+//     }
+//     println!("\n");
+// }
+
+/// Does the guard loop starting from the given position and direction?
+fn guard_loops(grid: &Grid, mut guard: Guard) -> bool {
+    // guard loops if it revisits a step in the same direction
+    let mut seen: HashSet<Guard> = HashSet::new();
+    while seen.insert(guard) {
+        let next_position = guard.next_position();
+
+        if grid.obstacles.contains(&next_position) {
+            guard.direction = guard.direction.turn_right();
+        } else {
+            guard.position = guard.next_position();
+            if !guard.in_bounds(grid) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+// In how many positions can you place an obstacle to get the guard stuck in a loop?
 fn part_2(lines: Lines) -> usize {
-    0
+    let (grid, guard) = parse_input(lines);
+    let visited: HashSet<Position> = walk_path(guard, &grid);
+
+    // Instead of trying every possible position (16k), try only the path actually walked
+    visited
+        .into_iter()
+        .filter(|position| {
+            let mut new_grid = grid.clone();
+            new_grid.obstacles.insert(*position);
+            guard_loops(&new_grid, guard)
+        })
+        .count()
 }
 
 pub fn solve() -> SolutionPair {
@@ -166,13 +219,13 @@ mod tests {
         assert_eq!(part_1(load_input("inputs/2024/day_6").lines()), 4758);
     }
 
-    // #[test]
-    // fn test_part_2_example() {
-    //     assert_eq!(part_2(EXAMPLE_INPUT.to_string()), 123);
-    // }
+    #[test]
+    fn test_part_2_example() {
+        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 6);
+    }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(load_input("inputs/2024/day_6").lines()), 5466);
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(load_input("inputs/2024/day_6").lines()), 1670)
+    }
 }

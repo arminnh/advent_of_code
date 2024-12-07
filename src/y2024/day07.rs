@@ -10,62 +10,71 @@ struct Equation {
 
 impl Equation {
     // Try all possible operations between the operands, keeping track of intermediate results
-    fn result_is_possible(&self) -> bool {
-        let mut accumulators = Vec::from([*self.operands.first().unwrap()]);
+    fn result_is_possible(&self, use_concatenation: bool) -> bool {
+        let mut accumulators = Vec::from([self.operands[0]]);
 
-        for o in &self.operands[1..self.operands.len()] {
+        for o in &self.operands[1..] {
             let previous: Vec<usize> = accumulators.drain(..).collect();
             for acc in previous {
                 let mul = acc * o;
                 let add = acc + o;
-                if mul == self.result || add == self.result {
-                    return true;
-                }
-                if mul < self.result {
+                if mul <= self.result {
                     accumulators.push(mul);
                 }
-                if add < self.result {
+                if add <= self.result {
                     accumulators.push(add);
+                }
+
+                if use_concatenation {
+                    let con = concatenate(acc, *o);
+                    if con <= self.result {
+                        accumulators.push(con);
+                    }
                 }
             }
         }
 
-        false
+        accumulators.contains(&self.result)
     }
 }
 
 impl From<&str> for Equation {
     fn from(input: &str) -> Self {
-        let mut iter = input.split_whitespace();
-        let result = iter
-            .next()
-            .expect("Input is empty")
-            .trim_end_matches(":")
-            .parse()
-            .expect("Could not parse result of equation");
-        let operands = iter
-            .map(|o| o.parse().expect("Could not parse operand"))
-            .collect();
-        Equation { result, operands }
+        let (result, operands) = input.split_once(": ").unwrap();
+
+        Equation {
+            result: result.parse().expect("Could not parse result of equation"),
+            operands: operands
+                .split(" ")
+                .map(|o| o.parse().expect("Could not parse operand"))
+                .collect(),
+        }
     }
 }
 
-// Predict the path of the guard. How many distinct positions will the guard visit before leaving the mapped area?
+// What is the total calibration result of the equations that could possibly be true?
 fn part_1(lines: Lines) -> usize {
+    let use_concatenation = false;
     lines
         .map(|line| Equation::from(line))
-        .filter_map(|equation| {
-            if equation.result_is_possible() {
-                Some(equation.result)
-            } else {
-                None
-            }
-        })
+        .filter(|equation| equation.result_is_possible(use_concatenation))
+        .map(|equation| equation.result)
         .sum()
 }
 
+fn concatenate(a: usize, b: usize) -> usize {
+    a * 10_usize.pow(b.ilog10() + 1) + b
+    // (a.to_string() + &b.to_string()).parse().unwrap()
+}
+
+// Part 1 + concatenation operator
 fn part_2(lines: Lines) -> usize {
-    0
+    let use_concatenation = true;
+    lines
+        .map(|line| Equation::from(line))
+        .filter(|equation| equation.result_is_possible(use_concatenation))
+        .map(|equation| equation.result)
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -97,16 +106,37 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_7").lines()), 1260333054159);
+        assert_eq!(
+            part_1(load_input("inputs/2024/day_7").lines()),
+            1260333054159
+        );
+    }
+
+    #[test]
+    fn test_concatenate() {
+        assert_eq!(concatenate(1, 1), 11);
+        assert_eq!(concatenate(22, 2), 222);
+        assert_eq!(concatenate(333, 333), 333333);
+        assert_eq!(concatenate(1, 61011), 161011);
+        assert_eq!(concatenate(16, 1011), 161011);
+        assert_eq!(concatenate(161, 011), 16111);
+        assert_eq!(concatenate(1610, 11), 161011);
+        assert_eq!(concatenate(16101, 1), 161011);
+        assert_eq!(concatenate(10, 10), 1010);
+        assert_eq!(concatenate(1, 30000), 130000);
+        assert_eq!(concatenate(50000, 1), 500001);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 6);
+        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 11387);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_7").lines()), 1670)
+        assert_eq!(
+            part_2(load_input("inputs/2024/day_7").lines()),
+            162042343638683
+        )
     }
 }

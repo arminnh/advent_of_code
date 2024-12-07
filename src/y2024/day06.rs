@@ -4,33 +4,89 @@ use std::collections::HashSet;
 use std::str::Lines;
 use std::usize;
 
-type Position = (i32, i32);
-
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash)]
-struct Guard {
-    position: Position,
-    direction: Direction,
-}
-
-impl Guard {
-    fn in_bounds(&self, grid: &Grid) -> bool {
-        self.position.0 >= 0
-            && self.position.0 < grid.max_x
-            && self.position.1 >= 0
-            && self.position.1 < grid.max_y
-    }
-
-    fn next_position(&self) -> Position {
-        let (offset_x, offset_y) = self.direction.offsets();
-        (self.position.0 + offset_x, self.position.1 + offset_y)
-    }
-}
+type Position = (usize, usize);
 
 #[derive(Clone)]
 struct Grid {
-    obstacles: HashSet<Position>,
-    max_x: i32,
-    max_y: i32,
+    // Separate lists of obstacles in horizontal/vertical directions to move in jumps instead of step by step
+    obstacles_horizontal: Vec<Vec<usize>>,
+    obstacles_vertical: Vec<Vec<usize>>,
+    max_x: usize,
+    max_y: usize,
+}
+
+impl Grid {
+    fn from(obstacles: Vec<Position>, max_x: usize, max_y: usize) -> Grid {
+        let mut obstacles_horizontal: Vec<Vec<usize>> =
+            std::iter::repeat(Vec::with_capacity(max_y))
+                .take(max_x)
+                .collect();
+        let mut obstacles_vertical: Vec<Vec<usize>> = std::iter::repeat(Vec::with_capacity(max_x))
+            .take(max_y)
+            .collect();
+        for &(x, y) in obstacles.iter() {
+            obstacles_horizontal.get_mut(x).unwrap().push(y);
+            obstacles_vertical.get_mut(y).unwrap().push(x);
+        }
+        Grid {
+            obstacles_horizontal,
+            obstacles_vertical,
+            max_x,
+            max_y,
+        }
+    }
+
+    // Instead of moving step by step, jump to the next obstacle that will eventually be reached
+    fn next_position(&self, (x, y): Position, direction: Direction) -> Result<Position, Position> {
+        match direction {
+            Direction::North => self
+                .obstacles_vertical
+                .get(y)
+                .unwrap()
+                .iter()
+                .rev()
+                .find(|&&obs_x| obs_x < x)
+                .map(|new_x| Ok((new_x + 1, y)))
+                .unwrap_or(Err((0, y))),
+            Direction::East => self
+                .obstacles_horizontal
+                .get(x)
+                .unwrap()
+                .iter()
+                .find(|&&obs_y| obs_y > y)
+                .map(|new_y| Ok((x, new_y - 1)))
+                .unwrap_or(Err((x, self.max_y - 1))),
+            Direction::South => self
+                .obstacles_vertical
+                .get(y)
+                .unwrap()
+                .iter()
+                .find(|&&obs_x| obs_x > x)
+                .map(|new_x| Ok((new_x - 1, y)))
+                .unwrap_or(Err((self.max_x - 1, y))),
+            Direction::West => self
+                .obstacles_horizontal
+                .get(x)
+                .unwrap()
+                .iter()
+                .rev()
+                .find(|&&obs_y| obs_y < y)
+                .map(|new_y| Ok((x, new_y + 1)))
+                .unwrap_or(Err((x, 0))),
+        }
+    }
+
+    fn insert_obstacle(&mut self, (x, y): Position) {
+        let horizontal = self.obstacles_horizontal.get_mut(x).unwrap();
+        if let Err(idx) = horizontal.binary_search_by(|&v| v.cmp(&y)) {
+            horizontal.insert(idx, y);
+        }
+
+        let vertical = self.obstacles_vertical.get_mut(y).unwrap();
+        if let Err(idx) = vertical.binary_search_by(|&v| v.cmp(&x)) {
+            vertical.insert(idx, x);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash)]
@@ -50,15 +106,6 @@ impl Direction {
             Direction::West => Direction::North,
         }
     }
-
-    fn offsets(&self) -> (i32, i32) {
-        match self {
-            Direction::North => (-1, 0),
-            Direction::East => (0, 1),
-            Direction::South => (1, 0),
-            Direction::West => (0, -1),
-        }
-    }
 }
 
 impl std::fmt::Display for Direction {
@@ -73,74 +120,33 @@ impl std::fmt::Display for Direction {
     }
 }
 
-fn parse_input(lines: Lines) -> (Grid, Guard) {
-    let mut obstacles: HashSet<Position> = HashSet::new();
+fn parse_input(lines: Lines) -> (Grid, Position) {
+    let mut obstacles: Vec<Position> = Vec::new();
     let mut max_x = 0;
     let mut max_y = 0;
     let mut position = (0, 0);
     for (x, line) in lines.enumerate() {
         for (y, ch) in line.chars().enumerate() {
             if ch == '#' {
-                obstacles.insert((x as i32, y as i32));
+                obstacles.push((x, y));
             } else if ch == '^' {
-                position = (x as i32, y as i32);
+                position = (x, y);
             }
-            max_y = max_y.max((y + 1) as i32);
+            max_y = max_y.max(y + 1);
         }
-        max_x = max_x.max((x + 1) as i32);
+        max_x = max_x.max(x + 1);
     }
-
-    (
-        Grid {
-            obstacles,
-            max_x,
-            max_y,
-        },
-        Guard {
-            position,
-            direction: Direction::North,
-        },
-    )
+    (Grid::from(obstacles, max_x, max_y), position)
 }
 
-fn walk_path(mut guard: Guard, grid: &Grid) -> HashSet<Position> {
-    let mut visited = HashSet::new();
-    // if position is not in bounds, guard left the area
-    while guard.in_bounds(&grid) {
-        visited.insert(guard.position);
-
-        if grid.obstacles.contains(&guard.next_position()) {
-            guard.direction = guard.direction.turn_right();
-        } else {
-            guard.position = guard.next_position();
-        }
-    }
-    visited
-}
-
-// Predict the path of the guard. How many distinct positions will the guard visit before leaving the mapped area?
-fn part_1(lines: Lines) -> usize {
-    let (grid, guard) = parse_input(lines);
-    walk_path(guard, &grid).len()
-}
-
-// fn print_grid(grid: &Grid, visited: &HashSet<Guard>, guard: Guard) {
+// fn print_grid(grid: &Grid, visited: &HashSet<Position>, position: Position, direction: Direction) {
 //     for x in 0..grid.max_x {
 //         for y in 0..grid.max_y {
-//             if x == guard.position.0 && y == guard.position.1 {
-//                 print!("{}", guard.direction)
+//             if x == position.0 && y == position.1 {
+//                 print!("{}", direction)
 //             } else if grid.obstacles.contains(&(x, y)) {
 //                 print!("#");
-//             } else if visited
-//                 .intersection(&HashSet::from([
-//                     ((x, y), Direction::North),
-//                     ((x, y), Direction::East),
-//                     ((x, y), Direction::South),
-//                     ((x, y), Direction::West),
-//                 ]))
-//                 .count()
-//                 > 0
-//             {
+//             } else if visited.contains(&(x, y)) {
 //                 print!("█");
 //             } else {
 //                 print!(".")
@@ -151,37 +157,82 @@ fn part_1(lines: Lines) -> usize {
 //     println!("\n");
 // }
 
-/// Does the guard loop starting from the given position and direction?
-fn guard_loops(grid: &Grid, mut guard: Guard) -> bool {
-    // guard loops if it revisits a step in the same direction
-    let mut seen: HashSet<Guard> = HashSet::new();
-    while seen.insert(guard) {
-        let next_position = guard.next_position();
+fn walk_path(mut position: Position, mut direction: Direction, grid: &Grid) -> HashSet<Position> {
+    let mut visited = HashSet::new();
+    loop {
+        let next_position_result = grid.next_position(position, direction);
+        let next_position = match next_position_result {
+            Ok(p) => p,
+            Err(p) => p,
+        };
+        // Insert all positions between current and next
+        mark_positions_as_visited(position, next_position, direction, &mut visited);
 
-        if grid.obstacles.contains(&next_position) {
-            guard.direction = guard.direction.turn_right();
-        } else {
-            guard.position = guard.next_position();
-            if !guard.in_bounds(grid) {
-                return false;
+        if next_position_result.is_err() {
+            // Reached edge of map, break out of loop
+            break;
+        }
+        position = next_position;
+        direction = direction.turn_right();
+    }
+    visited
+}
+
+fn mark_positions_as_visited(
+    from: (usize, usize),
+    to: (usize, usize),
+    direction: Direction,
+    visited: &mut HashSet<(usize, usize)>,
+) {
+    match direction {
+        Direction::North | Direction::South => {
+            for x in from.0.min(to.0)..=from.0.max(to.0) {
+                visited.insert((x, from.1));
             }
         }
+        Direction::West | Direction::East => {
+            for y in from.1.min(to.1)..=from.1.max(to.1) {
+                visited.insert((from.0, y));
+            }
+        }
+    }
+    // print_grid(grid, &visited, next_position, direction);
+}
+
+// Predict the path of the guard. How many distinct positions will the guard visit before leaving the mapped area?
+fn part_1(lines: Lines) -> usize {
+    let (grid, start_position) = parse_input(lines);
+    walk_path(start_position, Direction::North, &grid).len()
+}
+
+// Check if guard loops starting from the given position and direction
+fn guard_loops(grid: &Grid, mut position: Position, mut direction: Direction) -> bool {
+    // guard loops if it revisits a step in the same direction
+    let mut seen: HashSet<(Position, Direction)> = HashSet::new();
+    while seen.insert((position, direction)) {
+        let next_position = grid.next_position(position, direction);
+        if next_position.is_err() {
+            // Reached edge of map, break out of loop
+            return false;
+        }
+        position = next_position.unwrap();
+        direction = direction.turn_right();
     }
     true
 }
 
 // In how many positions can you place an obstacle to get the guard stuck in a loop?
 fn part_2(lines: Lines) -> usize {
-    let (grid, guard) = parse_input(lines);
-    let visited: HashSet<Position> = walk_path(guard, &grid);
+    let (grid, start_position) = parse_input(lines);
+    let visited: HashSet<Position> = walk_path(start_position, Direction::North, &grid);
 
     // Instead of trying every possible position (16k), try only the path actually walked
     visited
         .into_iter()
         .filter(|position| {
             let mut new_grid = grid.clone();
-            new_grid.obstacles.insert(*position);
-            guard_loops(&new_grid, guard)
+            new_grid.insert_obstacle(*position);
+            guard_loops(&new_grid, start_position, Direction::North)
         })
         .count()
 }

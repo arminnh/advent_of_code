@@ -4,19 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::str::Lines;
 use std::usize;
 
-fn find_antinodes(x1: i32, y1: i32, x2: i32, y2: i32) -> Vec<(i32, i32)> {
-    // points are visited row by row, left to right
-    let dx = (x1 - x2) as i32;
-    let dy = (y1 - y2) as i32;
-
-    vec![(x1 + dx, y1 + dy), (x2 - dx, y2 - dy)]
-}
-
-fn in_bounds(x: i32, y: i32, max_x: i32, max_y: i32) -> bool {
-    x >= 0 && x < max_x && y >= 0 && y < max_y
-}
-
-fn part_1(lines: Lines) -> usize {
+fn parse_input(lines: Lines) -> (HashMap<char, Vec<(i32, i32)>>, i32, i32) {
     let mut antennas: HashMap<char, Vec<(i32, i32)>> = HashMap::new();
     let mut max_x = 0;
     let mut max_y = 0;
@@ -30,37 +18,75 @@ fn part_1(lines: Lines) -> usize {
         }
         max_x = max_x.max((x + 1) as i32);
     }
+    (antennas, max_x, max_y)
+}
 
-    let antinodes: HashSet<_> = antennas
+fn find_antinodes(x1: i32, y1: i32, x2: i32, y2: i32) -> Vec<(i32, i32)> {
+    // points are visited row by row, left to right
+    let dx = (x1 - x2) as i32;
+    let dy = (y1 - y2) as i32;
+
+    vec![(x1 + dx, y1 + dy), (x2 - dx, y2 - dy)]
+}
+
+fn in_bounds(x: i32, y: i32, max_x: i32, max_y: i32) -> bool {
+    x >= 0 && x < max_x && y >= 0 && y < max_y
+}
+
+fn part_1(lines: Lines) -> usize {
+    let (antennas, max_x, max_y) = parse_input(lines);
+
+    antennas
         .into_iter()
-        .map(|(frequency, positions)| {
+        .map(|(_, positions)| {
             let mut out = Vec::new();
-            println!("Frequency: {}", frequency);
             for (i, (x1, y1)) in positions.iter().enumerate() {
                 for (x2, y2) in &positions[i + 1..] {
-                    let mut antinodes = find_antinodes(*x1, *y1, *x2, *y2);
-                    println!("Antinodes for {}: {:?}", frequency, antinodes);
-                    for (x, y) in antinodes {
-                        if in_bounds(x, y, max_x, max_y) {
-                            out.push((x, y));
-                        }
-                    }
+                    find_antinodes(*x1, *y1, *x2, *y2)
+                        .into_iter()
+                        .filter(|pos| in_bounds(pos.0, pos.1, max_x, max_y))
+                        .for_each(|pos| out.push(pos));
                 }
             }
-
             out
         })
         .flatten()
-        .collect();
-
-    antinodes.len()
+        .collect::<HashSet<_>>()
+        .len()
 }
 
 fn part_2(lines: Lines) -> usize {
-    0
+    let (antennas, max_x, max_y) = parse_input(lines);
+
+    antennas
+        .into_iter()
+        .filter(|(_, positions)| positions.len() > 1)
+        .map(|(f, positions)| {
+            let mut out = positions.clone();
+            for (i, (x1, y1)) in positions.iter().enumerate() {
+                for (x2, y2) in &positions[i + 1..] {
+                    let (dx, dy) = ((x1 - x2) as i32, (y1 - y2) as i32);
+                    let mut next_pos = (x1 + dx, y1 + dy);
+                    while in_bounds(next_pos.0, next_pos.1, max_x, max_y) {
+                        out.push(next_pos);
+                        next_pos = (next_pos.0 + dx, next_pos.1 + dy);
+                    }
+
+                    let mut next_pos = (x2 - dx, y2 - dy);
+                    while in_bounds(next_pos.0, next_pos.1, max_x, max_y) {
+                        out.push(next_pos);
+                        next_pos = (next_pos.0 - dx, next_pos.1 - dy);
+                    }
+                }
+            }
+            out
+        })
+        .flatten()
+        .collect::<HashSet<_>>()
+        .len()
 }
 pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_7");
+    let input = load_input("inputs/2024/day_8");
     (
         Solution::from(part_1(input.lines())),
         Solution::from(part_2(input.lines())),
@@ -117,6 +143,17 @@ mod tests {
 ............
 ............";
 
+    const EXAMPLE_INPUT_5: &str = "T.........
+...T......
+.T........
+..........
+..........
+..........
+..........
+..........
+..........
+..........";
+
     #[test]
     fn test_part_1_example() {
         assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 2);
@@ -137,16 +174,14 @@ mod tests {
         assert_eq!(part_1(load_input("inputs/2024/day_8").lines()), 254);
     }
 
-    // #[test]
-    // fn test_part_2_example() {
-    //     assert_eq!(part_2(EXAMPLE_INPUT.lines()), 11387);
-    // }
+    #[test]
+    fn test_part_2_example() {
+        assert_eq!(part_2(EXAMPLE_INPUT_5.lines()), 9);
+        assert_eq!(part_2(EXAMPLE_INPUT_4.lines()), 34);
+    }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(
-    //         part_2(load_input("inputs/2024/day_7").lines()),
-    //         162042343638683
-    //     )
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(load_input("inputs/2024/day_8").lines()), 0)
+    }
 }

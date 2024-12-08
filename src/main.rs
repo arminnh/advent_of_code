@@ -103,6 +103,7 @@ fn get_day_solver(year: usize, day: &u8) -> fn() -> SolutionPair {
             5 => y2024::day05::solve,
             6 => y2024::day06::solve,
             7 => y2024::day07::solve,
+            8 => y2024::day08::solve,
             _ => unimplemented!(),
         },
         _ => unimplemented!(),

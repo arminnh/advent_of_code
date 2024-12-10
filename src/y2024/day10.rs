@@ -33,6 +33,7 @@ fn parse_input(lines: Lines) -> (HeightMap, Vec<Position>) {
     (topographic_map, start_positions)
 }
 
+// Score is number of reachable nines from the starting position
 fn trailhead_score(topographic_map: &HeightMap, start_pos: Position) -> usize {
     let mut seen: HashSet<Position> = HashSet::new();
     let mut nines: HashSet<Position> = HashSet::new();
@@ -57,6 +58,30 @@ fn trailhead_score(topographic_map: &HeightMap, start_pos: Position) -> usize {
     nines.len()
 }
 
+// Rating is number of paths that areach nines from the starting position
+fn trailhead_rating(topographic_map: &HeightMap, start_pos: Position) -> usize {
+    let mut frontier = Vec::from([start_pos]);
+    let mut paths = 0;
+
+    while let Some(current) = frontier.pop() {
+        let height = *topographic_map.get(&current).unwrap();
+        // println!("{:?}: {:?}", current, height);
+        if height == 9 {
+            paths += 1;
+            continue;
+        }
+        for next in neighbors(current) {
+            if let Some(next_height) = topographic_map.get(&next) {
+                if next_height - height == 1 {
+                    frontier.push(next);
+                }
+            }
+        }
+    }
+
+    paths
+}
+
 fn part_1(lines: Lines) -> usize {
     let (topographic_map, start_positions) = parse_input(lines);
     start_positions
@@ -66,7 +91,11 @@ fn part_1(lines: Lines) -> usize {
 }
 
 fn part_2(lines: Lines) -> usize {
-    0
+    let (topographic_map, start_positions) = parse_input(lines);
+    start_positions
+        .into_iter()
+        .map(|pos| trailhead_rating(&topographic_map, pos))
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -133,13 +162,39 @@ mod tests {
         assert_eq!(part_1(load_input("inputs/2024/day_10").lines()), 659);
     }
 
+    const EXAMPLE_INPUT_6: &str = "1111101
+1143211
+1151121
+1165431
+1171141
+1187651
+1191111";
+
+    const EXAMPLE_INPUT_7: &str = "1190119
+1111198
+1112117
+6543456
+7651987
+8761111
+9871111";
+
+    const EXAMPLE_INPUT_8: &str = "012345
+123456
+234567
+345678
+416789
+567891";
+
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT_6.lines()), 4);
+        assert_eq!(part_2(EXAMPLE_INPUT_7.lines()), 13);
+        assert_eq!(part_2(EXAMPLE_INPUT_8.lines()), 227);
+        assert_eq!(part_2(EXAMPLE_INPUT_5.lines()), 81);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_10").lines()), 0)
+        assert_eq!(part_2(load_input("inputs/2024/day_10").lines()), 1463)
     }
 }

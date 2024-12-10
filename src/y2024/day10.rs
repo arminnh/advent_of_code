@@ -7,13 +7,22 @@ use std::usize;
 type Position = (i32, i32);
 type HeightMap = HashMap<Position, i32>;
 
-fn neighbors(pos: Position) -> [Position; 4] {
-    [
+fn neighbors(pos: Position, height: i32, topographic_map: &HeightMap) -> Vec<Position> {
+    let mut neighbors: Vec<Position> = Vec::with_capacity(4);
+    for next_pos in [
         (pos.0 + 1, pos.1),
         (pos.0 - 1, pos.1),
         (pos.0, pos.1 + 1),
         (pos.0, pos.1 - 1),
-    ]
+    ] {
+        if let Some(next_height) = topographic_map.get(&next_pos) {
+            if next_height - height == 1 {
+                neighbors.push(next_pos);
+            }
+        }
+    }
+
+    neighbors
 }
 
 fn parse_input(lines: Lines) -> (HeightMap, Vec<Position>) {
@@ -46,13 +55,10 @@ fn trailhead_score(topographic_map: &HeightMap, start_pos: Position) -> usize {
             nines.insert(current);
             continue;
         }
-        for next in neighbors(current) {
-            if let Some(next_height) = topographic_map.get(&next) {
-                if next_height - height == 1 && !seen.contains(&next) {
-                    frontier.push(next);
-                }
-            }
-        }
+        neighbors(current, height, &topographic_map)
+            .into_iter()
+            .filter(|n| !seen.contains(n))
+            .for_each(|n| frontier.push(n));
     }
 
     nines.len()
@@ -65,17 +71,12 @@ fn trailhead_rating(topographic_map: &HeightMap, start_pos: Position) -> usize {
 
     while let Some(current) = frontier.pop() {
         let height = *topographic_map.get(&current).unwrap();
-        // println!("{:?}: {:?}", current, height);
         if height == 9 {
             paths += 1;
             continue;
         }
-        for next in neighbors(current) {
-            if let Some(next_height) = topographic_map.get(&next) {
-                if next_height - height == 1 {
-                    frontier.push(next);
-                }
-            }
+        for n in neighbors(current, height, &topographic_map) {
+            frontier.push(n);
         }
     }
 

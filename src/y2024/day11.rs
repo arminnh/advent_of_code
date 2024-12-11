@@ -15,7 +15,6 @@ fn parse_stones(line: &str) -> Stones {
 // Old blink for part 1
 // fn blink(stones: Stones) -> Stones {
 //     let mut new_stones = Vec::with_capacity(stones.len() * 2);
-
 //     for stone in stones {
 //         if stone == 0 {
 //             new_stones.push(1);
@@ -31,7 +30,6 @@ fn parse_stones(line: &str) -> Stones {
 //             }
 //         }
 //     }
-
 //     new_stones
 // }
 
@@ -52,12 +50,16 @@ fn blink(stone: u64) -> (u64, Option<u64>) {
     }
 }
 
-fn blink_stone_n_times(stone: u64, n: usize, seen: &mut HashMap<(u64, usize), usize>) -> usize {
-    fn recurse(seen: &mut HashMap<(u64, usize), usize>, left: u64, n: usize) -> usize {
-        if let Some(count) = seen.get(&(left, n)) {
+fn blink_stone_n_times_recursive(
+    stone: u64,
+    n: usize,
+    seen: &mut HashMap<(u64, usize), usize>,
+) -> usize {
+    fn recurse(seen: &mut HashMap<(u64, usize), usize>, stone: u64, n: usize) -> usize {
+        if let Some(count) = seen.get(&(stone, n)) {
             *count
         } else {
-            blink_stone_n_times(left, n, seen)
+            blink_stone_n_times_recursive(stone, n, seen)
         }
     }
 
@@ -80,15 +82,34 @@ fn blink_stone_n_times(stone: u64, n: usize, seen: &mut HashMap<(u64, usize), us
     }
 }
 
-fn blink_stones_n_times(stones: Vec<u64>, n: usize) -> usize {
+fn blink_stones_n_times_recursive(stones: Stones, n: usize) -> usize {
     let mut seen: HashMap<(u64, usize), usize> = HashMap::new();
     let mut result = 0;
 
     for &stone in &stones {
-        result += blink_stone_n_times(stone, n, &mut seen);
+        result += blink_stone_n_times_recursive(stone, n, &mut seen);
     }
 
     result
+}
+
+fn blink_stones_n_times(stones: Stones, n: usize) -> usize {
+    let mut stone_counts: HashMap<u64, usize> = HashMap::new();
+    for s in stones {
+        *stone_counts.entry(s).or_default() += 1;
+    }
+
+    for _ in 0..n {
+        for (stone, count) in stone_counts.drain().collect::<Vec<_>>() {
+            let (left, right) = blink(stone);
+            *stone_counts.entry(left).or_default() += count;
+            if let Some(right) = right {
+                *stone_counts.entry(right).or_default() += count;
+            }
+        }
+    }
+
+    stone_counts.values().sum()
 }
 
 // Consider the arrangement of stones in front of you. How many stones will you have after blinking 25 times?
@@ -99,6 +120,7 @@ fn part_1(lines: Lines) -> usize {
         .sum()
 }
 
+// After 75 blinks
 fn part_2(lines: Lines) -> usize {
     lines
         .map(parse_stones)
@@ -140,16 +162,40 @@ mod tests {
 
     #[test]
     fn test_blink_stones_n_times() {
+        assert_eq!(blink_stones_n_times_recursive(parse_stones("125 17"), 1), 3);
         assert_eq!(blink_stones_n_times(parse_stones("125 17"), 1), 3);
+        assert_eq!(
+            blink_stones_n_times_recursive(parse_stones("253000 1 7"), 1),
+            4
+        );
         assert_eq!(blink_stones_n_times(parse_stones("253000 1 7"), 1), 4);
+        assert_eq!(
+            blink_stones_n_times_recursive(parse_stones("253 0 2024 14168"), 1),
+            5
+        );
         assert_eq!(blink_stones_n_times(parse_stones("253 0 2024 14168"), 1), 5);
+        assert_eq!(
+            blink_stones_n_times_recursive(parse_stones("512072 1 20 24 28676032"), 1),
+            9
+        );
         assert_eq!(
             blink_stones_n_times(parse_stones("512072 1 20 24 28676032"), 1),
             9
         );
         assert_eq!(
+            blink_stones_n_times_recursive(parse_stones("512 72 2024 2 0 2 4 2867 6032"), 1),
+            13
+        );
+        assert_eq!(
             blink_stones_n_times(parse_stones("512 72 2024 2 0 2 4 2867 6032"), 1),
             13
+        );
+        assert_eq!(
+            blink_stones_n_times_recursive(
+                parse_stones("1036288 7 2 20 24 4048 1 4048 8096 28 67 60 32"),
+                1
+            ),
+            22
         );
         assert_eq!(
             blink_stones_n_times(
@@ -167,6 +213,9 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_11").lines()), 225404711855335);
+        assert_eq!(
+            part_2(load_input("inputs/2024/day_11").lines()),
+            225404711855335
+        );
     }
 }

@@ -1,5 +1,6 @@
 use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
+use std::collections::HashMap;
 use std::str::Lines;
 use std::usize;
 
@@ -11,43 +12,98 @@ fn parse_stones(line: &str) -> Stones {
         .collect()
 }
 
-fn blink(stones: Stones) -> Stones {
-    let mut new_stones = Vec::with_capacity(stones.len() * 2);
+// Old blink for part 1
+// fn blink(stones: Stones) -> Stones {
+//     let mut new_stones = Vec::with_capacity(stones.len() * 2);
 
-    for stone in stones {
-        if stone == 0 {
-            new_stones.push(1);
+//     for stone in stones {
+//         if stone == 0 {
+//             new_stones.push(1);
+//         } else {
+//             let nr_of_digits = stone.ilog10() + 1;
+//             if nr_of_digits % 2 == 0 {
+//                 let divisor = 10_u64.pow(nr_of_digits / 2);
+//                 let (left, right) = (stone / divisor, stone % divisor);
+//                 new_stones.push(left);
+//                 new_stones.push(right);
+//             } else {
+//                 new_stones.push(stone * 2024)
+//             }
+//         }
+//     }
+
+//     new_stones
+// }
+
+fn blink(stone: u64) -> (u64, Option<u64>) {
+    if stone == 0 {
+        (1, None)
+    } else {
+        let nr_of_digits = stone.ilog10() + 1;
+        let (half_of_digits, remainder) = (nr_of_digits / 2, nr_of_digits % 2);
+
+        if remainder == 0 {
+            let divisor = 10_u64.pow(half_of_digits);
+            let (left, right) = (stone / divisor, stone % divisor);
+            (left, Some(right))
         } else {
-            let nr_of_digits = stone.ilog10() + 1;
-            if nr_of_digits % 2 == 0 {
-                let divisor = 10_u64.pow(nr_of_digits / 2);
-                let (left, right) = (stone / divisor, stone % divisor);
-                new_stones.push(left);
-                new_stones.push(right);
-            } else {
-                new_stones.push(stone * 2024)
-            }
+            (stone * 2024, None)
+        }
+    }
+}
+
+fn blink_stone_n_times(stone: u64, n: usize, seen: &mut HashMap<(u64, usize), usize>) -> usize {
+    fn recurse(seen: &mut HashMap<(u64, usize), usize>, left: u64, n: usize) -> usize {
+        if let Some(count) = seen.get(&(left, n)) {
+            *count
+        } else {
+            blink_stone_n_times(left, n, seen)
         }
     }
 
-    new_stones
+    if n == 0 {
+        seen.insert((stone, 0), 1);
+        1
+    } else {
+        let (left, right) = blink(stone);
+
+        let left_count = recurse(seen, left, n - 1);
+        let right_count = if let Some(right) = right {
+            recurse(seen, right, n - 1)
+        } else {
+            0
+        };
+
+        let result = left_count + right_count;
+        seen.insert((stone, n), result);
+        result
+    }
+}
+
+fn blink_stones_n_times(stones: Vec<u64>, n: usize) -> usize {
+    let mut seen: HashMap<(u64, usize), usize> = HashMap::new();
+    let mut result = 0;
+
+    for &stone in &stones {
+        result += blink_stone_n_times(stone, n, &mut seen);
+    }
+
+    result
 }
 
 // Consider the arrangement of stones in front of you. How many stones will you have after blinking 25 times?
 fn part_1(lines: Lines) -> usize {
     lines
         .map(parse_stones)
-        .map(|mut stones| {
-            for _ in 0..25 {
-                stones = blink(stones);
-            }
-            stones.len()
-        })
+        .map(|stones| blink_stones_n_times(stones, 25))
         .sum()
 }
 
 fn part_2(lines: Lines) -> usize {
-    0
+    lines
+        .map(parse_stones)
+        .map(|stones| blink_stones_n_times(stones, 75))
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -71,28 +127,36 @@ mod tests {
 
     #[test]
     fn test_blink() {
-        assert_eq!(blink(parse_stones("125 17")), vec![253000, 1, 7]);
-        assert_eq!(blink(parse_stones("253000 1 7")), vec![253, 0, 2024, 14168]);
+        assert_eq!(blink(125), (253000, None));
+        assert_eq!(blink(17), (1, Some(7)));
+        assert_eq!(blink(253000), (253, Some(0)));
+        assert_eq!(blink(1), (2024, None));
+        assert_eq!(blink(7), (14168, None));
+        assert_eq!(blink(253), (512072, None));
+        assert_eq!(blink(0), (1, None));
+        assert_eq!(blink(2024), (20, Some(24)));
+        assert_eq!(blink(14168), (28676032, None));
+    }
+
+    #[test]
+    fn test_blink_stones_n_times() {
+        assert_eq!(blink_stones_n_times(parse_stones("125 17"), 1), 3);
+        assert_eq!(blink_stones_n_times(parse_stones("253000 1 7"), 1), 4);
+        assert_eq!(blink_stones_n_times(parse_stones("253 0 2024 14168"), 1), 5);
         assert_eq!(
-            blink(parse_stones("253 0 2024 14168")),
-            vec![512072, 1, 20, 24, 28676032]
+            blink_stones_n_times(parse_stones("512072 1 20 24 28676032"), 1),
+            9
         );
         assert_eq!(
-            blink(parse_stones("512072 1 20 24 28676032")),
-            vec![512, 72, 2024, 2, 0, 2, 4, 2867, 6032]
+            blink_stones_n_times(parse_stones("512 72 2024 2 0 2 4 2867 6032"), 1),
+            13
         );
         assert_eq!(
-            blink(parse_stones("512 72 2024 2 0 2 4 2867 6032")),
-            vec![1036288, 7, 2, 20, 24, 4048, 1, 4048, 8096, 28, 67, 60, 32]
-        );
-        assert_eq!(
-            blink(parse_stones(
-                "1036288 7 2 20 24 4048 1 4048 8096 28 67 60 32"
-            )),
-            vec![
-                2097446912, 14168, 4048, 2, 0, 2, 4, 40, 48, 2024, 40, 48, 80, 96, 2, 8, 6, 7, 6,
-                0, 3, 2
-            ]
+            blink_stones_n_times(
+                parse_stones("1036288 7 2 20 24 4048 1 4048 8096 28 67 60 32"),
+                1
+            ),
+            22
         );
     }
 
@@ -102,12 +166,7 @@ mod tests {
     }
 
     #[test]
-    fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 0);
-    }
-
-    #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_11").lines()), 0)
+        assert_eq!(part_2(load_input("inputs/2024/day_11").lines()), 225404711855335);
     }
 }

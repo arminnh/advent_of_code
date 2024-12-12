@@ -129,6 +129,34 @@ impl Edge {
             panic!("Edges cannot be contracted");
         }
     }
+
+    // Create the fence between two neighbors == edge orthogonal to edge between them
+    // Example:
+    //   (0, 0) to (0, 1)  becomes (0, 1) to (1, 1)
+    //   (0, 0) to (1, 0)  becomes (1, 1) to (1, 0)
+    //   (0, 0) to (0, -1) becomes (1, 0) to (0, 0)
+    //   (0, 0) to (-1, 0) becomes (0, 0) to (0, 1)
+    fn from_neighbors(from: (i32, i32), to: (i32, i32)) -> Edge {
+        let (from, to) = if from.0 == to.0 {
+            if to.1 < from.1 {
+                // left
+                ((from.0 + 1, from.1), from)
+            } else {
+                // right
+                ((from.0, from.1 + 1), (from.0 + 1, from.1 + 1))
+            }
+        } else {
+            if to.0 < from.0 {
+                // up
+                (from, (from.0, from.1 + 1))
+            } else {
+                // down
+                ((from.0 + 1, from.1 + 1), (from.0 + 1, from.1))
+            }
+        };
+
+        Edge::from(from, to)
+    }
 }
 
 fn contract_edges(edges: &mut Vec<Edge>) {
@@ -179,31 +207,11 @@ fn area_and_sides_of_region(
 
             for (next_pos, next_plant) in neighbors(current_pos, garden, max_x, max_y) {
                 if next_plant.unwrap_or_default() == plant {
+                    // Visit same neighbor
                     frontier.push(next_pos);
                 } else {
-                    if current_pos.0 == next_pos.0 {
-                        if next_pos.1 < current_pos.1 {
-                            // left
-                            edges.push(Edge::from((current_pos.0 + 1, current_pos.1), current_pos))
-                        } else {
-                            // right
-                            edges.push(Edge::from(
-                                (current_pos.0, current_pos.1 + 1),
-                                (current_pos.0 + 1, current_pos.1 + 1),
-                            ))
-                        }
-                    } else {
-                        if next_pos.0 < current_pos.0 {
-                            // up
-                            edges.push(Edge::from(current_pos, (current_pos.0, current_pos.1 + 1)))
-                        } else {
-                            // down
-                            edges.push(Edge::from(
-                                (current_pos.0 + 1, current_pos.1 + 1),
-                                (current_pos.0 + 1, current_pos.1),
-                            ))
-                        }
-                    }
+                    // Create edge between differing neighbors
+                    edges.push(Edge::from_neighbors(current_pos, next_pos));
                 }
             }
         }

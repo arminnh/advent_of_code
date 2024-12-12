@@ -13,44 +13,36 @@ fn parse_garden(lines: Lines<'_>) -> (Garden, i32, i32) {
     (garden, max_x, max_y)
 }
 
+// Get the neighboring positions along with the plant value on those positions if they exist
 fn neighbors(
     pos: Position,
     garden: &Garden,
     max_x: i32,
     max_y: i32,
 ) -> Vec<(Position, Option<char>)> {
-    let mut neighbors = Vec::with_capacity(4);
-    // up
-    if pos.0 > 0 {
-        let up = (pos.0 - 1, pos.1);
-        neighbors.push((up, Some(garden[up.0 as usize][up.1 as usize])));
-    } else {
-        neighbors.push(((pos.0 - 1, pos.1), None));
-    }
-    // right
-    if pos.1 < max_y {
-        let right = (pos.0, pos.1 + 1);
-        neighbors.push((right, Some(garden[right.0 as usize][right.1 as usize])));
-    } else {
-        neighbors.push(((pos.0, pos.1 + 1), None));
-    }
-    // down
-    if pos.0 < max_x {
-        let down = (pos.0 + 1, pos.1);
-        neighbors.push((down, Some(garden[down.0 as usize][down.1 as usize])));
-    } else {
-        neighbors.push(((pos.0 + 1, pos.1), None));
-    }
-    // left
-    if pos.1 > 0 {
-        let left = (pos.0, pos.1 - 1);
-        neighbors.push((left, Some(garden[left.0 as usize][left.1 as usize])));
-    } else {
-        neighbors.push(((pos.0, pos.1 - 1), None));
-    }
-    neighbors
+    [
+        ((pos.0 > 0), (pos.0 - 1, pos.1)),     //up
+        ((pos.1 < max_y), (pos.0, pos.1 + 1)), //right
+        ((pos.0 < max_x), (pos.0 + 1, pos.1)), //down
+        ((pos.1 > 0), (pos.0, pos.1 - 1)),     //left
+    ]
+    .into_iter()
+    .map(|(condition, next_position)| {
+        if condition {
+            (
+                next_position,
+                Some(garden[next_position.0 as usize][next_position.1 as usize]),
+            )
+        } else {
+            (next_position, None)
+        }
+    })
+    .collect()
 }
 
+// Fences are placed between plants of different types.
+// In other words, the peimiter is the amount of possible neighbors - nr of neighbors of the same type.
+// This accounts for edge cases where there are no neighbors.
 fn perimeter_of_plant(
     plant: char,
     position: Position,
@@ -58,59 +50,46 @@ fn perimeter_of_plant(
     max_x: i32,
     max_y: i32,
 ) -> usize {
-    let mut perimeter = neighbors(position, garden, max_x, max_y)
+    let possible_neighbors = 4;
+    let same_neighbors = neighbors(position, garden, max_x, max_y)
         .into_iter()
         .filter_map(|(_, next_plant)| next_plant)
-        .filter(|&next_plant| next_plant != plant)
+        .filter(|&next_plant| next_plant == plant)
         .count();
-    if position.0 == 0 || position.0 == max_x {
-        perimeter += 1;
-    }
-    if position.1 == 0 || position.1 == max_y {
-        perimeter += 1;
-    }
-    perimeter
+    possible_neighbors - same_neighbors
 }
 
 // What is the total price of fencing all regions on your map?
 fn part_1(lines: Lines) -> usize {
     let (garden, max_x, max_y) = parse_garden(lines);
-    // Keep track of which positions contain which region of plants
-    let mut region_positions: HashMap<Position, usize> = HashMap::new();
-    // Keep track of the size and perimiter of each region
-    let mut regions: HashMap<usize, (usize, usize)> = HashMap::new();
+    let mut seen: HashSet<Position> = HashSet::new();
+    let mut result = 0;
 
     for (x, row) in garden.iter().enumerate() {
         for (y, &plant) in row.iter().enumerate() {
             let position = (x as i32, y as i32);
-            let perimeter = perimeter_of_plant(plant, position, &garden, max_x, max_y);
 
-            if !region_positions.contains_key(&position) {
+            if seen.insert(position) {
                 // Follow the neighbors that contain the same plants to detect the whole region
-                let region_id = regions.len();
                 let mut frontier = Vec::from([position]);
-                while let Some(p) = frontier.pop() {
-                    region_positions.insert(p, region_id);
-                    for (next_pos, next_plant) in neighbors(p, &garden, max_x, max_y) {
-                        if next_plant.unwrap_or_default() == plant
-                            && !region_positions.contains_key(&next_pos)
-                        {
+                let (mut area, mut perimeter) = (0, 0);
+
+                while let Some(current_pos) = frontier.pop() {
+                    area += 1;
+                    perimeter += perimeter_of_plant(plant, current_pos, &garden, max_x, max_y);
+
+                    for (next_pos, next_plant) in neighbors(current_pos, &garden, max_x, max_y) {
+                        if next_plant.unwrap_or_default() == plant && seen.insert(next_pos) {
                             frontier.push(next_pos);
                         }
                     }
                 }
+                result += area * perimeter
             }
-
-            let region_id = region_positions
-                .get(&position)
-                .expect("Could not load region ID which should have been filled by now");
-            let (area, total_perimeter) = regions.entry(*region_id).or_default();
-            *area += 1;
-            *total_perimeter += perimeter;
         }
     }
 
-    regions.iter().map(|(_, (size, area))| size * area).sum()
+    result
 }
 
 #[derive(Debug)]
@@ -173,7 +152,7 @@ fn contract_edges(edges: &mut Vec<Edge>) {
 }
 
 // Count the size and total nr of sides of the given region.
-// To get total nr of sides: build a set of edges while visiting the region and contract edges when possible. sides = nr of edges after contraction
+// To get total nr of sides: build a set of edges while visiting the region and contract edges.
 // Build edges by placing them around each plant in different directions. Possible situations:
 //   * Plant has no same neighbors: 4 edges around the plant
 //   * Plant has 1 same neighbor: 3 edges around and none between the same neighbor
@@ -182,7 +161,7 @@ fn contract_edges(edges: &mut Vec<Edge>) {
 //   * Plant surrounded by neighbors: no edge
 //   At most 4 edges. Edges can only go on sides that touch other neighbors.
 //   In other words, always an edge between a plant and a neighboring other plant.
-fn size_and_sides_of_region(
+fn area_and_sides_of_region(
     start_position: Position,
     plant: char,
     garden: &Garden,
@@ -190,13 +169,13 @@ fn size_and_sides_of_region(
     max_x: i32,
     max_y: i32,
 ) -> (usize, usize) {
-    let mut size = 0;
+    let mut area = 0;
     let mut edges: Vec<Edge> = Vec::new();
 
     let mut frontier = Vec::from([start_position]);
     while let Some(current_pos) = frontier.pop() {
         if seen.insert(current_pos) {
-            size += 1;
+            area += 1;
 
             for (next_pos, next_plant) in neighbors(current_pos, garden, max_x, max_y) {
                 if next_plant.unwrap_or_default() == plant {
@@ -231,7 +210,7 @@ fn size_and_sides_of_region(
     }
     contract_edges(&mut edges);
 
-    (size, edges.len())
+    (area, edges.len())
 }
 
 // Total price if counting sides of regions instead of perimeter
@@ -244,9 +223,9 @@ fn part_2(lines: Lines) -> usize {
         for (y, plant) in row.iter().enumerate() {
             let position = (x as i32, y as i32);
             if !seen.contains(&position) {
-                let (size, edges) =
-                    size_and_sides_of_region(position, *plant, &garden, &mut seen, max_x, max_y);
-                result += size * edges;
+                let (area, edges) =
+                    area_and_sides_of_region(position, *plant, &garden, &mut seen, max_x, max_y);
+                result += area * edges;
             }
         }
     }

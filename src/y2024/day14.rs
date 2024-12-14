@@ -1,7 +1,7 @@
 use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
-use std::fs::{write, File};
+use std::fs::File;
 use std::io::Write;
 use std::str::{FromStr, Lines};
 use std::usize;
@@ -19,18 +19,16 @@ struct Robot {
 }
 
 impl Robot {
-    fn step(&self, max_x: i32, max_y: i32) -> Robot {
-        let next_x = if self.p.0 + self.v.0 < 0 {
-            max_x + (self.p.0 + self.v.0)
-        } else {
-            (self.p.0 + self.v.0) % max_x
-        };
+    fn step(&self, n: i32, max_x: i32, max_y: i32) -> Robot {
+        // let next_x = if self.p.0 + self.v.0 < 0 {
+        //     max_x + (self.p.0 + self.v.0)
+        // } else {
+        //     (self.p.0 + self.v.0) % max_x
+        // };
 
-        let next_y = if self.p.1 + self.v.1 < 0 {
-            max_y + (self.p.1 + self.v.1)
-        } else {
-            (self.p.1 + self.v.1) % max_y
-        };
+        // Can wrap around in both directions of axis using Euclidean div-mod
+        let next_x = (self.p.0 + self.v.0 * n).rem_euclid(max_x);
+        let next_y = (self.p.1 + self.v.1 * n).rem_euclid(max_y);
 
         Robot {
             p: (next_x, next_y),
@@ -100,13 +98,6 @@ fn parse_robots(lines: Lines) -> Vec<Robot> {
         .collect()
 }
 
-fn step_robots_n_times(mut robots: Vec<Robot>, steps: usize, max_x: i32, max_y: i32) -> Vec<Robot> {
-    for _ in 0..steps {
-        robots = robots.drain(..).map(|r| r.step(max_x, max_y)).collect();
-    }
-    robots
-}
-
 fn safety_score(robots: &Vec<Robot>, max_x: i32, max_y: i32) -> usize {
     let mut quadrants: HashMap<usize, usize> = HashMap::new();
 
@@ -120,7 +111,10 @@ fn safety_score(robots: &Vec<Robot>, max_x: i32, max_y: i32) -> usize {
 }
 
 fn part_1(lines: Lines) -> usize {
-    let robots = step_robots_n_times(parse_robots(lines), 100, MAX_X, MAX_Y);
+    let robots = parse_robots(lines)
+        .iter()
+        .map(|r| r.step(100, MAX_X, MAX_Y))
+        .collect();
     safety_score(&robots, MAX_X, MAX_Y)
 }
 
@@ -156,7 +150,7 @@ fn part_2(lines: Lines) -> i32 {
 
     // Robots loop every max_x * max_y steps
     for i in 1..(MAX_X * MAX_Y) {
-        robots = robots.drain(..).map(|r| r.step(MAX_X, MAX_Y)).collect();
+        robots = robots.drain(..).map(|r| r.step(1, MAX_X, MAX_Y)).collect();
         // if let Some(previous_iter) = seen.insert(robots.clone(), i) { println!("previous: {}", previous_iter); }
         // history.push((i, safety_score(&robots, MAX_X, MAX_Y), robots.clone()));
         scores.push((i, safety_score(&robots, MAX_X, MAX_Y)));

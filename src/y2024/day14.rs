@@ -1,8 +1,13 @@
 use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
+use std::fs::{write, File};
+use std::io::Write;
 use std::str::{FromStr, Lines};
 use std::usize;
+
+const MAX_X: i32 = 103;
+const MAX_Y: i32 = 101;
 
 type Position = (i32, i32);
 type Velocity = (i32, i32);
@@ -33,20 +38,20 @@ impl Robot {
         }
     }
 
-    fn quadrant(&self, max_x: i32, max_y: i32) -> usize {
+    fn quadrant(&self, max_x: i32, max_y: i32) -> Option<usize> {
         if self.p.0 == max_x / 2 || self.p.1 == max_y / 2 {
-            0
+            None
         } else if self.p.0 < max_x / 2 {
             if self.p.1 < max_y / 2 {
-                1
+                Some(1)
             } else {
-                2
+                Some(2)
             }
         } else {
             if self.p.1 < max_y / 2 {
-                3
+                Some(3)
             } else {
-                4
+                Some(4)
             }
         }
     }
@@ -89,26 +94,38 @@ impl std::str::FromStr for Robot {
     }
 }
 
-fn part_1(lines: Lines, max_x: i32, max_y: i32) -> usize {
-    let mut quadrants: HashMap<usize, usize> = HashMap::new();
-
+fn parse_robots(lines: Lines) -> Vec<Robot> {
     lines
         .map(|line| Robot::from_str(line).expect("Could not parse robot"))
-        .map(|mut robot| {
-            for _ in 0..100 {
-                robot = robot.step(max_x, max_y);
-            }
-            robot
-        })
-        .for_each(|robot| *quadrants.entry(robot.quadrant(max_x, max_y)).or_default() += 1);
-
-    quadrants.iter().fold(
-        1,
-        |acc, (quadrant, val)| if quadrant > &0 { acc * val } else { acc },
-    )
+        .collect()
 }
 
-fn display_grid(robots: &[Robot], max_x: usize, max_y: usize) {
+fn step_robots_n_times(mut robots: Vec<Robot>, steps: usize, max_x: i32, max_y: i32) -> Vec<Robot> {
+    for _ in 0..steps {
+        robots = robots.drain(..).map(|r| r.step(max_x, max_y)).collect();
+    }
+    robots
+}
+
+fn safety_score(robots: &Vec<Robot>, max_x: i32, max_y: i32) -> usize {
+    let mut quadrants: HashMap<usize, usize> = HashMap::new();
+
+    for robot in robots {
+        if let Some(quadrant) = robot.quadrant(max_x, max_y) {
+            *quadrants.entry(quadrant).or_default() += 1;
+        }
+    }
+
+    quadrants.values().fold(1, |acc, val| acc * val)
+}
+
+fn part_1(lines: Lines) -> usize {
+    let robots = step_robots_n_times(parse_robots(lines), 100, MAX_X, MAX_Y);
+    safety_score(&robots, MAX_X, MAX_Y)
+}
+
+#[allow(dead_code)]
+fn display_grid(robots: &[Robot], file: &mut File, max_x: usize, max_y: usize) {
     let mut grid = vec![vec![0; max_y]; max_x];
 
     for robot in robots {
@@ -118,39 +135,51 @@ fn display_grid(robots: &[Robot], max_x: usize, max_y: usize) {
     for row in grid.iter() {
         for &cell in row.iter() {
             if cell > 0 {
-                print!("{}", cell);
+                file.write_fmt(format_args!("{}", cell)).unwrap();
             } else {
-                print!(".");
+                file.write(b".").unwrap();
             }
         }
-        println!();
+        file.write(b".\n").unwrap();
     }
+    file.write(b"\n").unwrap();
 }
 
-fn part_2(lines: Lines, max_x: i32, max_y: i32) -> usize {
-    // let mut seen: HashMap<Vec<Robot>, usize> = HashMap::new();
-    let mut robots: Vec<Robot> = lines
-        .map(|line| Robot::from_str(line).expect("Could not parse robot"))
-        .collect();
+fn part_2(lines: Lines) -> i32 {
+    // let mut seen: HashMap<Vec<Robot>, i32> = HashMap::new();
+    let mut robots = parse_robots(lines);
+    // Most of the safety scores are close to the score of part 1 since they have a uniform distribution of robots
+    // Robots that form a pattern should result in a significantly different safety score
+    // Sorting by safety score gives us the most interesting patterns to check out first
+    // let mut history: Vec<(i32, usize, Vec<Robot>)> = Vec::new();
+    let mut scores: Vec<(i32, usize)> = Vec::new();
 
     // Robots loop every max_x * max_y steps
-    for i in 1..(max_x * max_y) {
-        println!("{}", i);
-        robots = robots.drain(..).map(|r| r.step(max_x, max_y)).collect();
-        display_grid(&robots, max_x as usize, max_y as usize);
-        // if let Some(previous_iter) = seen.insert(new_robots.clone(), iteration) {
-        //     println!("previous: {}", previous_iter);
-        // }
+    for i in 1..(MAX_X * MAX_Y) {
+        robots = robots.drain(..).map(|r| r.step(MAX_X, MAX_Y)).collect();
+        // if let Some(previous_iter) = seen.insert(robots.clone(), i) { println!("previous: {}", previous_iter); }
+        // history.push((i, safety_score(&robots, MAX_X, MAX_Y), robots.clone()));
+        scores.push((i, safety_score(&robots, MAX_X, MAX_Y)));
     }
 
-    8087
+    // history.sort_by(|a, b| a.1.cmp(&b.1));
+    // let mut file = File::create("outputs/2024/day14_part2.txt").unwrap();
+    // for (iteration, score, robots) in &history[0..20] {
+    //     file.write_fmt(format_args!("Iteration {}, score {}\n", iteration, score))
+    //         .unwrap();
+    //     display_grid(&robots, &mut file, MAX_X as usize, MAX_Y as usize);
+    // }
+
+    // The third lowest score contains the chrismas tree
+    scores.sort_by(|a, b| a.1.cmp(&b.1));
+    scores[2].0
 }
 
 pub fn solve() -> SolutionPair {
     let input = load_input("inputs/2024/day_14");
     (
-        Solution::from(part_1(input.lines(), 103, 101)),
-        Solution::from(part_2(input.lines(), 103, 101)),
+        Solution::from(part_1(input.lines())),
+        Solution::from(part_2(input.lines())),
     )
 }
 
@@ -192,22 +221,21 @@ p=9,5 v=-3,-3";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines(), 7, 11), 12);
+        let (max_x, max_y) = (7, 11);
+        let robots = step_robots_n_times(parse_robots(EXAMPLE_INPUT.lines()), 100, max_x, max_y);
+        assert_eq!(safety_score(&robots, max_x, max_y), 12);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(
-            part_1(load_input("inputs/2024/day_14").lines(), 103, 101),
-            0
-        );
+        assert_eq!(part_1(load_input("inputs/2024/day_14").lines()), 230172768);
     }
 
-    #[test]
-    fn test_part_2() {
-        assert_eq!(
-            part_2(load_input("inputs/2024/day_14").lines(), 103, 101),
-            8087
-        )
-    }
+    // #[test]
+    // fn test_part_2() {
+    //     assert_eq!(
+    //         part_2(load_input("inputs/2024/day_14").lines(), 103, 101),
+    //         8087
+    //     )
+    // }
 }

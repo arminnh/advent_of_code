@@ -82,6 +82,7 @@ fn blink_stone_n_times_recursive(
     }
 }
 
+#[allow(dead_code)]
 fn blink_stones_n_times_recursive(stones: Stones, n: usize) -> usize {
     let mut seen: HashMap<(u64, usize), usize> = HashMap::new();
     let mut result = 0;

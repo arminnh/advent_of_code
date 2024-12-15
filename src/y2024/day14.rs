@@ -201,22 +201,25 @@ p=9,5 v=-3,-3";
             v: (-3, 2),
         };
         let (max_x, max_y) = (7, 11);
-        r = r.step(max_x, max_y);
+        r = r.step(1, max_x, max_y);
         assert_eq!(r.p, (1, 4));
-        r = r.step(max_x, max_y);
+        r = r.step(1, max_x, max_y);
         assert_eq!(r.p, (5, 6));
-        r = r.step(max_x, max_y);
+        r = r.step(1, max_x, max_y);
         assert_eq!(r.p, (2, 8));
-        r = r.step(max_x, max_y);
+        r = r.step(1, max_x, max_y);
         assert_eq!(r.p, (6, 10));
-        r = r.step(max_x, max_y);
+        r = r.step(1, max_x, max_y);
         assert_eq!(r.p, (3, 1));
     }
 
     #[test]
     fn test_part_1_example() {
         let (max_x, max_y) = (7, 11);
-        let robots = step_robots_n_times(parse_robots(EXAMPLE_INPUT.lines()), 100, max_x, max_y);
+        let robots = parse_robots(EXAMPLE_INPUT.lines())
+            .iter()
+            .map(|r| r.step(100, max_x, max_y))
+            .collect();
         assert_eq!(safety_score(&robots, max_x, max_y), 12);
     }
 

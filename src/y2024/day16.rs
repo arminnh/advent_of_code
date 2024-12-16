@@ -127,7 +127,6 @@ fn part_1(lines: Lines) -> usize {
 fn all_cells_on_a_best_path(grid: &Grid, start: Position, goal: Position) -> HashSet<Position> {
     // For each position, keep the lowest cost to reach it and the preceding move(s) that lead to it
     let mut best: HashMap<Position, (usize, Vec<Move>)> = HashMap::new();
-    let mut visited: HashSet<Move> = HashSet::new();
     let start_move = Move {
         cost: 0,
         position: start,
@@ -137,15 +136,9 @@ fn all_cells_on_a_best_path(grid: &Grid, start: Position, goal: Position) -> Has
         BinaryHeap::from([Reverse((0, start_move))]);
 
     while let Some(Reverse((total_cost, current))) = frontier.pop() {
-        if !visited.insert(current) {
-            continue;
-        }
-        // !("{}, {:?}", total_cost, current);
-
         for next in next_moves(grid, current.position, current.direction) {
             let new_cost = total_cost + next.cost;
             // println!("\t next cost: {}, {:?}", new_cost, next);
-            frontier.push(Reverse((new_cost, next)));
 
             if let Some((previous_cost, _)) = best.get(&next.position) {
                 if new_cost < *previous_cost {
@@ -159,10 +152,15 @@ fn all_cells_on_a_best_path(grid: &Grid, start: Position, goal: Position) -> Has
                     // In case the current position of the best path is making an expensive turn,
                     // peek ahead and see if the cost evens out again on the turn after.
                     best.get_mut(&next.position).unwrap().1.push(current);
+                } else {
+                    // Don't want to end up adding this option to frontier
+                    continue;
                 }
             } else {
                 best.insert(next.position, (new_cost, vec![current]));
             }
+
+            frontier.push(Reverse((new_cost, next)));
         }
     }
 

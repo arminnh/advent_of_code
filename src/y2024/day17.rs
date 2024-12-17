@@ -5,7 +5,7 @@ use std::usize;
 
 type Program = Vec<u32>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct Registers {
     a: u32,
     b: u32,
@@ -76,6 +76,21 @@ impl Instruction {
         instruction_pointer: &mut usize,
         output: &mut Vec<u32>,
     ) {
+// Program: 0,3,5,4,3,0";
+// a =2024
+// a = a / 8
+// print(a % 8) -> 0,3,5,4,3,0
+// if a != 0:
+//     loop
+// end
+
+// x mod 8 = 0
+// 8x mod 8 = 3
+// 8*8x mod 8 = 4
+// 8*8*8x mod 8 = 5
+// 8*8*8*8x mod 8 = 3
+// 8*8*8*8*8x mod 8 = 0
+        println!("{:?}, instruction: {}, operand: {}, combo: {}, output: {:?}", self, instruction_pointer, operand, combo_operand(operand, &registers), output);
         match self {
             Instruction::ADV => registers.a /= 2u32.pow(combo_operand(operand, &registers)),
             Instruction::BXL => registers.b ^= operand,
@@ -132,7 +147,9 @@ fn run_program(program: Vec<u32>, registers: &mut Registers) -> Vec<u32> {
     output
 }
 
+// Run the program. What do you get if you use commas to join the values it outputs into a single string?
 fn part_1(lines: Lines) -> String {
+    return "".to_string();
     let (mut registers, program) = parse_input(lines);
     let output = run_program(program, &mut registers);
 
@@ -143,8 +160,26 @@ fn part_1(lines: Lines) -> String {
         .join(",")
 }
 
-fn part_2(lines: Lines) -> String {
-    "".to_string()
+// What is the lowest positive initial value for register A that causes the program to output a copy of itself?
+fn part_2(lines: Lines) -> u32 {
+    let (original_registers, program) = parse_input(lines);
+    let mut a = original_registers.a;
+    // loop {
+    //     a += 1;
+        // if run_program(
+        //     program.clone(),
+        //     &mut Registers {
+        //         a,
+        //         b: original_registers.b,
+        //         c: original_registers.c,
+        //     },
+        // ) == program
+    //     {
+    //         return a;
+    //     }
+    // }
+    run_program(program, &mut original_registers.clone());
+    0
 }
 
 pub fn solve() -> SolutionPair {
@@ -164,6 +199,12 @@ Register B: 0
 Register C: 0
 
 Program: 0,1,5,4,3,0";
+
+    const EXAMPLE_INPUT_PART_2: &str = "Register A: 2024
+Register B: 0
+Register C: 0
+
+Program: 0,3,5,4,3,0";
 
     #[test]
     fn test_run_program() {
@@ -215,20 +256,17 @@ Program: 0,1,5,4,3,0";
     fn test_part_1() {
         assert_eq!(
             part_1(load_input("inputs/2024/day_17").lines()),
-            "".to_string()
+            "4,1,7,6,4,1,0,2,7".to_string()
         );
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), "".to_string());
+        assert_eq!(part_2(EXAMPLE_INPUT_PART_2.lines()), 117440);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(
-            part_2(load_input("inputs/2024/day_17").lines()),
-            "".to_string()
-        )
+        assert_eq!(part_2(load_input("inputs/2024/day_17").lines()), 0)
     }
 }

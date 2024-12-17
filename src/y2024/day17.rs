@@ -7,9 +7,9 @@ type Program = Vec<u32>;
 
 #[derive(Debug, Clone, Copy)]
 struct Registers {
-    a: u32,
-    b: u32,
-    c: u32,
+    a: u64,
+    b: u64,
+    c: u64,
 }
 
 // instructions take an given operand and a 'combo' operand which is determined by a function
@@ -85,9 +85,9 @@ impl Instruction {
         //     output
         // );
         match self {
-            Instruction::ADV => registers.a /= 2u32.pow(combo_operand(operand, &registers)),
-            Instruction::BXL => registers.b ^= operand,
-            Instruction::BST => registers.b = combo_operand(operand, &registers) % 8,
+            Instruction::ADV => registers.a /= 2u64.pow(combo_operand(operand, &registers) as u32),
+            Instruction::BXL => registers.b ^= operand as u64,
+            Instruction::BST => registers.b = (combo_operand(operand, &registers) % 8) as u64,
             Instruction::JNZ => {
                 if registers.a != 0 {
                     *instruction_pointer = operand as usize;
@@ -96,12 +96,12 @@ impl Instruction {
                 }
             }
             Instruction::BXC => registers.b ^= registers.c,
-            Instruction::OUT => output.push(combo_operand(operand, &registers) % 8),
+            Instruction::OUT => output.push(combo_operand(operand, &registers) as u32 % 8),
             Instruction::BDV => {
-                registers.b = registers.a / 2u32.pow(combo_operand(operand, &registers))
+                registers.b = registers.a / 2u64.pow(combo_operand(operand, &registers) as u32)
             }
             Instruction::CDV => {
-                registers.c = registers.a / 2u32.pow(combo_operand(operand, &registers))
+                registers.c = registers.a / 2u64.pow(combo_operand(operand, &registers) as u32)
             }
         }
 
@@ -111,9 +111,9 @@ impl Instruction {
     }
 }
 
-fn combo_operand(operand: u32, registers: &Registers) -> u32 {
+fn combo_operand(operand: u32, registers: &Registers) -> u64 {
     match operand {
-        0..=3 => operand,
+        0..=3 => operand as u64,
         4 => registers.a,
         5 => registers.b,
         6 => registers.c,
@@ -153,7 +153,7 @@ fn part_1(lines: Lines) -> String {
 }
 
 // What is the lowest positive initial value for register A that causes the program to output a copy of itself?
-fn part_2(lines: Lines) -> u32 {
+fn part_2(lines: Lines) -> u64 {
     let (_, program) = parse_input(lines);
     // Example comes down to following loop:
     //     while a != 0:
@@ -167,12 +167,12 @@ fn part_2(lines: Lines) -> u32 {
     //     .rev()
     //     .skip(1)
     //     .fold(*program.last().unwrap(), |acc, num| (acc + num) * 8)
-    fn next_result(previous_a: u32, program: &Program, expected_output: Vec<u32>) -> u32 {
-        // let mut iterations = 0;
-        // while iterations < 10 {
+    fn next_result(previous_a: u64, program: &Program, expected_output: Vec<u32>) -> u64 {
+        let mut iterations = 0;
+        while iterations < 8 {
             // 3-bit computer, so only try 8 numbers per iteration
             for attempt in 0..8 {
-                let new_a = (previous_a + attempt) * 8;// * 8_u32.pow(iterations);
+                let new_a = previous_a * 8_u64.pow(iterations+1) + attempt;
                 println!("Trying: {}", new_a);
                 let mut new_registers = Registers {
                     a: new_a,
@@ -183,8 +183,8 @@ fn part_2(lines: Lines) -> u32 {
                     return new_a;
                 }
             }
-            // iterations += 1;
-        // }
+            iterations += 1;
+        }
         panic!("oh no")
     }
 
@@ -221,15 +221,15 @@ pub fn solve() -> SolutionPair {
     let input = load_input("inputs/2024/day_17");
     (
         Solution::from(part_1(input.lines())),
-        // Solution::from(part_2(input.lines())),
-        Solution::from(part_2(
-            "Register A: 2024
-        Register B: 0
-        Register C: 0
+        Solution::from(part_2(input.lines())),
+        // Solution::from(part_2(
+        //     "Register A: 2024
+        // Register B: 0
+        // Register C: 0
 
-        Program: 0,3,5,4,3,0"
-                .lines(),
-        )),
+        // Program: 0,3,5,4,3,0"
+        //         .lines(),
+        // )),
     )
 }
 

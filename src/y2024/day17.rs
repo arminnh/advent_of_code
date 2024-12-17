@@ -76,21 +76,14 @@ impl Instruction {
         instruction_pointer: &mut usize,
         output: &mut Vec<u32>,
     ) {
-// Program: 0,3,5,4,3,0";
-// a =2024
-// a = a / 8
-// print(a % 8) -> 0,3,5,4,3,0
-// if a != 0:
-//     loop
-// end
-
-// x mod 8 = 0
-// 8x mod 8 = 3
-// 8*8x mod 8 = 4
-// 8*8*8x mod 8 = 5
-// 8*8*8*8x mod 8 = 3
-// 8*8*8*8*8x mod 8 = 0
-        println!("{:?}, instruction: {}, operand: {}, combo: {}, output: {:?}", self, instruction_pointer, operand, combo_operand(operand, &registers), output);
+        // println!(
+        //     "{:?}, instruction: {}, operand: {}, combo: {}, output: {:?}",
+        //     self,
+        //     instruction_pointer,
+        //     operand,
+        //     combo_operand(operand, &registers),
+        //     output
+        // );
         match self {
             Instruction::ADV => registers.a /= 2u32.pow(combo_operand(operand, &registers)),
             Instruction::BXL => registers.b ^= operand,
@@ -149,7 +142,6 @@ fn run_program(program: Vec<u32>, registers: &mut Registers) -> Vec<u32> {
 
 // Run the program. What do you get if you use commas to join the values it outputs into a single string?
 fn part_1(lines: Lines) -> String {
-    return "".to_string();
     let (mut registers, program) = parse_input(lines);
     let output = run_program(program, &mut registers);
 
@@ -163,23 +155,18 @@ fn part_1(lines: Lines) -> String {
 // What is the lowest positive initial value for register A that causes the program to output a copy of itself?
 fn part_2(lines: Lines) -> u32 {
     let (original_registers, program) = parse_input(lines);
-    let mut a = original_registers.a;
-    // loop {
-    //     a += 1;
-        // if run_program(
-        //     program.clone(),
-        //     &mut Registers {
-        //         a,
-        //         b: original_registers.b,
-        //         c: original_registers.c,
-        //     },
-        // ) == program
-    //     {
-    //         return a;
-    //     }
-    // }
-    run_program(program, &mut original_registers.clone());
-    0
+    // Example comes down to following loop:
+    //     while a != 0:
+    //         a = int(a / 8)
+    //         print(a % 8)
+    // To make it print a desired outcome, like [0,3,5,4,3,0], can start from the end
+    // and build `a` in reverse. Start from the last digit, then add the one
+    // before it (for the mod operation) and multiply by 8 (for the division)
+    program
+        .iter()
+        .rev()
+        .skip(1)
+        .fold(*program.last().unwrap(), |acc, num| (acc + num) * 8)
 }
 
 pub fn solve() -> SolutionPair {

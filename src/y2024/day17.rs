@@ -121,7 +121,7 @@ fn combo_operand(operand: u32, registers: &Registers) -> u32 {
     }
 }
 
-fn run_program(program: Vec<u32>, registers: &mut Registers) -> Vec<u32> {
+fn run_program(program: &Program, registers: &mut Registers) -> Vec<u32> {
     let mut instruction_pointer = 0;
     let mut output = Vec::new();
 
@@ -143,7 +143,7 @@ fn run_program(program: Vec<u32>, registers: &mut Registers) -> Vec<u32> {
 // Run the program. What do you get if you use commas to join the values it outputs into a single string?
 fn part_1(lines: Lines) -> String {
     let (mut registers, program) = parse_input(lines);
-    let output = run_program(program, &mut registers);
+    let output = run_program(&program, &mut registers);
 
     output
         .iter()
@@ -154,7 +154,7 @@ fn part_1(lines: Lines) -> String {
 
 // What is the lowest positive initial value for register A that causes the program to output a copy of itself?
 fn part_2(lines: Lines) -> u32 {
-    let (original_registers, program) = parse_input(lines);
+    let (_, program) = parse_input(lines);
     // Example comes down to following loop:
     //     while a != 0:
     //         a = int(a / 8)
@@ -162,18 +162,74 @@ fn part_2(lines: Lines) -> u32 {
     // To make it print a desired outcome, like [0,3,5,4,3,0], can start from the end
     // and build `a` in reverse. Start from the last digit, then add the one
     // before it (for the mod operation) and multiply by 8 (for the division)
-    program
-        .iter()
-        .rev()
-        .skip(1)
-        .fold(*program.last().unwrap(), |acc, num| (acc + num) * 8)
+    // program
+    //     .iter()
+    //     .rev()
+    //     .skip(1)
+    //     .fold(*program.last().unwrap(), |acc, num| (acc + num) * 8)
+    fn next_result(previous_a: u32, program: &Program, expected_output: Vec<u32>) -> u32 {
+        // let mut iterations = 0;
+        // while iterations < 10 {
+            // 3-bit computer, so only try 8 numbers per iteration
+            for attempt in 0..8 {
+                let new_a = (previous_a + attempt) * 8;// * 8_u32.pow(iterations);
+                println!("Trying: {}", new_a);
+                let mut new_registers = Registers {
+                    a: new_a,
+                    b: 0,
+                    c: 0,
+                };
+                if run_program(&program, &mut new_registers) == expected_output {
+                    return new_a;
+                }
+            }
+            // iterations += 1;
+        // }
+        panic!("oh no")
+    }
+
+    let mut result = 0;
+    for i in (0..program.len()).rev() {
+        let expected_output = program[i..].to_vec();
+        println!("i={}, expected_output: {:?}", i, expected_output);
+        result = next_result(result, &program, expected_output);
+    }
+    result
+
+    // Actual input:
+    // # 2,4,1,1,7,5,1,5,4,0,5,5,0,3,3,0
+    //     BST 4
+    //     BXL 1
+    //     CDV 5
+    //     BXL 5
+    //     BXC 0
+    //     OUTPUT 5
+    //     ADV 3
+    // a = 64854237
+
+    // while a != 0:
+    //     b = a % 8
+    //     b = b ^ 1
+    //     c = a / 2^b
+    //     b = b ^ 5
+    //     b = b ^ c
+    //     print(b % 8)
+    //     a = a / 8
 }
 
 pub fn solve() -> SolutionPair {
     let input = load_input("inputs/2024/day_17");
     (
         Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
+        // Solution::from(part_2(input.lines())),
+        Solution::from(part_2(
+            "Register A: 2024
+        Register B: 0
+        Register C: 0
+
+        Program: 0,3,5,4,3,0"
+                .lines(),
+        )),
     )
 }
 
@@ -197,12 +253,12 @@ Program: 0,3,5,4,3,0";
     fn test_run_program() {
         let mut registers = Registers { a: 0, b: 0, c: 9 };
         let program = vec![2, 6];
-        run_program(program, &mut registers);
+        run_program(&program, &mut registers);
         assert_eq!(registers.b, 1);
 
         let mut registers = Registers { a: 10, b: 0, c: 0 };
         let program = vec![5, 0, 5, 1, 5, 4];
-        assert_eq!(run_program(program, &mut registers), vec![0, 1, 2]);
+        assert_eq!(run_program(&program, &mut registers), vec![0, 1, 2]);
 
         let mut registers = Registers {
             a: 2024,
@@ -211,14 +267,14 @@ Program: 0,3,5,4,3,0";
         };
         let program = vec![0, 1, 5, 4, 3, 0];
         assert_eq!(
-            run_program(program, &mut registers),
+            run_program(&program, &mut registers),
             vec![4, 2, 5, 6, 7, 7, 7, 7, 3, 1, 0]
         );
         assert_eq!(registers.a, 0);
 
         let mut registers = Registers { a: 0, b: 29, c: 0 };
         let program = vec![1, 7];
-        run_program(program, &mut registers);
+        run_program(&program, &mut registers);
         assert_eq!(registers.b, 26);
 
         let mut registers = Registers {
@@ -227,7 +283,7 @@ Program: 0,3,5,4,3,0";
             c: 43690,
         };
         let program = vec![4, 0];
-        run_program(program, &mut registers);
+        run_program(&program, &mut registers);
         assert_eq!(registers.b, 44354);
     }
 

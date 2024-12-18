@@ -2,6 +2,7 @@ use crate::util::util::load_input;
 use crate::{Solution, SolutionPair};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
+use std::hash::Hash;
 use std::str::Lines;
 use std::usize;
 
@@ -18,7 +19,12 @@ fn next_moves(grid: &Grid, (x, y): Position) -> Vec<Move> {
     let mut next = Vec::new();
     for (dx, dy) in [((-1, 0)), ((0, 1)), ((1, 0)), ((0, -1))] {
         let (next_x, next_y) = (x + dx, y + dy);
-        if next_x >= 0 && next_y >= 0 && next_x <= 70 && next_y <= 70 && !grid.contains(&(next_x, next_y)) {
+        if next_x >= 0
+            && next_y >= 0
+            && next_x <= 70
+            && next_y <= 70
+            && !grid.contains(&(next_x, next_y))
+        {
             next.push(Move {
                 cost: 1,
                 position: (next_x, next_y),
@@ -113,8 +119,44 @@ fn part_1(lines: Lines) -> usize {
     }
 }
 
-fn part_2(lines: Lines) -> usize {
-    0
+fn part_2(lines: Lines) -> String {
+    let (mut max_x, mut max_y) = (0, 0);
+    let bytes: Vec<(i32, i32)> = lines
+        .map(|line| {
+            let (y, x) = line.split_once(",").unwrap();
+            let x = x.parse::<i32>().expect("Could not parse X");
+            let y = y.parse::<i32>().expect("Could not parse Y");
+            max_x = max_x.max(x);
+            max_y = max_y.max(y);
+            (x, y)
+        })
+        .collect();
+    let start_move = Move {
+        position: (0, 0),
+        cost: 0,
+    };
+
+    let mut bytes_iter = bytes.into_iter();
+    let mut positions: HashSet<(i32, i32)> = HashSet::new();
+    for _ in 0..1024 {
+        positions.insert(bytes_iter.next().unwrap());
+    }
+
+    while let Some(b) = bytes_iter.next() {
+        positions.insert(b);
+        // display_grid(&positions);
+        let cost = dijkstra(
+            &positions,
+            start_move,
+            |m| m.position == (max_x, max_y),
+            |g, m| next_moves(g, m.position),
+        );
+        println!("cost: {:?}", cost);
+        if cost.is_none() {
+            return format!("{},{}", b.1, b.0);
+        }
+    }
+    format!("{},{}", 0, 0)
 }
 
 pub fn solve() -> SolutionPair {
@@ -167,11 +209,11 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT.lines()), "6,1");
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_18").lines()), 0)
+        assert_eq!(part_2(load_input("inputs/2024/day_18").lines()), "27,60")
     }
 }

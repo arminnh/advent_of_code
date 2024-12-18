@@ -7,26 +7,34 @@ use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
+type Path = Vec<Position>;
 type Obstacles = HashSet<Position>;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct Move {
     cost: usize,
     position: Position,
+    path: Path,
 }
 
 fn in_bounds((x, y): Position, max_x: i32, max_y: i32) -> bool {
     x >= 0 && y >= 0 && x <= max_x && y <= max_y
 }
 
-fn next_moves(obstacles: &Obstacles, (x, y): Position, max_x: i32, max_y: i32) -> Vec<Move> {
+fn next_moves(obstacles: &Obstacles, current_move: &Move, max_x: i32, max_y: i32) -> Vec<Move> {
     let mut next = Vec::new();
     for (dx, dy) in [((-1, 0)), ((0, 1)), ((1, 0)), ((0, -1))] {
-        let pos = (x + dx, y + dy);
+        let pos = (current_move.position.0 + dx, current_move.position.1 + dy);
         if in_bounds(pos, max_x, max_y) && !obstacles.contains(&pos) {
             next.push(Move {
                 cost: 1,
                 position: pos,
+                path: current_move
+                    .path
+                    .clone()
+                    .into_iter()
+                    .chain(vec![pos].into_iter())
+                    .collect(),
             })
         }
     }
@@ -51,21 +59,21 @@ fn dijkstra<FN1, FN2, IN>(
     start: Move,
     success: FN1,
     successors: FN2,
-) -> Option<usize>
+) -> Option<(usize, Path)>
 where
     FN1: Fn(&Move) -> bool,
     FN2: Fn(&Obstacles, &Move) -> IN,
     IN: IntoIterator<Item = Move>,
 {
-    let mut visited: HashSet<Move> = HashSet::new();
+    let mut visited: HashSet<Position> = HashSet::new();
     let mut frontier: BinaryHeap<Reverse<(usize, Move)>> = BinaryHeap::from([Reverse((0, start))]);
 
     while let Some(Reverse((total_cost, current))) = frontier.pop() {
         if success(&current) {
-            return Some(total_cost);
+            return Some((total_cost, current.path));
         }
 
-        if visited.insert(current) {
+        if visited.insert(current.position) {
             for next in successors(obstacles, &current) {
                 frontier.push(Reverse((total_cost + next.cost, next)));
             }
@@ -100,30 +108,48 @@ fn solve_day(
     let (bytes, max_x, max_y) = parse_input(lines);
     let mut bytes_iter = bytes.into_iter();
     let mut obstacles: HashSet<(i32, i32)> = HashSet::new();
-    for _ in 0..bytes_to_consume - 1 {
+    for _ in 0..bytes_to_consume {
         obstacles.insert(bytes_iter.next().unwrap());
     }
-    let start_move = Move {
-        position: (0, 0),
-        cost: 0,
+
+    let do_dijkstra = |obstacles: &HashSet<(i32, i32)>| {
+        let start = Move {
+            position: (0, 0),
+            cost: 0,
+            path: vec![(0, 0)],
+        };
+        dijkstra(
+            obstacles,
+            start,
+            |m| m.position == (max_x, max_y),
+            |o, m| next_moves(o, &m, max_x, max_y),
+        )
     };
 
-    while let Some(byte) = bytes_iter.next() {
-        obstacles.insert(byte);
-        let cost = dijkstra(
-            &obstacles,
-            start_move,
-            |m| m.position == (max_x, max_y),
-            |o, m| next_moves(o, m.position, max_x, max_y),
-        );
-        if cost.is_none() {
-            return (None, Some((byte.1, byte.0)));
-        } else if !consume_until_end_unreachable {
-            return (Some(cost.unwrap()), None);
+    let mut last_path = Vec::new();
+    if let Some((cost, path)) = do_dijkstra(&obstacles) {
+        last_path = path;
+        if !consume_until_end_unreachable {
+            // If we don't need to consume bytes, can just return the cost to reach the end
+            return (Some(cost), None);
         }
     }
 
-    (None, None)
+    // Keep inserting more bytes as obstacles while possible
+    while let Some(byte) = bytes_iter.next() {
+        obstacles.insert(byte);
+        // Only need to recompute path if the new byte lies on the last best path
+        if last_path.iter().find(|p| **p == byte).is_some() {
+            if let Some((_, path)) = do_dijkstra(&obstacles) {
+                last_path = path;
+            } else {
+                // End is unreachable now, return the evil byte
+                return (None, Some((byte.1, byte.0)));
+            }
+        }
+    }
+
+    panic!("No solution")
 }
 
 fn part_1(lines: Lines) -> usize {

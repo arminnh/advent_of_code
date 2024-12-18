@@ -7,7 +7,7 @@ use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
-type Grid = HashSet<(i32, i32)>;
+type Obstacles = HashSet<Position>;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 struct Move {
@@ -15,19 +15,18 @@ struct Move {
     position: Position,
 }
 
-fn next_moves(grid: &Grid, (x, y): Position) -> Vec<Move> {
+fn in_bounds((x, y): Position, max_x: i32, max_y: i32) -> bool {
+    x >= 0 && y >= 0 && x <= max_x && y <= max_y
+}
+
+fn next_moves(obstacles: &Obstacles, (x, y): Position, max_x: i32, max_y: i32) -> Vec<Move> {
     let mut next = Vec::new();
     for (dx, dy) in [((-1, 0)), ((0, 1)), ((1, 0)), ((0, -1))] {
-        let (next_x, next_y) = (x + dx, y + dy);
-        if next_x >= 0
-            && next_y >= 0
-            && next_x <= 70
-            && next_y <= 70
-            && !grid.contains(&(next_x, next_y))
-        {
+        let pos = (x + dx, y + dy);
+        if in_bounds(pos, max_x, max_y) && !obstacles.contains(&pos) {
             next.push(Move {
                 cost: 1,
-                position: (next_x, next_y),
+                position: pos,
             })
         }
     }
@@ -47,10 +46,15 @@ impl PartialOrd for Move {
     }
 }
 
-fn dijkstra<FN1, FN2, IN>(grid: &Grid, start: Move, success: FN1, successors: FN2) -> Option<usize>
+fn dijkstra<FN1, FN2, IN>(
+    obstacles: &Obstacles,
+    start: Move,
+    success: FN1,
+    successors: FN2,
+) -> Option<usize>
 where
     FN1: Fn(&Move) -> bool,
-    FN2: Fn(&Grid, &Move) -> IN,
+    FN2: Fn(&Obstacles, &Move) -> IN,
     IN: IntoIterator<Item = Move>,
 {
     let mut visited: HashSet<Move> = HashSet::new();
@@ -62,7 +66,7 @@ where
         }
 
         if visited.insert(current) {
-            for next in successors(grid, &current) {
+            for next in successors(obstacles, &current) {
                 frontier.push(Reverse((total_cost + next.cost, next)));
             }
         }
@@ -71,92 +75,64 @@ where
     None
 }
 
-fn display_grid(grid: &Grid) {
-    for x in 0..=70 {
-        for y in 0..=70 {
-            if grid.contains(&(x as i32, y as i32)) {
-                print!("#");
-            } else {
-                print!(".");
-            }
-        }
-        println!();
+fn parse_input(lines: Lines<'_>) -> (Vec<(i32, i32)>, i32, i32) {
+    let (mut max_x, mut max_y) = (0, 0);
+    let bytes: Vec<(i32, i32)> = lines
+        .map(|line| {
+            let (y, x) = line.split_once(",").expect("Could not split coordinate");
+            let x = x.parse::<i32>().expect("Could not parse X");
+            let y = y.parse::<i32>().expect("Could not parse Y");
+            max_x = max_x.max(x);
+            max_y = max_y.max(y);
+            (x, y)
+        })
+        .collect();
+    (bytes, max_x, max_y)
+}
+
+// Return either the cost to reach the end after consuming n bytes,
+// or the position of the last consumed byte which makes the end unreachable
+fn solve_day(
+    lines: Lines,
+    bytes_to_consume: usize,
+    consume_until_end_unreachable: bool,
+) -> (Option<usize>, Option<Position>) {
+    let (bytes, max_x, max_y) = parse_input(lines);
+    let mut bytes_iter = bytes.into_iter();
+    let mut obstacles: HashSet<(i32, i32)> = HashSet::new();
+    for _ in 0..bytes_to_consume - 1 {
+        obstacles.insert(bytes_iter.next().unwrap());
     }
-    println!();
+    let start_move = Move {
+        position: (0, 0),
+        cost: 0,
+    };
+
+    while let Some(byte) = bytes_iter.next() {
+        obstacles.insert(byte);
+        let cost = dijkstra(
+            &obstacles,
+            start_move,
+            |m| m.position == (max_x, max_y),
+            |o, m| next_moves(o, m.position, max_x, max_y),
+        );
+        if cost.is_none() {
+            return (None, Some((byte.1, byte.0)));
+        } else if !consume_until_end_unreachable {
+            return (Some(cost.unwrap()), None);
+        }
+    }
+
+    (None, None)
 }
 
 fn part_1(lines: Lines) -> usize {
-    let (mut max_x, mut max_y) = (0, 0);
-    let bytes: Vec<(i32, i32)> = lines
-        .map(|line| {
-            let (y, x) = line.split_once(",").unwrap();
-            let x = x.parse::<i32>().expect("Could not parse X");
-            let y = y.parse::<i32>().expect("Could not parse Y");
-            max_x = max_x.max(x);
-            max_y = max_y.max(y);
-            (x, y)
-        })
-        .collect();
-
-    let positions: HashSet<(i32, i32)> = bytes.into_iter().take(1024).collect();
-    println!("{:?}", positions);
-    println!("{:?}", (max_x, max_y));
-
-    let start_move = Move {
-        position: (0, 0),
-        cost: 0,
-    };
-    display_grid(&positions);
-    if let Some(result) = dijkstra(
-        &positions,
-        start_move,
-        |m| m.position == (max_x, max_y),
-        |g, m| next_moves(g, m.position),
-    ) {
-        result
-    } else {
-        0
-    }
+    solve_day(lines, 1024, false).0.unwrap()
 }
 
 fn part_2(lines: Lines) -> String {
-    let (mut max_x, mut max_y) = (0, 0);
-    let bytes: Vec<(i32, i32)> = lines
-        .map(|line| {
-            let (y, x) = line.split_once(",").unwrap();
-            let x = x.parse::<i32>().expect("Could not parse X");
-            let y = y.parse::<i32>().expect("Could not parse Y");
-            max_x = max_x.max(x);
-            max_y = max_y.max(y);
-            (x, y)
-        })
-        .collect();
-    let start_move = Move {
-        position: (0, 0),
-        cost: 0,
-    };
-
-    let mut bytes_iter = bytes.into_iter();
-    let mut positions: HashSet<(i32, i32)> = HashSet::new();
-    for _ in 0..1024 {
-        positions.insert(bytes_iter.next().unwrap());
-    }
-
-    while let Some(b) = bytes_iter.next() {
-        positions.insert(b);
-        // display_grid(&positions);
-        let cost = dijkstra(
-            &positions,
-            start_move,
-            |m| m.position == (max_x, max_y),
-            |g, m| next_moves(g, m.position),
-        );
-        println!("cost: {:?}", cost);
-        if cost.is_none() {
-            return format!("{},{}", b.1, b.0);
-        }
-    }
-    format!("{},{}", 0, 0)
+    let position = solve_day(lines, 1024, true).1.unwrap();
+    format!("{},{}", position.0, position.1)
 }
 
 pub fn solve() -> SolutionPair {
@@ -199,7 +175,10 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 22);
+        assert_eq!(
+            solve_day(EXAMPLE_INPUT.lines(), 12, false),
+            (Some(22), None)
+        );
     }
 
     #[test]
@@ -209,7 +188,10 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), "6,1");
+        assert_eq!(
+            solve_day(EXAMPLE_INPUT.lines(), 12, true),
+            (None, Some((6, 1)))
+        );
     }
 
     #[test]

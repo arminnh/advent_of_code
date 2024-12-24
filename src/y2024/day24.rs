@@ -3,6 +3,7 @@ use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
 use std::usize;
 
+#[derive(PartialEq, Eq, Debug)]
 enum Operation {
     AND,
     OR,
@@ -20,6 +21,7 @@ impl Operation {
     }
 }
 
+#[derive(Debug)]
 struct Gate {
     a: String,
     b: String,
@@ -27,7 +29,15 @@ struct Gate {
 }
 
 impl Gate {
-    fn from(s: &str) -> Self {
+    fn from(a: &str, b: &str, op: Operation) -> Self {
+        Gate {
+            a: a.to_string(),
+            b: b.to_string(),
+            op,
+        }
+    }
+
+    fn from_str(s: &str) -> Self {
         match s.split(" ").collect::<Vec<_>>()[..] {
             [a, op, b] => Gate {
                 a: a.to_string(),
@@ -36,6 +46,14 @@ impl Gate {
             },
             _ => panic!("Could not parse gate."),
         }
+    }
+}
+
+impl PartialEq for Gate {
+    fn eq(&self, other: &Self) -> bool {
+        self.op == other.op
+            && ((self.a == other.a && self.b == other.b)
+                || (self.a == other.b && self.b == other.a))
     }
 }
 
@@ -56,7 +74,7 @@ fn parse_input(input: &str) -> (HashMap<String, bool>, Vec<(String, Gate)>) {
         .lines()
         .map(|line| {
             let (gate, target_wire) = line.split_once(" -> ").unwrap();
-            (target_wire.to_string(), Gate::from(gate))
+            (target_wire.to_string(), Gate::from_str(gate))
         })
         .collect();
 
@@ -68,7 +86,6 @@ fn resolve(
     wires: &mut HashMap<String, bool>,
     gates: &mut Vec<(String, Gate)>,
 ) -> bool {
-    println!("Resolving '{}'", target_wire);
     // Each wire is connected to at most one gate output, but can be connected to many gate inputs.
     let i = gates
         .iter()
@@ -93,6 +110,27 @@ fn resolve(
     result
 }
 
+// Convert to decimal. Bits are in order of least significant to most significant bit
+fn binary_to_decimal(bits: &[bool]) -> usize {
+    bits.iter().enumerate().fold(0, |acc, (i, bit)| {
+        acc + (*bit as usize) * 2_usize.pow(i as u32)
+    })
+}
+
+fn wires_to_decimal(wires: &HashMap<String, bool>, first_letter: &str) -> usize {
+    let mut wires_filtered: Vec<&String> = wires
+        .keys()
+        .filter(|key| key.starts_with(first_letter))
+        .collect();
+    wires_filtered.sort();
+    let bits = &wires_filtered
+        .iter()
+        .map(|&w| *wires.get(w).unwrap())
+        .collect::<Vec<bool>>();
+
+    binary_to_decimal(bits)
+}
+
 // Simulate the system of gates and wires. What decimal number does it output on the wires starting with z?
 fn part_1(input: &str) -> usize {
     let (mut wires, mut gates) = parse_input(input);
@@ -114,17 +152,62 @@ fn part_1(input: &str) -> usize {
         wires.insert(wire, result);
     }
 
-    let mut z_wires: Vec<_> = wires.keys().filter(|key| key.starts_with("z")).collect();
-    z_wires.sort();
-    println!("{:?}", z_wires);
-    // Convert to decimal. Wires are in order of least significant to most significant bit
-    z_wires.into_iter().enumerate().fold(0, |acc, (i, wire)| {
-        acc + (*wires.get(wire).unwrap() as usize) * 2_usize.pow(i as u32)
-    })
+    wires_to_decimal(&wires, "z")
 }
 
-fn part_2(input: &str) -> usize {
-    0
+// Your system of gates and wires has four pairs of gates which need their output wires swapped - eight wires in total.
+// Determine which four pairs of gates need their outputs swapped so that your system correctly performs addition;
+// what do you get if you sort the names of the eight wires involved in a swap and then join those names with commas?
+fn part_2(input: &str) -> String {
+    // The system seems to perform addition using a collection of full adders
+    // This means we should be able to find the following operations in the input:
+    // X_i XOR Y_i -> tmp_1
+    // tmp_1 XOR C_in_i -> Z_i
+    // tmp_1 AND C_in_i -> tmp_2
+    // X_i AND Y_i -> tmp_3
+    // tmp_2 OR tmp_3 -> C_in_i+1
+    // Special case X_0 and Y_0:
+    //     * X_0 XOR Y_0 -> Z_0
+    //     * X_0 AND Y_0 -> C_in_1
+    let (_, mut gates) = parse_input(input);
+
+    let mut c_in = "mqs";
+    for i in 1..45 {
+        let x_i = format!("x{:0>2}", i);
+        let y_i = format!("y{:0>2}", i);
+        let z_i = format!("z{:0>2}", i);
+        println!("{} -> {}, {}, {}, c_in: {}", i, x_i, y_i, z_i, c_in);
+        let x_xor_y = Gate::from(&x_i, &y_i, Operation::XOR);
+        // X_i XOR Y_i -> tmp_1
+        let (tmp_1, _) = gates.iter().find(|(_, g)| *g == x_xor_y).expect("tmp_1");
+
+        // tmp_1 XOR C_in_i -> Z_i
+        let tmp1_xor_cin = Gate::from(&tmp_1, &c_in, Operation::XOR);
+        // TODO: if the following search doesn't exist, need to swap tmp1 with what is expected in the XOR with c_in to result in actual_wire
+        let (actual_wire, gate_index) = gates.iter().find(|(_, g)| *g == tmp1_xor_cin).unwrap();
+        if *actual_wire != z_i {
+            println!("Wires swapped: {}, {}", z_i, actual_wire);
+            // TODO: make the swap so rest of the checks can finish successfully
+        }
+
+        // tmp_1 AND C_in_i -> tmp_2
+        let tmp1_and_c = Gate::from(&tmp_1, &c_in, Operation::AND);
+        let (tmp_2, _) = gates.iter().find(|(_, g)| *g == tmp1_and_c).expect("tmp2");
+
+        // X_i AND Y_i -> tmp_3
+        let x_and_y = Gate::from(&x_i, &y_i, Operation::AND);
+        let (tmp_3, _) = gates.iter().find(|(_, g)| *g == x_and_y).expect("tmp_3");
+
+        // tmp_2 OR tmp_3 -> C_in_i+1
+        let tmp2_or_tmp3 = Gate::from(&tmp_2, &tmp_3, Operation::OR);
+        let (next_c_in, _) = gates
+            .iter()
+            .find(|(_, g)| *g == tmp2_or_tmp3)
+            .expect("c_in");
+        c_in = next_c_in;
+    }
+
+    "blabla".to_string()
 }
 
 pub fn solve() -> SolutionPair {
@@ -206,16 +289,14 @@ tnw OR pbm -> gnj";
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(&load_input("inputs/2024/day_24")), 0);
-    }
-
-    #[test]
-    fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1), 0);
+        assert_eq!(part_1(&load_input("inputs/2024/day_24")), 42410633905894);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(&load_input("inputs/2024/day_24")), 0)
+        assert_eq!(
+            part_2(&load_input("inputs/2024/day_24")),
+            "cqm,mps,vcv,vjv,vwp,z13,z19,z25".to_string()
+        )
     }
 }

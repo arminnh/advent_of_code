@@ -101,18 +101,11 @@ fn parse_input(input: &str) -> (Grid, Position, Position) {
     (grid, start, end)
 }
 
-fn distance(pos1: &(i32, i32), pos2: &(i32, i32)) -> u32 {
-    pos1.0.abs_diff(pos2.0) + pos1.1.abs_diff(pos2.1)
-}
-
-// You aren't sure what the conditions of the racetrack will be like, so to give yourself as many options as possible,
-// you'll need a list of the best cheats. How many cheats would save you at least 100 picoseconds?
-fn part_1(input: &str) -> usize {
-    let (grid, start, end) = parse_input(input);
+fn find_best_path(grid: HashSet<(i32, i32)>, start: (i32, i32), end: (i32, i32)) -> Path {
     let start_move = Move {
         position: start,
         cost: 0,
-        path: Vec::new(),
+        path: Vec::from([start]),
     };
 
     let result = dijkstra(
@@ -121,30 +114,39 @@ fn part_1(input: &str) -> usize {
         |m| m.position == end,
         |g, m| next_moves(g, m),
     );
-
-    if let Some((cost, path)) = result {
-        // Save how many times each cheat of X seconds occurs
-        let mut cheats: HashMap<usize, usize> = HashMap::new();
-        for (i, pos1) in path.iter().enumerate() {
-            for j in i + 4..path.len() {
-                let pos2 = path[j];
-                if distance(pos1, &pos2) <= 2 {
-                    let time_saved = j - i - 2;
-                    *cheats.entry(time_saved).or_default() += 1;
-                }
-            }
-        }
-        cheats
-            .iter()
-            .filter_map(|(cheat, count)| if *cheat >= 100 { Some(count) } else { None })
-            .sum()
-    } else {
-        panic!("No path found!");
-    }
+    result.expect("No path found!").1
 }
 
+fn distance(a: &(i32, i32), b: &(i32, i32)) -> u32 {
+    a.0.abs_diff(b.0) + a.1.abs_diff(b.1)
+}
+
+fn nr_of_cheats(path: Vec<(i32, i32)>, max_cheat_distance: usize) -> usize {
+    let mut result = 0;
+    for (i, pos) in path.iter().enumerate() {
+        // Want to save at least 100 picoseconds
+        for j in (i + 100)..path.len() {
+            let d = distance(pos, &path[j]) as usize;
+            if d <= max_cheat_distance && j - i - d >= 100 {
+                result += 1;
+            }
+        }
+    }
+    result
+}
+
+// You aren't sure what the conditions of the racetrack will be like, so to give yourself as many options as possible,
+// you'll need a list of the best cheats. How many cheats would save you at least 100 picoseconds?
+fn part_1(input: &str) -> usize {
+    let (grid, start, end) = parse_input(input);
+    let path = find_best_path(grid, start, end);
+    nr_of_cheats(path, 2)
+}
+// Find the best cheats using the updated cheating rules. How many cheats would save you at least 100 picoseconds?
 fn part_2(input: &str) -> usize {
-    0
+    let (grid, start, end) = parse_input(input);
+    let path = find_best_path(grid, start, end);
+    nr_of_cheats(path, 20)
 }
 
 pub fn solve() -> SolutionPair {
@@ -192,6 +194,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(&load_input("inputs/2024/day_20")), 0)
+        assert_eq!(part_2(&load_input("inputs/2024/day_20")), 982124)
     }
 }

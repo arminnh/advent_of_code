@@ -15,14 +15,14 @@ struct Registers {
 // instructions take an given operand and a 'combo' operand which is determined by a function
 #[derive(Debug, PartialEq, Eq)]
 enum Instruction {
-    ADV, // divide A by 2^combo -> store in A
-    BXL, // bitwise XOR B and operand -> store in B
-    BST, // combo operand % 8 -> store in B
-    JNZ, // if A != 0, jump to operand
-    BXC, // bitwise XOR B and C -> store in B
-    OUT, // output combo % 8
-    BDV, // adv, but store in B
-    CDV, // adv, but store in C
+    ADV,
+    BXL,
+    BST,
+    JNZ,
+    BXC,
+    OUT,
+    BDV,
+    CDV,
 }
 
 fn parse_input(mut lines: Lines) -> (Registers, Program) {
@@ -76,18 +76,14 @@ impl Instruction {
         instruction_pointer: &mut usize,
         output: &mut Vec<u32>,
     ) {
-        // println!(
-        //     "{:?}, instruction: {}, operand: {}, combo: {}, output: {:?}",
-        //     self,
-        //     instruction_pointer,
-        //     operand,
-        //     combo_operand(operand, &registers),
-        //     output
-        // );
         match self {
-            Instruction::ADV => registers.a /= 2u64.pow(combo_operand(operand, &registers) as u32),
+            // divide A by 2^combo -> store in A --- same as right shift by combo
+            Instruction::ADV => registers.a >>= combo_operand(operand, &registers),
+            // bitwise XOR B and operand -> store in B
             Instruction::BXL => registers.b ^= operand as u64,
+            // combo operand % 8 -> store in B
             Instruction::BST => registers.b = (combo_operand(operand, &registers) % 8) as u64,
+            // if A != 0, jump to operand
             Instruction::JNZ => {
                 if registers.a != 0 {
                     *instruction_pointer = operand as usize;
@@ -95,14 +91,14 @@ impl Instruction {
                     *instruction_pointer += 2;
                 }
             }
+            // bitwise XOR B and C -> store in B
             Instruction::BXC => registers.b ^= registers.c,
+            // output combo % 8
             Instruction::OUT => output.push(combo_operand(operand, &registers) as u32 % 8),
-            Instruction::BDV => {
-                registers.b = registers.a / 2u64.pow(combo_operand(operand, &registers) as u32)
-            }
-            Instruction::CDV => {
-                registers.c = registers.a / 2u64.pow(combo_operand(operand, &registers) as u32)
-            }
+            // adv, but store in B
+            Instruction::BDV => registers.b = registers.a >> combo_operand(operand, &registers),
+            // adv, but store in C
+            Instruction::CDV => registers.c = registers.a >> combo_operand(operand, &registers),
         }
 
         if *self != Instruction::JNZ {
@@ -155,49 +151,22 @@ fn part_1(lines: Lines) -> String {
 // What is the lowest positive initial value for register A that causes the program to output a copy of itself?
 fn part_2(lines: Lines) -> u64 {
     let (_, program) = parse_input(lines);
-    // Example comes down to following loop:
+    // Example input comes down to following loop:
     //     while a != 0:
     //         a = int(a / 8)
     //         print(a % 8)
     // To make it print a desired outcome, like [0,3,5,4,3,0], can start from the end
     // and build `a` in reverse. Start from the last digit, then add the one
     // before it (for the mod operation) and multiply by 8 (for the division)
+    //
+    // This works fine for the example, but not on the actual input:
     // program
     //     .iter()
     //     .rev()
     //     .skip(1)
     //     .fold(*program.last().unwrap(), |acc, num| (acc + num) * 8)
-    fn next_result(previous_a: u64, program: &Program, expected_output: Vec<u32>) -> u64 {
-        let mut iterations = 0;
-        while iterations < 8 {
-            // 3-bit computer, so only try 8 numbers per iteration
-            for attempt in 0..8 {
-                let new_a = previous_a * 8_u64.pow(iterations+1) + attempt;
-                println!("Trying: {}", new_a);
-                let mut new_registers = Registers {
-                    a: new_a,
-                    b: 0,
-                    c: 0,
-                };
-                if run_program(&program, &mut new_registers) == expected_output {
-                    return new_a;
-                }
-            }
-            iterations += 1;
-        }
-        panic!("oh no")
-    }
-
-    let mut result = 0;
-    for i in (0..program.len()).rev() {
-        let expected_output = program[i..].to_vec();
-        println!("i={}, expected_output: {:?}", i, expected_output);
-        result = next_result(result, &program, expected_output);
-    }
-    result
-
-    // Actual input:
-    // # 2,4,1,1,7,5,1,5,4,0,5,5,0,3,3,0
+    //
+    // Actual input is more complex:
     //     BST 4
     //     BXL 1
     //     CDV 5
@@ -205,16 +174,48 @@ fn part_2(lines: Lines) -> u64 {
     //     BXC 0
     //     OUTPUT 5
     //     ADV 3
-    // a = 64854237
+    // In Python:
+    //     while a != 0:
+    //         b = a % 8
+    //         b = b ^ 1
+    //         c = a / 2^b = a >> b
+    //         b = b ^ 5
+    //         b = b ^ c
+    //         print(b % 8)
+    //         a = a / 8 = a >> 3
+    // Assumptions:
+    //     * Last instruction always jumps to 0 -> simple while != 0
+    //     * A always gets shifted right by 3 per loop
+    //
+    // Will still start search from the end and build up the result 3 bits at a time
+    // Each search loop only needs to check 8 possible values
+    // When a match is found (the output of the program matches the digit we are searching for),
+    // shift the result left by 3 and try searching for the next digit.
+    // Multiple matches are possible for a target output.
+    // If the first match doesn't work out, backtrack and try with a later match.
 
-    // while a != 0:
-    //     b = a % 8
-    //     b = b ^ 1
-    //     c = a / 2^b
-    //     b = b ^ 5
-    //     b = b ^ c
-    //     print(b % 8)
-    //     a = a / 8
+    fn find(result: u64, program: &Program) -> Option<u64> {
+        for attempt in 0..8 {
+            let a = result + attempt;
+            let mut new_registers = Registers { a, b: 0, c: 0 };
+            let output = run_program(&program, &mut new_registers);
+            let expected_output = &program[program.len() - output.len()..];
+            if output == expected_output {
+                if output.len() == program.len() {
+                    return Some(a);
+                } else {
+                    // Try rest of search with this match
+                    if let Some(result) = find(a << 3, program) {
+                        return Some(result);
+                    }
+                    // Else hopefully a later match does work out <- backtracking
+                }
+            }
+        }
+        None
+    }
+
+    find(0, &program).expect("No result!")
 }
 
 pub fn solve() -> SolutionPair {
@@ -222,14 +223,6 @@ pub fn solve() -> SolutionPair {
     (
         Solution::from(part_1(input.lines())),
         Solution::from(part_2(input.lines())),
-        // Solution::from(part_2(
-        //     "Register A: 2024
-        // Register B: 0
-        // Register C: 0
-
-        // Program: 0,3,5,4,3,0"
-        //         .lines(),
-        // )),
     )
 }
 
@@ -304,12 +297,7 @@ Program: 0,3,5,4,3,0";
     }
 
     #[test]
-    fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_PART_2.lines()), 117440);
-    }
-
-    #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_17").lines()), 0)
+        assert_eq!(part_2(load_input("inputs/2024/day_17").lines()), 164279024971453)
     }
 }

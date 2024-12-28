@@ -5,6 +5,7 @@ use std::i32;
 use std::str::Lines;
 
 type Position = (i32, i32);
+type Path = Vec<char>;
 type Keypad = HashMap<Position, char>;
 
 // The numeric keypad has four rows of buttons: 789, 456, 123, and finally an empty gap followed by 0A.
@@ -33,7 +34,7 @@ const DIRECTIONAL_KEYPAD_ENTRIES: [(Position, char); 5] = [
 ];
 
 // Return all shortest paths between two buttons on the given keypad
-fn keypad_paths(from: char, to: char, keypad: &Keypad) -> Vec<Vec<char>> {
+fn keypad_paths(from: char, to: char, keypad: &Keypad) -> Vec<Path> {
     let start_pos = *keypad
         .iter()
         .find(|(_, &c)| c == from)
@@ -45,9 +46,9 @@ fn keypad_paths(from: char, to: char, keypad: &Keypad) -> Vec<Vec<char>> {
         .expect("Target does not exist")
         .0;
     // Keep track of positions of each possible path and the keypad moves made for that path
-    let mut paths: Vec<(Vec<Position>, Vec<char>)> = Vec::new();
+    let mut paths: Vec<(Vec<Position>, Path)> = Vec::new();
     // Store all possible paths currently being explored
-    let mut frontier: Vec<(Vec<Position>, Vec<char>)> = vec![(vec![start_pos], vec![])];
+    let mut frontier: Vec<(Vec<Position>, Path)> = vec![(vec![start_pos], vec![])];
     let moves = [((-1, 0), '^'), ((0, 1), '>'), ((1, 0), 'v'), ((0, -1), '<')];
     let mut shortest_path = usize::MAX;
 
@@ -80,6 +81,40 @@ fn keypad_paths(from: char, to: char, keypad: &Keypad) -> Vec<Vec<char>> {
     paths.into_iter().map(|(_, moves)| moves).collect()
 }
 
+// For each code, return all possible shortest paths of buttons to press on the given keypad
+fn generate_next_paths_for_codes(codes: Vec<Path>, keypad: &Keypad) -> Vec<Path> {
+    let mut next_paths: Vec<Path> = Vec::new();
+
+    for code in codes {
+        // A is the start position
+        let mut paths: Vec<Path> = keypad_paths('A', code[0], keypad);
+
+        for w in code.windows(2) {
+            // Find all possible paths between each pair of characters
+            let new_paths = keypad_paths(w[0], w[1], keypad);
+
+            // Combine each possible path so far with each new path found
+            paths = paths.into_iter().flat_map(|prev_path| {
+                new_paths.clone().into_iter().map(move |new_path| {
+                    prev_path
+                        .clone()
+                        .into_iter()
+                        .chain(new_path.into_iter()).collect()
+                })
+            }).collect();
+        }
+        next_paths.append(&mut paths);
+    }
+
+    let shortest_path_len: usize = next_paths
+        .iter()
+        .min_by_key(|p| p.len())
+        .expect("No path found!")
+        .len();
+    next_paths.retain(|p| p.len() == shortest_path_len);
+    next_paths
+}
+
 // In summary, there are the following keypads:
 //   One directional keypad that you are using.
 //   Two directional keypads that robots are using.
@@ -90,58 +125,17 @@ fn keypad_paths(from: char, to: char, keypad: &Keypad) -> Vec<Vec<char>> {
 // The directional code is what robot_2 must press on the directoinal keypad.
 // (2) Convert these movements into another set of movements for robot_3
 // (3) Apply (2) again to get the code for ME
-fn nr_of_button_presses(code: &str) -> usize {
+fn nr_of_button_presses(code: &str, nr_of_directional_keypads: usize) -> usize {
     let numeric_keypad: Keypad = HashMap::from(NUMERIC_KEYPAD_ENTRIES);
     let directional_keypad: Keypad = HashMap::from(DIRECTIONAL_KEYPAD_ENTRIES);
 
-    let paths_robot_2: Vec<Vec<char>> = paths_for_code(code.chars().collect(), &numeric_keypad);
-
-    let iterate_directional_keypad = |paths: Vec<Vec<char>>|{
-        let mut new_paths: Vec<Vec<char>> = paths
-            .into_iter()
-            .flat_map(|p| paths_for_code(p, &directional_keypad))
-            .collect();
-        let shortest_path_len: usize = new_paths
-            .iter()
-            .min_by_key(|p| p.len())
-            .expect("No path found!")
-            .len();
-        new_paths.retain(|p| p.len() == shortest_path_len);
-        new_paths
-    };
-
-    let paths_robot_3 = iterate_directional_keypad(paths_robot_2);
-    let paths_me = iterate_directional_keypad(paths_robot_3);
-
-    paths_me[0].len()
-}
-
-// Determine the buttons to press on the given keypad to enter the target code
-fn paths_for_code(mut code: Vec<char>, keypad: &Keypad) -> Vec<Vec<char>> {
-    // prepend A as start position
-    code.insert(0, 'A');
-    let mut paths: Vec<Vec<char>> = Vec::new();
-
-    for w in code.windows(2) {
-        let new_paths: Vec<Vec<char>> = keypad_paths(w[0], w[1], keypad);
-        if paths.is_empty() {
-            paths = new_paths;
-        } else {
-            let mut combined_path: Vec<Vec<char>> = Vec::new();
-            for prev_p in paths {
-                for new_p in new_paths.clone() {
-                    let combined = prev_p
-                        .clone()
-                        .into_iter()
-                        .chain(new_p.into_iter())
-                        .collect();
-                    combined_path.push(combined);
-                }
-            }
-            paths = combined_path;
-        }
+    // paths for robot 1 on the numeric keypad
+    let mut paths = generate_next_paths_for_codes(vec![code.chars().collect()], &numeric_keypad);
+    // paths for rest of the chain of keypads
+    for _ in 0..nr_of_directional_keypads {
+        paths = generate_next_paths_for_codes(paths, &directional_keypad);
     }
-    paths
+    paths[0].len()
 }
 
 fn complexity(code: &str, nr_button_presses: usize) -> usize {
@@ -156,10 +150,11 @@ fn complexity(code: &str, nr_button_presses: usize) -> usize {
 // What is the sum of the complexities of the five codes on your list?
 fn part_1(lines: Lines) -> usize {
     lines
-        .map(|code| complexity(code, nr_of_button_presses(code)))
+        .map(|code| complexity(code, nr_of_button_presses(code, 2)))
         .sum()
 }
 
+// Part 1 but with 25 layers of directional keypad robots
 fn part_2(lines: Lines) -> usize {
     0
 }
@@ -260,7 +255,7 @@ mod tests {
         let numeric_keypad: Keypad = HashMap::from(NUMERIC_KEYPAD_ENTRIES);
 
         assert_eq!(
-            paths_for_code("029A".chars().collect(), &numeric_keypad),
+            generate_next_paths_for_codes(vec!["029A".chars().collect()], &numeric_keypad),
             vec![
                 vec!['<', 'A', '^', 'A', '>', '^', '^', 'A', 'v', 'v', 'v', 'A'],
                 vec!['<', 'A', '^', 'A', '^', '>', '^', 'A', 'v', 'v', 'v', 'A'],
@@ -268,7 +263,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            paths_for_code("379A".chars().collect(), &numeric_keypad),
+            generate_next_paths_for_codes(vec!["379A".chars().collect()], &numeric_keypad),
             vec![
                 vec!['^', 'A', '<', '<', '^', '^', 'A', '>', '>', 'A', 'v', 'v', 'v', 'A'],
                 vec!['^', 'A', '<', '^', '<', '^', 'A', '>', '>', 'A', 'v', 'v', 'v', 'A'],
@@ -285,7 +280,10 @@ mod tests {
         let directional_keypad: Keypad = HashMap::from(DIRECTIONAL_KEYPAD_ENTRIES);
 
         assert_eq!(
-            paths_for_code("<A^A>^^AvvvA".chars().collect(), &directional_keypad),
+            generate_next_paths_for_codes(
+                vec!["<A^A>^^AvvvA".chars().collect()],
+                &directional_keypad,
+            ),
             vec![
                 vec![
                     '<', 'v', '<', 'A', '>', '>', '^', 'A', '<', 'A', '>', 'A', 'v', 'A', '<', '^',
@@ -418,15 +416,18 @@ mod tests {
             ]
         );
         assert_eq!(
-            paths_for_code(
-                "v<<A>>^A<A>AvA<^AA>A<vAAA>^A".chars().collect(),
-                &directional_keypad
+            generate_next_paths_for_codes(
+                vec!["v<<A>>^A<A>AvA<^AA>A<vAAA>^A".chars().collect()],
+                &directional_keypad,
             )
             .len(),
             2048 // that's a lot of possible paths
         );
         assert_eq!(
-            paths_for_code("^A^^<<A>>AvvvA".chars().collect(), &directional_keypad),
+            generate_next_paths_for_codes(
+                vec!["^A^^<<A>>AvvvA".chars().collect()],
+                &directional_keypad,
+            ),
             vec![
                 vec![
                     '<', 'A', '>', 'A', '<', 'A', 'A', 'v', '<', 'A', 'A', '>', '>', '^', 'A', 'v',
@@ -469,8 +470,8 @@ mod tests {
         assert_eq!(complexity("029A", 68), 68 * 29);
         assert_eq!(complexity("980A", 60), 60 * 980);
         assert_eq!(complexity("179A", 68), 68 * 179);
-        assert_eq!(complexity("456A", 82), 64 * 456);
-        assert_eq!(complexity("379A", 82), 64 * 379);
+        assert_eq!(complexity("456A", 64), 64 * 456);
+        assert_eq!(complexity("379A", 64), 64 * 379);
     }
 
     #[test]
@@ -478,10 +479,10 @@ mod tests {
         assert_eq!(part_1(EXAMPLE_INPUT.lines()), 126384);
     }
 
-        #[test]
-        fn test_part_1() {
-            assert_eq!(part_1(load_input("inputs/2024/day_21").lines()), 177814);
-        }
+    #[test]
+    fn test_part_1() {
+        assert_eq!(part_1(load_input("inputs/2024/day_21").lines()), 177814);
+    }
 
     //     #[test]
     //     fn test_part_2_example() {

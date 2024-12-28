@@ -6,7 +6,7 @@ use std::str::Lines;
 type Position = (i32, i32);
 type Path = Vec<char>;
 type Keypad = HashMap<Position, char>;
-// Possible paths between two buttons
+// All shortest paths between two buttons
 type PathsCache = HashMap<(char, char), Vec<Path>>;
 // Amounts of total button presses between two buttons on layers of keypads
 type CountsCache = HashMap<(char, char, usize), usize>;
@@ -162,8 +162,9 @@ fn nr_of_button_presses(code: &str, nr_of_directional_keypads: usize) -> usize {
     paths[0].len()
 }
 
-// Recursively reduce the given code/path into the number of key presses on the final directional keypads
-fn recurse_directional(
+// Recursively resolve the total number of button presses necessary
+// on the final layer/keypad to press one button on the first keypad
+fn recurse(
     from: char,
     to: char,
     layer: usize,
@@ -171,51 +172,30 @@ fn recurse_directional(
     counts_cache: &mut CountsCache,
     keypad: &Keypad,
 ) -> usize {
-    // println!("layer {}: {} to {}", layer, from, to);
-
-    // <vA <A A >>^A vA A <^A
-    //   v  < <    A  > >  ^A
-    //             <        A
-    //                      0
-
-    // if let Some(cached) = counts_cache.get(&(from, to, layer)) {
-        // println!("Cached {:?}: {:?}", (from, to, layer), cached);
-    //     cached.clone()
-    // } else
-    if layer == 1 {
+    if let Some(cached) = counts_cache.get(&(from, to, layer)) {
+        *cached
+    } else if layer == 1 {
         let result = get_keypad_paths_cached(from, to, paths_cache, keypad)[0].len();
-        // println!("layer {}: {} to {}. Result: {}", layer, from, to, result);
+        counts_cache.insert((from, to, layer), result);
         result
     } else {
-        // all possible paths between first two buttons in the code
-        let paths: Vec<Path> = get_keypad_paths_cached(from, to, paths_cache, keypad);
-        // println!("Computing {} to {} on layer {}. Paths: {:?}", from, to, layer, paths);
-        // find the shortest possible path between the first two buttons on this layer
-        let result = paths
+        let result = get_keypad_paths_cached(from, to, paths_cache, keypad)
             .into_iter()
             .map(|mut p| {
+                // Each robot/layer starts on A
                 p.insert(0, 'A');
                 p.windows(2)
-                    .map(|w| {
-                        recurse_directional(
-                            w[0],
-                            w[1],
-                            layer - 1,
-                            paths_cache,
-                            counts_cache,
-                            keypad,
-                        )
-                    })
+                    .map(|w| recurse(w[0], w[1], layer - 1, paths_cache, counts_cache, keypad))
                     .sum()
             })
             .min()
             .unwrap();
-        // println!("layer {}: {} to {}. Result: {}", layer, from, to, result);
+        counts_cache.insert((from, to, layer), result);
         result
     }
 }
 
-// Instead of generating all possible paths for all layers, keep track of the number of key presses for each layer
+// Instead of generating all possible paths for all layers, keep track of the number of key presses for each layer.
 // This time, do all calculations on each pair of characters in the given code, instead of iterating the full code
 fn nr_of_button_presses_with_cache(
     code: &str,
@@ -226,18 +206,18 @@ fn nr_of_button_presses_with_cache(
     let numeric_keypad: Keypad = HashMap::from(NUMERIC_KEYPAD_ENTRIES);
     let directional_keypad: Keypad = HashMap::from(DIRECTIONAL_KEYPAD_ENTRIES);
 
-    // First layer is on the numeric keypad -> generate initial paths
+    // First layer is on the numeric keypad -> generate initial codes/paths for the first directional keypad
     let code: Vec<char> = code.chars().collect();
     let paths = generate_next_paths_for_codes(vec![code], &numeric_keypad);
-    // println!("First paths: {:?}", paths);
 
+    // Recusively resolve each path to the total number of button presses and return the lowest one
     paths
         .into_iter()
         .map(|mut p| {
             p.insert(0, 'A');
             p.windows(2)
                 .map(|w| {
-                    recurse_directional(
+                    recurse(
                         w[0],
                         w[1],
                         directional_keypad_layers,
@@ -276,7 +256,15 @@ fn part_1(lines: Lines) -> usize {
 
 // Part 1 but with 25 layers of directional keypad robots
 fn part_2(lines: Lines) -> usize {
-    0
+    let mut paths_cache: PathsCache = HashMap::new();
+    let mut counts_cache: CountsCache = HashMap::new();
+
+    lines
+        .map(|code| {
+            let nr = nr_of_button_presses_with_cache(code, 25, &mut paths_cache, &mut counts_cache);
+            complexity(code, nr)
+        })
+        .sum()
 }
 
 pub fn solve() -> SolutionPair {
@@ -604,13 +592,11 @@ mod tests {
         assert_eq!(part_1(load_input("inputs/2024/day_21").lines()), 177814);
     }
 
-    //     #[test]
-    //     fn test_part_2_example() {
-    //         assert_eq!(part_2(EXAMPLE_INPUT.lines()), 0);
-    //     }
-
-    //     #[test]
-    //     fn test_part_2() {
-    //         assert_eq!(part_2(load_input("inputs/2024/day_21").lines()), 0)
-    //     }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(
+            part_2(load_input("inputs/2024/day_21").lines()),
+            220493992841852
+        )
+    }
 }

@@ -27,6 +27,7 @@ fn main() {
     };
 
     let mut runtime = 0.0;
+    let mut times: Vec<(f64, usize, u8, usize)> = Vec::new();
 
     for year in years {
         println!("====== Year {} ======", year);
@@ -37,19 +38,26 @@ fn main() {
 
             let time = Instant::now();
             let p1 = part_1(&input);
-            let elapsed_ms = time.elapsed().as_nanos() as f64 / 1_000_000.0;
-            println!("  · Part 1 ({:>5.4} ms): {}", elapsed_ms, p1);
-            runtime += elapsed_ms;
+            let elapsed_ms_part1 = time.elapsed().as_nanos() as f64 / 1_000_000.0;
+            println!("  · Part 1 ({:>5.4} ms): {}", elapsed_ms_part1, p1);
+            runtime += elapsed_ms_part1;
 
             let time = Instant::now();
             let p2 = part_2(&input);
-            let elapsed_ms = time.elapsed().as_nanos() as f64 / 1_000_000.0;
-            println!("  · Part 2 ({:>5.4} ms): {}\n", elapsed_ms, p2);
-            runtime += elapsed_ms;
+            let elapsed_ms_part2 = time.elapsed().as_nanos() as f64 / 1_000_000.0;
+            println!("  · Part 2 ({:>5.4} ms): {}\n", elapsed_ms_part2, p2);
+            runtime += elapsed_ms_part2;
+
+            times.push((elapsed_ms_part1, year, *day, 1));
+            times.push((elapsed_ms_part2, year, *day, 2));
         }
     }
 
     println!("Total runtime: {:.4} ms", runtime);
+    if times.len() > 10 {
+        times.sort_by(|a, b| b.0.total_cmp(&a.0));
+        println!("Slowest 5: {:?}", &times[..5]);
+    }
 }
 
 fn get_day_solvers(year: usize, day: &u8) -> (fn(&str) -> Solution, fn(&str) -> Solution) {

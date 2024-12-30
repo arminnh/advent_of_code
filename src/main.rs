@@ -36,20 +36,17 @@ fn main() {
             let (part_1, part_2) = get_day_solvers(year, day);
             let input = load_input(&format!("inputs/{}/day_{}", year, day));
 
-            let time = Instant::now();
-            let p1 = part_1(&input);
-            let elapsed_ms_part1 = time.elapsed().as_nanos() as f64 / 1_000_000.0;
-            println!("  · Part 1 ({:>5.4} ms): {}", elapsed_ms_part1, p1);
-            runtime += elapsed_ms_part1;
-
-            let time = Instant::now();
-            let p2 = part_2(&input);
-            let elapsed_ms_part2 = time.elapsed().as_nanos() as f64 / 1_000_000.0;
-            println!("  · Part 2 ({:>5.4} ms): {}\n", elapsed_ms_part2, p2);
-            runtime += elapsed_ms_part2;
-
-            times.push((elapsed_ms_part1, year, *day, 1));
-            times.push((elapsed_ms_part2, year, *day, 2));
+            let mut do_part = |solver: fn(&str) -> Solution, part_nr| {
+                let time = Instant::now();
+                let result = solver(&input);
+                let elapsed_ms = time.elapsed().as_nanos() as f64 / 1_000_000.0;
+                println!("  · Part {} ({:>9.4} ms): {}", part_nr, elapsed_ms, result);
+                runtime += elapsed_ms;
+                times.push((elapsed_ms, year, *day, part_nr));
+            };
+            do_part(part_1, 1);
+            do_part(part_2, 2);
+            println!("");
         }
     }
 

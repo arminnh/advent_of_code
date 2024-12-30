@@ -53,7 +53,7 @@ fn main() {
         }
     }
 
-    println!("Total runtime: {:.4} ms", runtime);
+    println!("Total runtime ({} parts): {:.4} ms", times.len(), runtime);
     if times.len() > 10 {
         times.sort_by(|a, b| b.0.total_cmp(&a.0));
         println!("Slowest 5: {:?}", &times[..5]);

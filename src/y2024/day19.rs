@@ -2,31 +2,24 @@ use std::collections::HashMap;
 use std::usize;
 
 // Is is possible to create the desired design using the available patterns?
-// Recursive approach: split string on each avaiable pattern. If one of the splits is possible, then design is possible
-fn is_possible(design: String, patterns: &Vec<&str>, cache: &mut HashMap<String, bool>) -> bool {
+// Recursive approach: if the design can be broken down by the given patterns, then it is possible
+fn is_possible(design: &str, patterns: &Vec<&str>, cache: &mut HashMap<String, bool>) -> bool {
     // base case, no need to split further
-    if let Some(result) = cache.get(&design) {
+    if let Some(result) = cache.get(design) {
         return *result;
     }
 
     for pattern in patterns {
-        let split_possible = match design.split_once(pattern) {
-            Some((left, "")) => is_possible(left.to_string(), patterns, cache),
-            Some(("", right)) => is_possible(right.to_string(), patterns, cache),
-            Some((left, right)) => {
-                is_possible(left.to_string(), patterns, cache)
-                    && is_possible(right.to_string(), patterns, cache)
+        if design.starts_with(pattern) {
+            let next_design = &design[pattern.len()..];
+            if is_possible(next_design, patterns, cache) {
+                cache.insert(next_design.to_string(), true);
+                return true;
             }
-            None => false,
-        };
-
-        if split_possible {
-            cache.insert(design, true);
-            return true;
         }
     }
 
-    cache.insert(design, false);
+    cache.insert(design.to_string(), false);
     false
 }
 
@@ -41,12 +34,11 @@ pub fn part_1(input: &str) -> usize {
 
     designs
         .lines()
-        .filter(|design| is_possible(design.to_string(), &patterns, &mut cache))
+        .filter(|design| is_possible(design, &patterns, &mut cache))
         .count()
 }
 
-// Is is possible to create the desired design using the available patterns?
-// Recursive approach: split string on each avaiable pattern. If one of the splits is possible, then design is possible
+// Instead of checking whether a design is possible, count in how many ways it can be created using the given patterns
 fn nr_of_possible_arrangements(
     design: String,
     patterns: &Vec<&str>,
@@ -54,15 +46,12 @@ fn nr_of_possible_arrangements(
 ) -> usize {
     // base case, no need to split further
     if let Some(result) = cache.get(&design) {
-        // println!("Returning {} for {}", result, design);
         return *result;
     } else if design.len() == 1 {
         if patterns.contains(&&design[..]) {
-            // println!("Returning 1 for {}---", design);
             cache.insert(design, 1);
             return 1;
         } else {
-            // println!("Returning 0 for {}---", design);
             cache.insert(design, 0);
             return 0;
         }
@@ -74,51 +63,15 @@ fn nr_of_possible_arrangements(
             if &design == pattern {
                 nr_of_arrangements += 1;
             } else {
-                let new = nr_of_possible_arrangements(
+                nr_of_arrangements += nr_of_possible_arrangements(
                     design[pattern.len()..].to_string(),
                     patterns,
                     cache,
                 );
-                // println!(
-                // "Result for splitting {} on pattern {} : {}",
-                // design, pattern, new
-                // );
-                nr_of_arrangements += new;
             }
         }
-        // let mut maxx = 0;
-        // for substr in design.split(pattern).filter(|s| *s != "") {
-        // println!("{:?} | {} -> {:?}", design, pattern, substr);
-        //     maxx = maxx.max(nr_of_possible_arrangements(
-        //         substr.to_string(),
-        //         patterns.clone(),
-        //         cache,
-        //     ));
-        // }
-        // nr_of_arrangements += maxx;
-
-        // let nr = match design.split(pattern) {
-        //     Some((left, "")) => nr_of_possible_arrangements(left.to_string(), patterns.clone(), cache),
-        //     Some(("", right)) => nr_of_possible_arrangements(right.to_string(), patterns.clone(), cache),
-        //     Some((left, right)) => {
-        //         let l = nr_of_possible_arrangements(left.to_string(), patterns.clone(), cache);
-        //         let r = nr_of_possible_arrangements(right.to_string(), patterns.clone(), cache);
-        //         if l == 0 || r == 0 {
-        //             0
-        //         } else {
-        //             l + r
-        //         }
-        //     }
-        //     None => 0,
-        // };
-
-        // if nr > 0 {
-        // println!("{} -> {:?}", pattern, design.split_once(pattern));
-        //     nr_of_arrangements += 1;
-        // }
     }
 
-    // println!("{:?} -> {:?}", design, nr_of_arrangements);
     cache.insert(design, nr_of_arrangements);
     nr_of_arrangements
 }
@@ -131,14 +84,11 @@ pub fn part_2(input: &str) -> usize {
     let mut patterns: Vec<&str> = patterns.split(", ").collect();
     patterns.sort_by(|a, b| b.len().cmp(&a.len()));
     let mut cache: HashMap<String, usize> = HashMap::new();
-    // let mut cache: HashMap<String, usize> = patterns.iter().map(|p| (p.to_string(), 1)).collect();
 
-    let out = designs
+    designs
         .lines()
         .map(|design| nr_of_possible_arrangements(design.to_string(), &patterns, &mut cache))
-        .sum();
-    // println!("{:?}", cache);
-    out
+        .sum()
 }
 
 #[cfg(test)]

@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use core::fmt;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::str::{FromStr, Lines};
@@ -60,8 +58,9 @@ impl FromStr for Tile {
     }
 }
 
-fn parse_network(lines: Lines) -> HashMap<Position, Tile> {
-    let network = lines
+fn parse_network(input: &str) -> HashMap<Position, Tile> {
+    let network = input
+        .lines()
         .enumerate()
         .flat_map(|(i, line)| {
             line.char_indices().map(move |(j, char)| {
@@ -193,8 +192,8 @@ fn neighbors_network(network: &HashMap<Position, Tile>, position: &Position) -> 
 }
 
 // Find the furthest point from the start position
-fn part_1(lines: Lines) -> i32 {
-    let network = parse_network(lines);
+pub fn part_1(input: &str) -> i32 {
+    let network = parse_network(input);
     let start = find_start(&network);
     // print_network(&network, None);
 
@@ -322,8 +321,8 @@ fn flood_fill(network: &HashMap<Position, Tile>, cycle: &HashSet<Position>) -> H
 }
 
 // Find the number of tiles enclosed by the loop that contains the start position
-fn part_2(lines: Lines) -> usize {
-    let original_network = parse_network(lines);
+pub fn part_2(input: &str) -> usize {
+    let original_network = parse_network(input);
     // print_network(&original_network, None);
 
     let network = add_ground(original_network);
@@ -355,17 +354,10 @@ fn part_2(lines: Lines) -> usize {
     remaining_from_original.len()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_10");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     #[test]
     fn test_part_1_example_1() {
@@ -375,7 +367,7 @@ mod tests {
 .L-J.
 .....";
 
-        assert_eq!(part_1(input.lines()), 4);
+        assert_eq!(part_1(input), 4);
     }
 
     #[test]
@@ -386,12 +378,12 @@ SJ.L7
 |F--J
 LJ...";
 
-        assert_eq!(part_1(input.lines()), 8);
+        assert_eq!(part_1(input), 8);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_10").lines()), 6786);
+        assert_eq!(part_1(&load_input("inputs/2023/day_10")), 6786);
     }
 
     #[test]
@@ -406,7 +398,7 @@ LJ...";
 .L--J.L--J.
 ...........";
 
-        assert_eq!(part_2(input.lines()), 4);
+        assert_eq!(part_2(input), 4);
     }
 
     #[test]
@@ -421,7 +413,7 @@ LJ...";
 .L--JL--J.
 ..........";
 
-        assert_eq!(part_2(input.lines()), 4);
+        assert_eq!(part_2(input), 4);
     }
 
     #[test]
@@ -437,7 +429,7 @@ L--J.L7...LJS7F-7L7.
 ....FJL-7.||.||||...
 ....L---J.LJ.LJLJ...";
 
-        assert_eq!(part_2(input.lines()), 8);
+        assert_eq!(part_2(input), 8);
     }
 
     #[test]
@@ -453,11 +445,11 @@ L---JF-JLJ....FJLJJ7
 L.L7LFJ|||||FJL7||LJ
 L7JLJL-JLJLJL--JLJ.L";
 
-        assert_eq!(part_2(input.lines()), 10);
+        assert_eq!(part_2(input), 10);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_10").lines()), 495);
+        assert_eq!(part_2(&load_input("inputs/2023/day_10")), 495);
     }
 }

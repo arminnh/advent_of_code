@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::usize;
 
 fn parse_grid(pattern: &str) -> Vec<Vec<bool>> {
@@ -91,7 +89,7 @@ fn reflection_score(grid: Vec<Vec<bool>>, smudges: usize) -> usize {
     0
 }
 
-fn part_1(input: String) -> usize {
+pub fn part_1(input: &str) -> usize {
     let smudges = 0;
     input
         .split("\n\n")
@@ -99,7 +97,7 @@ fn part_1(input: String) -> usize {
         .sum()
 }
 
-fn part_2(input: String) -> usize {
+pub fn part_2(input: &str) -> usize {
     let smudges = 1;
     input
         .split("\n\n")
@@ -107,17 +105,10 @@ fn part_2(input: String) -> usize {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_13");
-    (
-        Solution::from(part_1(input.clone())),
-        Solution::from(part_2(input)),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "#.##..##.
 ..#.##.#.
@@ -233,21 +224,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.to_string()), 405);
+        assert_eq!(part_1(EXAMPLE_INPUT), 405);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_13")), 34100);
+        assert_eq!(part_1(&load_input("inputs/2023/day_13")), 34100);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.to_string()), 400);
+        assert_eq!(part_2(EXAMPLE_INPUT), 400);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_13")), 33106);
+        assert_eq!(part_2(&load_input("inputs/2023/day_13")), 33106);
     }
 }

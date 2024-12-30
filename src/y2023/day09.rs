@@ -1,5 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
+
+
 use std::str::Lines;
 
 enum Direction {
@@ -27,28 +27,21 @@ fn extrapolate(nums: Vec<i32>, direction: &Direction) -> i32 {
     }
 }
 
-fn part_1(lines: Lines) -> i32 {
-    lines
+pub fn part_1(input: &str) -> i32 {
+    input.lines()
         .map(|line| extrapolate(parse_line(line), &Direction::Forward))
         .sum()
 }
 
-fn part_2(lines: Lines) -> i32 {
-    lines
+pub fn part_2(input: &str) -> i32 {
+    input.lines()
         .map(|line| extrapolate(parse_line(line), &Direction::Backward))
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_9");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
     use super::*;
 
     const EXAMPLE_INPUT_1: &str = "0 3 6 9 12 15
@@ -99,21 +92,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 114);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 114);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_9").lines()), 1972648895);
+        assert_eq!(part_1(&load_input("inputs/2023/day_9")), 1972648895);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 2);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 2);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_9").lines()), 919);
+        assert_eq!(part_2(&load_input("inputs/2023/day_9")), 919);
     }
 }

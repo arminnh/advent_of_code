@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
 use std::usize;
 
@@ -33,7 +31,7 @@ fn is_possible(design: String, patterns: &Vec<&str>, cache: &mut HashMap<String,
 }
 
 // How many designs are possible?
-fn part_1(input: String) -> usize {
+pub fn part_1(input: &str) -> usize {
     let (patterns, designs) = input
         .split_once("\n\n")
         .expect("Could not split input in 2 parts");
@@ -82,15 +80,15 @@ fn nr_of_possible_arrangements(
                     cache,
                 );
                 // println!(
-                    // "Result for splitting {} on pattern {} : {}",
-                    // design, pattern, new
+                // "Result for splitting {} on pattern {} : {}",
+                // design, pattern, new
                 // );
                 nr_of_arrangements += new;
             }
         }
         // let mut maxx = 0;
         // for substr in design.split(pattern).filter(|s| *s != "") {
-            // println!("{:?} | {} -> {:?}", design, pattern, substr);
+        // println!("{:?} | {} -> {:?}", design, pattern, substr);
         //     maxx = maxx.max(nr_of_possible_arrangements(
         //         substr.to_string(),
         //         patterns.clone(),
@@ -115,7 +113,7 @@ fn nr_of_possible_arrangements(
         // };
 
         // if nr > 0 {
-            // println!("{} -> {:?}", pattern, design.split_once(pattern));
+        // println!("{} -> {:?}", pattern, design.split_once(pattern));
         //     nr_of_arrangements += 1;
         // }
     }
@@ -126,7 +124,7 @@ fn nr_of_possible_arrangements(
 }
 
 // What do you get if you add up the number of different ways you could make each design?
-fn part_2(input: String) -> usize {
+pub fn part_2(input: &str) -> usize {
     let (patterns, designs) = input
         .split_once("\n\n")
         .expect("Could not split input in 2 parts");
@@ -143,17 +141,10 @@ fn part_2(input: String) -> usize {
     out
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_19");
-    (
-        Solution::from(part_1(input.clone())),
-        Solution::from(part_2(input)),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "r, wr, b, g, bwu, rb, gb, br
 
@@ -168,28 +159,28 @@ bbrgwb";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.to_string()), 6);
+        assert_eq!(part_1(EXAMPLE_INPUT), 6);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_19")), 226);
+        assert_eq!(part_1(&load_input("inputs/2024/day_19")), 226);
     }
 
     #[test]
     fn test_part_2_example() {
         let input = "r, wr, b, g, bwu, rb, gb, br\n\n";
-        assert_eq!(part_2(input.to_string() + "brwrr"), 2);
-        assert_eq!(part_2(input.to_string() + "bggr"), 1);
-        assert_eq!(part_2(input.to_string() + "gbbr"), 4);
-        assert_eq!(part_2(input.to_string() + "rrbgbr"), 6);
-        assert_eq!(part_2(input.to_string() + "bbrgwb"), 0);
+        assert_eq!(part_2(&(input.to_string() + "brwrr")), 2);
+        assert_eq!(part_2(&(input.to_string() + "bggr")), 1);
+        assert_eq!(part_2(&(input.to_string() + "gbbr")), 4);
+        assert_eq!(part_2(&(input.to_string() + "rrbgbr")), 6);
+        assert_eq!(part_2(&(input.to_string() + "bbrgwb")), 0);
 
-        assert_eq!(part_2(EXAMPLE_INPUT.to_string()), 16);
+        assert_eq!(part_2(EXAMPLE_INPUT), 16);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_19")), 601201576113503)
+        assert_eq!(part_2(&load_input("inputs/2024/day_19")), 601201576113503)
     }
 }

@@ -1,8 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::f32::consts::PI;
-use std::str::Lines;
 use std::usize;
 use three_d::*;
 
@@ -348,8 +345,8 @@ fn bidirectional_support_graph(
 
 // Figure how the blocks will settle based on the snapshot. Once they've settled, consider
 // disintegrating a single brick; how many bricks could be safely chosen as the one to get disintegrated?
-fn part_1(lines: Lines) -> usize {
-    let bricks: Vec<Brick> = drop_bricks(lines.map(|line| Brick::from_str(line)).collect());
+pub fn part_1(input: &str) -> usize {
+    let bricks: Vec<Brick> = drop_bricks(input.lines().map(|line| Brick::from_str(line)).collect());
     // map each brick point/block to the ID of the brick it belongs to
     let brick_points: HashMap<Pos3D, BrickID> = brick_points(&bricks);
     // map parent blocks to the child blocks they lie directly on top of
@@ -375,8 +372,8 @@ fn part_1(lines: Lines) -> usize {
 
 // For each brick, determine how many other bricks would fall if that brick were disintegrated.
 // What is the sum of the number of other bricks that would fall?
-fn part_2(lines: Lines) -> usize {
-    let bricks: Vec<Brick> = drop_bricks(lines.map(|line| Brick::from_str(line)).collect());
+pub fn part_2(input: &str) -> usize {
+    let bricks: Vec<Brick> = drop_bricks(input.lines().map(|line| Brick::from_str(line)).collect());
     let brick_points: HashMap<Pos3D, BrickID> = brick_points(&bricks);
     let connections: HashMap<Pos3D, Pos3D> = point_support_graph(&brick_points);
     let (parents_to_children, children_to_parents) =
@@ -409,17 +406,10 @@ fn part_2(lines: Lines) -> usize {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_22");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "1,0,1~1,2,1
 0,0,2~2,0,2
@@ -431,21 +421,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 5);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 5);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_22").lines()), 499);
+        assert_eq!(part_1(&load_input("inputs/2023/day_22")), 499);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 7);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 7);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_22").lines()), 95059);
+        assert_eq!(part_2(&load_input("inputs/2023/day_22")), 95059);
     }
 }

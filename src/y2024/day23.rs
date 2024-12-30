@@ -1,13 +1,11 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Write;
-use std::str::Lines;
 use std::usize;
 
-fn parse_connections(lines: Lines) -> Vec<(&str, &str)> {
-    lines
+fn parse_connections(input: &str) -> Vec<(&str, &str)> {
+    input
+        .lines()
         .map(|line| line.split_once("-").expect("Could not parse connection"))
         .collect()
 }
@@ -64,8 +62,8 @@ fn write_graph_to_dot(graph: &HashMap<String, HashSet<String>>) {
 
 // Find all the sets of three inter-connected computers.
 // How many contain at least one computer with a name that starts with t?
-fn part_1(lines: Lines) -> usize {
-    let connections = parse_connections(lines);
+pub fn part_1(input: &str) -> usize {
+    let connections = parse_connections(input);
     let graph: HashMap<String, HashSet<String>> = build_graph(&connections);
     // write_to_dot(&connections.iter().map(|(l, r)| (l.to_string(), r.to_string())).collect(), "");
 
@@ -96,8 +94,8 @@ fn part_1(lines: Lines) -> usize {
 // Use trick of part 1 to filter out edges that prevent creation of a clique of 3 -> you end up with "islands" of nodes
 // Can then start searching from the nodes with largest amounts of neighbors
 // If all nodes of a connected component contain the same number of neighbors -> found the max clique
-fn part_2(lines: Lines) -> String {
-    let connections = parse_connections(lines);
+pub fn part_2(input: &str) -> String {
+    let connections = parse_connections(input);
     let mut graph: HashMap<String, HashSet<String>> = build_graph(&connections);
     // write_to_dot(&connections.iter().map(|(l, r)| (l.to_string(), r.to_string())).collect(), "");
 
@@ -157,17 +155,10 @@ fn part_2(lines: Lines) -> String {
     "No result!".to_string()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_23");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "kh-tc
 qp-kh
@@ -204,23 +195,23 @@ td-yn";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 7);
+        assert_eq!(part_1(EXAMPLE_INPUT), 7);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_23").lines()), 1151);
+        assert_eq!(part_1(&load_input("inputs/2024/day_23")), 1151);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), "co,de,ka,ta".to_string());
+        assert_eq!(part_2(EXAMPLE_INPUT), "co,de,ka,ta".to_string());
     }
 
     #[test]
     fn test_part_2() {
         assert_eq!(
-            part_2(load_input("inputs/2024/day_23").lines()),
+            part_2(&load_input("inputs/2024/day_23")),
             "ar,cd,hl,iw,jm,ku,qo,rz,vo,xe,xm,xv,ys".to_string()
         )
     }

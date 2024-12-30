@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::str::Lines;
@@ -107,7 +105,7 @@ impl CommunicationModule for Conjunction {
 }
 
 fn parse_input(
-    lines: Lines,
+    input: &str,
 ) -> (
     Vec<Box<dyn CommunicationModule>>,
     Vec<Vec<usize>>,
@@ -124,32 +122,34 @@ fn parse_input(
     // it sends the same pulse to all of its destination modules.
     let mut broadcaster: Vec<String> = Vec::new();
 
-    lines.for_each(|line| match line.split(" -> ").collect::<Vec<&str>>()[..] {
-        [module, destinations] => {
-            let destinations = destinations
-                .split(", ")
-                .map(|s| s.to_string())
-                .collect::<Vec<String>>();
+    input
+        .lines()
+        .for_each(|line| match line.split(" -> ").collect::<Vec<&str>>()[..] {
+            [module, destinations] => {
+                let destinations = destinations
+                    .split(", ")
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>();
 
-            match module.split_at(1) {
-                ("%", name) => {
-                    modules.push(Box::new(FlipFlop::new()));
-                    module_names.push(name.to_string());
-                    module_destinations.insert(name.to_string(), destinations);
+                match module.split_at(1) {
+                    ("%", name) => {
+                        modules.push(Box::new(FlipFlop::new()));
+                        module_names.push(name.to_string());
+                        module_destinations.insert(name.to_string(), destinations);
+                    }
+                    ("&", name) => {
+                        modules.push(Box::new(Conjunction::new()));
+                        module_names.push(name.to_string());
+                        module_destinations.insert(name.to_string(), destinations);
+                    }
+                    ("b", _) => {
+                        broadcaster = destinations;
+                    }
+                    _ => panic!("Invalid module {:?} in line", line),
                 }
-                ("&", name) => {
-                    modules.push(Box::new(Conjunction::new()));
-                    module_names.push(name.to_string());
-                    module_destinations.insert(name.to_string(), destinations);
-                }
-                ("b", _) => {
-                    broadcaster = destinations;
-                }
-                _ => panic!("Invalid module {:?} in line", line),
             }
-        }
-        _ => panic!("Invalid line {:?}", line),
-    });
+            _ => panic!("Invalid line {:?}", line),
+        });
 
     // After parsing, convert broadcaster to vec of module IDs
     let broadcaster: Broadcaster = broadcaster
@@ -234,8 +234,8 @@ fn handle_button_press(
 // Determine the number of low pulses and high pulses that would be sent after pushing the button 1000 times,
 // waiting for all pulses to be fully handled after each push of the button. What do you get if you multiply
 // the total number of low pulses sent by the total number of high pulses sent?
-fn part_1(lines: Lines) -> usize {
-    let (mut modules, module_destinations, broadcaster) = parse_input(lines);
+pub fn part_1(input: &str) -> usize {
+    let (mut modules, module_destinations, broadcaster) = parse_input(input);
 
     // 1000 is low enough to brute force quickly
     let (low_pulses, high_pulses) = (0..1000).fold((0, 0), |(low_count, high_count), _| {
@@ -266,8 +266,8 @@ fn lcm(a: usize, b: usize) -> usize {
 
 // Waiting for all pulses to be fully handled after each button press, what is the fewest number of
 // button presses required to deliver a single low pulse to the module named `rx`?
-fn part_2(lines: Lines) -> usize {
-    let (mut modules, module_destinations, broadcaster) = parse_input(lines);
+pub fn part_2(input: &str) -> usize {
+    let (mut modules, module_destinations, broadcaster) = parse_input(input);
 
     /* The broadcaster sends signals to 4 subgraphs of modules (see visualization /outputs/day_20.png).
     Each subgraph counts up to a number and sends a pulse to a conjunction when that number is reached.
@@ -314,17 +314,10 @@ fn part_2(lines: Lines) -> usize {
     numbers.into_iter().fold(1, |result, num| lcm(result, num))
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_20");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "broadcaster -> a, b, c
 %a -> b
@@ -340,17 +333,17 @@ mod tests {
 
     #[test]
     fn test_part_1_example_1() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 32_000_000);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 32_000_000);
     }
 
     #[test]
     fn test_part_1_example_2() {
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 11_687_500);
+        assert_eq!(part_1(EXAMPLE_INPUT_2), 11_687_500);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_20").lines()), 912_199_500);
+        assert_eq!(part_1(&load_input("inputs/2023/day_20")), 912_199_500);
     }
 
     #[test]
@@ -365,6 +358,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_20").lines()), 237878264003759);
+        assert_eq!(part_2(&load_input("inputs/2023/day_20")), 237878264003759);
     }
 }

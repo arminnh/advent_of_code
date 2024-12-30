@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashSet;
-use std::str::Lines;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 enum Direction {
@@ -70,7 +67,9 @@ fn count_energized_tiles(grid: &Vec<u8>, width: usize, initial_beam: (usize, Dir
 
         next_directions(grid[beam.0], beam.1).iter().for_each(|d| {
             if let Some(next_direction) = *d {
-                if let Some(next_position) = next_position(beam.0, next_direction, width, grid.len()) {
+                if let Some(next_position) =
+                    next_position(beam.0, next_direction, width, grid.len())
+                {
                     if !visited.contains(&(next_position, next_direction)) {
                         beams.push((next_position, next_direction))
                     }
@@ -84,16 +83,16 @@ fn count_energized_tiles(grid: &Vec<u8>, width: usize, initial_beam: (usize, Dir
 }
 
 // Send a beam through the grid and count how many tiles end up being energized.
-fn part_1(lines: Lines) -> usize {
-    let mut lines = lines.peekable();
+pub fn part_1(input: &str) -> usize {
+    let mut lines = input.lines().peekable();
     let width = lines.peek().unwrap().len();
     let grid: Vec<u8> = lines.flat_map(|line| line.as_bytes().to_vec()).collect();
     count_energized_tiles(&grid, width, (0, Direction::Right))
 }
 
 // Find the beam on the edges of the grid that energizes the largest number of tiles and return that number.
-fn part_2(lines: Lines) -> usize {
-    let mut lines = lines.peekable();
+pub fn part_2(input: &str) -> usize {
+    let mut lines = input.lines().peekable();
     let width = lines.peek().unwrap().len();
     let grid: Vec<u8> = lines.flat_map(|line| line.as_bytes().to_vec()).collect();
     let mut initial_beams: Vec<(usize, Direction)> = Vec::new();
@@ -116,17 +115,10 @@ fn part_2(lines: Lines) -> usize {
         .unwrap()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_16");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = ".|...\\....
 |.-.\\.....
@@ -141,21 +133,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 46);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 46);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_16").lines()), 7199);
+        assert_eq!(part_1(&load_input("inputs/2023/day_16")), 7199);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 51);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 51);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_16").lines()), 7438);
+        assert_eq!(part_2(&load_input("inputs/2023/day_16")), 7438);
     }
 }

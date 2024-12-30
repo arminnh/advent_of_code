@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::str::Lines;
@@ -67,8 +65,8 @@ impl PartialOrd for Move {
     }
 }
 
-fn parse_input(lines: Lines) -> (Grid, Position, Position) {
-    let g: Grid = lines.map(|line| line.chars().collect()).collect();
+fn parse_input(input: &str) -> (Grid, Position, Position) {
+    let g: Grid = input.lines().map(|line| line.chars().collect()).collect();
     let mut start = None;
     let mut goal = None;
 
@@ -110,8 +108,8 @@ where
 }
 
 // What is the lowest score a Reindeer could possibly get?
-fn part_1(lines: Lines) -> usize {
-    let (grid, start, goal) = parse_input(lines);
+pub fn part_1(input: &str) -> usize {
+    let (grid, start, goal) = parse_input(input);
 
     let success = |current: &Move| current.position == goal;
     let successors = |grid: &Grid, m: &Move| next_moves(grid, m.position, m.direction);
@@ -198,24 +196,17 @@ fn display_grid(grid: &Grid, best_spots: &HashSet<Position>) {
 }
 
 // How many tiles are part of at least one of the best paths through the maze?
-fn part_2(lines: Lines) -> usize {
-    let (grid, start, goal) = parse_input(lines);
+pub fn part_2(input: &str) -> usize {
+    let (grid, start, goal) = parse_input(input);
     let cells = all_cells_on_a_best_path(&grid, start, goal);
     // display_grid(&grid, &cells);
     cells.len()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_16");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "###############
 #.......#....E#
@@ -263,27 +254,27 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 7036);
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 11048);
-        assert_eq!(part_1(EXAMPLE_INPUT_3.lines()), 2018);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 7036);
+        assert_eq!(part_1(EXAMPLE_INPUT_2), 11048);
+        assert_eq!(part_1(EXAMPLE_INPUT_3), 2018);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_16").lines()), 93436);
+        assert_eq!(part_1(&load_input("inputs/2024/day_16")), 93436);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 45);
-        assert_eq!(part_2(EXAMPLE_INPUT_2.lines()), 64);
-        assert_eq!(part_2(EXAMPLE_INPUT_3.lines()), 37);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 45);
+        assert_eq!(part_2(EXAMPLE_INPUT_2), 64);
+        assert_eq!(part_2(EXAMPLE_INPUT_3), 37);
     }
 
     #[test]
     fn test_part_2() {
         // 437, 465 too low, 507 too high
         // 487 incorrect, extra step next to start pos was included in reverse path construction
-        assert_eq!(part_2(load_input("inputs/2024/day_16").lines()), 486)
+        assert_eq!(part_2(&load_input("inputs/2024/day_16")), 486)
     }
 }

@@ -1,6 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
-
 #[derive(Debug)]
 enum Move {
     Rock,
@@ -77,10 +74,12 @@ fn select_move_for_target_outcome(opponent_move: &Move, target_outcome: &Outcome
     }
 }
 
-fn part_1(input: &str) -> u32 { 0}
+pub fn part_1(input: &str) -> u32 {
+    0
+}
 
 // What would your total score be if everything goes exactly according to your strategy guide?
-fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     input.lines().fold(0, |acc, line| {
         let opponent_move: Move = parse_move(&line.chars().nth(0).unwrap()).unwrap();
         // let my_move: Move = parse_move(line.chars().nth(2).unwrap()).unwrap();
@@ -88,13 +87,4 @@ fn part_2(input: &str) -> u32 {
         let my_move: Move = select_move_for_target_outcome(&opponent_move, &target_outcome);
         acc + calculate_score(&opponent_move, &my_move)
     })
-}
-
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_2");
-    (
-        Solution::from(part_1(&input)),
-        Solution::from(part_2(&input)),
-    )
 }

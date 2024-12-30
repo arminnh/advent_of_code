@@ -1,10 +1,8 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
-use std::str::Lines;
 
-fn part_1(lines: Lines) -> u32 {
-    lines
+pub fn part_1(input: &str) -> u32 {
+    input
+        .lines()
         .map(|line| {
             let first = line
                 .chars()
@@ -54,20 +52,14 @@ fn parse_line(line: &str) -> usize {
     letters.get(first).unwrap() * 10 + letters.get(last).unwrap()
 }
 
-fn part_2(lines: Lines) -> usize {
-    lines.map(|line| parse_line(line)).sum()
-}
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_1");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
+pub fn part_2(input: &str) -> usize {
+    input.lines().map(|line| parse_line(line)).sum()
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
+
     use super::*;
 
     const EXAMPLE_INPUT_1: &str = "1abc2
@@ -85,12 +77,12 @@ zoneight234
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 142);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 142);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_1").lines()), 55208);
+        assert_eq!(part_1(&load_input("inputs/2023/day_1")), 55208);
     }
 
     #[test]
@@ -112,11 +104,11 @@ zoneight234
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_2.lines()), 281);
+        assert_eq!(part_2(EXAMPLE_INPUT_2), 281);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_1").lines()), 54578);
+        assert_eq!(part_2(&load_input("inputs/2023/day_1")), 54578);
     }
 }

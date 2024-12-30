@@ -1,6 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
-use std::str::Lines;
 use std::usize;
 
 fn parse_report(line: &str) -> Vec<i32> {
@@ -22,8 +19,9 @@ fn is_safe(report: &Vec<i32>) -> bool {
 }
 
 // How many reports are safe?
-fn part_1(lines: Lines) -> usize {
-    lines
+pub fn part_1(input: &str) -> usize {
+    input
+        .lines()
         .map(|line| parse_report(line))
         .filter_map(|report| if is_safe(&report) { Some(1) } else { None })
         .sum()
@@ -67,8 +65,9 @@ fn is_safe_with_tolerance(report: &Vec<i32>) -> bool {
     // }
 }
 
-fn part_2(lines: Lines) -> i32 {
-    lines
+pub fn part_2(input: &str) -> i32 {
+    input
+        .lines()
         .map(|line| parse_report(line))
         .filter_map(|report| {
             if is_safe_with_tolerance(&report) {
@@ -80,17 +79,10 @@ fn part_2(lines: Lines) -> i32 {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_2");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "7 6 4 2 1
 1 2 7 8 9
@@ -101,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 2);
+        assert_eq!(part_1(EXAMPLE_INPUT), 2);
     }
 
     #[test]
@@ -126,12 +118,12 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_2").lines()), 202);
+        assert_eq!(part_1(&load_input("inputs/2024/day_2")), 202);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 4);
+        assert_eq!(part_2(EXAMPLE_INPUT), 4);
     }
 
     #[test]
@@ -152,6 +144,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_2").lines()), 271);
+        assert_eq!(part_2(&load_input("inputs/2024/day_2")), 271);
     }
 }

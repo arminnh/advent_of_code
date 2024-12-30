@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
 use std::str::Lines;
 use std::usize;
@@ -39,7 +37,8 @@ fn next_node<'a>(
     }
 }
 
-fn part_1(mut lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
+    let mut lines = input.lines();
     let mut current_node = "AAA";
     let end_node = "ZZZ";
     let instructions: Vec<char> = lines.next().unwrap().chars().collect();
@@ -59,7 +58,8 @@ fn part_1(mut lines: Lines) -> usize {
 }
 
 #[allow(dead_code)]
-fn part_2_bruteforce(mut lines: Lines) -> usize {
+pub fn part_2_bruteforce(input: &str) -> usize {
+    let mut lines = input.lines();
     let instructions: Vec<char> = lines.next().unwrap().chars().collect();
     let mut instructions_iter = instructions.iter().cycle();
     let network: HashMap<String, (String, String)> = parse_network(lines);
@@ -94,7 +94,8 @@ fn lcm(numbers: Vec<usize>) -> usize {
     numbers.iter().fold(1, |acc, x| acc * x / gcd(acc, *x))
 }
 
-fn part_2(mut lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
+    let mut lines = input.lines();
     let instructions: Vec<char> = lines.next().unwrap().chars().collect();
     let network: HashMap<String, (String, String)> = parse_network(lines);
 
@@ -115,17 +116,10 @@ fn part_2(mut lines: Lines) -> usize {
         .collect())
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_8");
-
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
+
     use super::*;
 
     const EXAMPLE_INPUT_1: &str = "RL
@@ -157,33 +151,27 @@ XXX = (XXX, XXX)";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 2);
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 6);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 2);
+        assert_eq!(part_1(EXAMPLE_INPUT_2), 6);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(
-            part_1(load_input("inputs/2023/day_8").lines()),
-            18157
-        );
+        assert_eq!(part_1(&load_input("inputs/2023/day_8")), 18157);
     }
 
     #[test]
     fn test_part_2_bruteforce_example() {
-        assert_eq!(part_2_bruteforce(EXAMPLE_INPUT_3.lines()), 6);
+        assert_eq!(part_2_bruteforce(EXAMPLE_INPUT_3), 6);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_3.lines()), 6);
+        assert_eq!(part_2(EXAMPLE_INPUT_3), 6);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(
-            part_2(load_input("inputs/2023/day_8").lines()),
-            14299763833181
-        );
+        assert_eq!(part_2(&load_input("inputs/2023/day_8")), 14299763833181);
     }
 }

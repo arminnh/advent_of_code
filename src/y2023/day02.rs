@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
 use std::str::{FromStr, Lines};
 use std::usize;
@@ -60,10 +58,11 @@ fn is_possible(sets: Vec<HashMap<Color, i32>>, max_counts: &HashMap<Color, i32>)
     true
 }
 
-fn part_1(lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
     let max_counts = HashMap::from([(Color::Red, 12), (Color::Green, 13), (Color::Blue, 14)]);
 
-    lines
+    input
+        .lines()
         .map(|line| match line.split(":").collect::<Vec<&str>>()[..] {
             [game, sets] => (parse_game_id(game), parse_sets(sets)),
             _ => panic!("Unsupported input: {:?}", line),
@@ -92,8 +91,9 @@ fn calculate_power(sets: Vec<HashMap<Color, i32>>) -> i32 {
     result_set.values().fold(1, |result, count| result * count)
 }
 
-fn part_2(lines: Lines) -> i32 {
-    lines
+pub fn part_2(input: &str) -> i32 {
+    input
+        .lines()
         .map(|line| match line.split(":").collect::<Vec<&str>>()[..] {
             [_, sets] => parse_sets(sets),
             _ => panic!("Unsupported input: {:?}", line),
@@ -102,17 +102,10 @@ fn part_2(lines: Lines) -> i32 {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_2");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
 Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
@@ -160,12 +153,12 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 8);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 8);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_2").lines()), 2600);
+        assert_eq!(part_1(&load_input("inputs/2023/day_2")), 2600);
     }
 
     #[test]
@@ -190,11 +183,11 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 2286);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 2286);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_2").lines()), 86036);
+        assert_eq!(part_2(&load_input("inputs/2023/day_2")), 86036);
     }
 }

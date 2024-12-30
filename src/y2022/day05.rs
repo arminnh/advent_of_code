@@ -1,8 +1,5 @@
 use std::str::Lines;
 
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
-
 // Print all stacks from left to right.
 fn print_stacks(stacks: &Vec<Vec<char>>) {
     println!("Stacks:");
@@ -82,10 +79,9 @@ fn process_moves(lines: Lines, part_1: bool) -> String {
     stacks.iter().map(|s| s.last().unwrap()).collect()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_5");
-    (
-        Solution::from(process_moves(input.lines(), true)),
-        Solution::from(process_moves(input.lines(), false)),
-    )
+pub fn part_1(input: &str) -> String {
+    process_moves(input.lines(), true)
+}
+pub fn part_2(input: &str) -> String {
+    process_moves(input.lines(), false)
 }

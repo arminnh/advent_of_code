@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashSet;
-use std::str::Lines;
 
 type Position = (i32, i32);
 
@@ -38,11 +35,11 @@ impl Number {
     }
 }
 
-fn parse_input(lines: Lines) -> (Vec<Number>, HashSet<Position>) {
+fn parse_input(input: &str) -> (Vec<Number>, HashSet<Position>) {
     let mut numbers: Vec<Number> = Vec::new();
     let mut symbols: HashSet<Position> = HashSet::new();
 
-    for (row, line) in lines.enumerate() {
+    for (row, line) in input.lines().enumerate() {
         let mut current_value: Option<u32> = None;
         let mut current_start: Option<usize> = None;
 
@@ -80,8 +77,8 @@ fn parse_input(lines: Lines) -> (Vec<Number>, HashSet<Position>) {
 }
 
 // What is the sum of all of the part numbers in the engine schematic?
-fn part_1(lines: Lines) -> i32 {
-    let (numbers, symbols) = parse_input(lines);
+pub fn part_1(input: &str) -> i32 {
+    let (numbers, symbols) = parse_input(input);
 
     numbers
         .iter()
@@ -109,8 +106,8 @@ fn gear_ratio(symbol: &Position, numbers: &Vec<Number>) -> Option<i32> {
 }
 
 // What is the sum of all of the gear ratios in your engine schematic?
-fn part_2(lines: Lines) -> i32 {
-    let (numbers, symbols) = parse_input(lines);
+pub fn part_2(input: &str) -> i32 {
+    let (numbers, symbols) = parse_input(input);
 
     symbols
         .iter()
@@ -118,17 +115,10 @@ fn part_2(lines: Lines) -> i32 {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_3");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "467..114..
 ...*......
@@ -179,36 +169,36 @@ mod tests {
 
     #[test]
     fn test_part_1_example_1() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 4361);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 4361);
     }
 
     #[test]
     fn test_part_1_example_2() {
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 187);
+        assert_eq!(part_1(EXAMPLE_INPUT_2), 187);
     }
 
     #[test]
     fn test_part_1_example_3() {
-        assert_eq!(part_1(EXAMPLE_INPUT_3.lines()), 62);
+        assert_eq!(part_1(EXAMPLE_INPUT_3), 62);
     }
 
     #[test]
     fn test_part_1_example_4() {
-        assert_eq!(part_1(EXAMPLE_INPUT_4.lines()), 925);
+        assert_eq!(part_1(EXAMPLE_INPUT_4), 925);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_3").lines()), 560670);
+        assert_eq!(part_1(&load_input("inputs/2023/day_3")), 560670);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 467835);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 467835);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_3").lines()), 91622824);
+        assert_eq!(part_2(&load_input("inputs/2023/day_3")), 91622824);
     }
 }

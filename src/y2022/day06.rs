@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::str::Lines;
 use std::{collections::HashSet, hash::Hash};
 
@@ -34,10 +32,10 @@ fn find_start_of_packet_marker(lines: Lines, nr_of_distinct_chars: usize) -> usi
     0
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_6");
-    (
-        Solution::from(find_start_of_packet_marker(input.lines(), 4)),
-        Solution::from(find_start_of_packet_marker(input.lines(), 14)),
-    )
+pub fn part_1(input: &str) -> usize {
+    find_start_of_packet_marker(input.lines(), 4)
+}
+
+pub fn part_2(input: &str) -> usize {
+    find_start_of_packet_marker(input.lines(), 14)
 }

@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::u64;
 
 type Coord = (u64, u64);
@@ -98,7 +96,7 @@ fn min_tokens_to_win_price(a: Coord, b: Coord, prize: Coord) -> u64 {
 }
 
 // What is the fewest tokens you would have to spend to win all possible prizes?
-fn part_1(input: String) -> u64 {
+pub fn part_1(input: &str) -> u64 {
     input
         .split("\n\n")
         .map(|s| parse_machine(s))
@@ -107,7 +105,7 @@ fn part_1(input: String) -> u64 {
 }
 
 // The prizes are much farther away
-fn part_2(input: String) -> u64 {
+pub fn part_2(input: &str) -> u64 {
     input
         .split("\n\n")
         .map(|s| parse_machine(s))
@@ -121,17 +119,10 @@ fn part_2(input: String) -> u64 {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_13");
-    (
-        Solution::from(part_1(input.clone())),
-        Solution::from(part_2(input)),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "Button A: X+94, Y+34
 Button B: X+22, Y+67
@@ -151,7 +142,7 @@ Prize: X=18641, Y=10279";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.to_string()), 480);
+        assert_eq!(part_1(EXAMPLE_INPUT), 480);
     }
 
     #[test]
@@ -187,11 +178,11 @@ Prize: X=18641, Y=10279",
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_13")), 36571);
+        assert_eq!(part_1(&load_input("inputs/2024/day_13")), 36571);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_13")), 85527711500010)
+        assert_eq!(part_2(&load_input("inputs/2024/day_13")), 85527711500010)
     }
 }

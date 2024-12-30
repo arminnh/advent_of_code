@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::ops::Range;
 use std::str::Lines;
 use std::{cmp, usize};
@@ -81,7 +79,7 @@ fn parse_maps(splits: std::str::Split<'_, &str>) -> Vec<Map> {
     splits.map(|map| Map::from_lines(map.lines())).collect()
 }
 
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let mut splits = input.split("\n\n");
     let seeds: Vec<usize> = parse_seeds(splits.next().unwrap());
     let maps: Vec<Map> = parse_maps(splits);
@@ -94,7 +92,7 @@ fn part_1(input: &str) -> usize {
         .unwrap()
 }
 
-fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> usize {
     let mut splits = input.split("\n\n");
     let seeds: Vec<usize> = parse_seeds(splits.next().unwrap());
     let seed_ranges: Vec<Range<usize>> = seeds
@@ -116,17 +114,10 @@ fn part_2(input: &str) -> usize {
         .unwrap()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_5");
-    (
-        Solution::from(part_1(&input)),
-        Solution::from(part_2(&input)),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "seeds: 79 14 55 13
 

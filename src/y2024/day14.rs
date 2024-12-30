@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
@@ -92,8 +90,9 @@ impl std::str::FromStr for Robot {
     }
 }
 
-fn parse_robots(lines: Lines) -> Vec<Robot> {
-    lines
+fn parse_robots(input: &str) -> Vec<Robot> {
+    input
+        .lines()
         .map(|line| Robot::from_str(line).expect("Could not parse robot"))
         .collect()
 }
@@ -110,8 +109,8 @@ fn safety_score(robots: &Vec<Robot>, max_x: i32, max_y: i32) -> usize {
     quadrants.values().fold(1, |acc, val| acc * val)
 }
 
-fn part_1(lines: Lines) -> usize {
-    let robots = parse_robots(lines)
+pub fn part_1(input: &str) -> usize {
+    let robots = parse_robots(input)
         .iter()
         .map(|r| r.step(100, MAX_X, MAX_Y))
         .collect();
@@ -139,9 +138,9 @@ fn display_grid(robots: &[Robot], file: &mut File, max_x: usize, max_y: usize) {
     file.write(b"\n").unwrap();
 }
 
-fn part_2(lines: Lines) -> i32 {
+pub fn part_2(input: &str) -> i32 {
     // let mut seen: HashMap<Vec<Robot>, i32> = HashMap::new();
-    let mut robots = parse_robots(lines);
+    let mut robots = parse_robots(input);
     // Most of the safety scores are close to the score of part 1 since they have a uniform distribution of robots
     // Robots that form a pattern should result in a significantly different safety score
     // Sorting by safety score gives us the most interesting patterns to check out first
@@ -169,17 +168,10 @@ fn part_2(lines: Lines) -> i32 {
     scores[2].0
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_14");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "p=0,4 v=3,-3
 p=6,3 v=-1,-3
@@ -216,7 +208,7 @@ p=9,5 v=-3,-3";
     #[test]
     fn test_part_1_example() {
         let (max_x, max_y) = (7, 11);
-        let robots = parse_robots(EXAMPLE_INPUT.lines())
+        let robots = parse_robots(EXAMPLE_INPUT)
             .iter()
             .map(|r| r.step(100, max_x, max_y))
             .collect();
@@ -225,13 +217,13 @@ p=9,5 v=-3,-3";
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_14").lines()), 230172768);
+        assert_eq!(part_1(&load_input("inputs/2024/day_14")), 230172768);
     }
 
     // #[test]
     // fn test_part_2() {
     //     assert_eq!(
-    //         part_2(load_input("inputs/2024/day_14").lines(), 103, 101),
+    //         part_2(&load_input("inputs/2024/day_14").lines(), 103, 101),
     //         8087
     //     )
     // }

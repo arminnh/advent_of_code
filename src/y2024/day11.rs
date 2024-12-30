@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
-use std::str::Lines;
 use std::usize;
 
 type Stones = Vec<u64>;
@@ -114,38 +111,33 @@ fn blink_stones_n_times(stones: Stones, n: usize) -> usize {
 }
 
 // Consider the arrangement of stones in front of you. How many stones will you have after blinking 25 times?
-fn part_1(lines: Lines) -> usize {
-    lines
+pub fn part_1(input: &str) -> usize {
+    input
+        .lines()
         .map(parse_stones)
         .map(|stones| blink_stones_n_times(stones, 25))
         .sum()
 }
 
 // After 75 blinks
-fn part_2(lines: Lines) -> usize {
-    lines
+pub fn part_2(input: &str) -> usize {
+    input
+        .lines()
         .map(parse_stones)
         .map(|stones| blink_stones_n_times(stones, 75))
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_11");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "125 17";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 55312);
+        assert_eq!(part_1(EXAMPLE_INPUT), 55312);
     }
 
     #[test]
@@ -209,14 +201,11 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_11").lines()), 190865);
+        assert_eq!(part_1(&load_input("inputs/2024/day_11")), 190865);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(
-            part_2(load_input("inputs/2024/day_11").lines()),
-            225404711855335
-        );
+        assert_eq!(part_2(&load_input("inputs/2024/day_11")), 225404711855335);
     }
 }

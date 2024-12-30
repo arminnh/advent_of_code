@@ -1,5 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
+
+
 use regex::Regex;
 use std::usize;
 
@@ -8,7 +8,7 @@ fn parse_num(left: &str) -> usize {
 }
 
 // Add up all the results of the mult operations
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let re = Regex::new(r"mul\(([0-9]+),([0-9]+)\)").unwrap();
 
     re.captures_iter(&input)
@@ -18,7 +18,7 @@ fn part_1(input: &str) -> usize {
 }
 
 // The most recent do() or don't() instruction determines whether to apply the mul()
-fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> usize {
     let re = Regex::new(r"(?m)(do|don't)(\(\))|mul\(([0-9]+),([0-9]+)\)").unwrap();
 
     re.captures_iter(&input)
@@ -34,16 +34,9 @@ fn part_2(input: &str) -> usize {
         .1
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_3");
-    (
-        Solution::from(part_1(&input)),
-        Solution::from(part_2(&input)),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
     use super::*;
 
     const EXAMPLE_INPUT: &str =

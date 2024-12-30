@@ -1,7 +1,6 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
+
+
 use std::collections::HashSet;
-use std::str::Lines;
 
 fn move_head(head: (i32, i32), direction: &str) -> (i32, i32) {
     match direction {
@@ -40,12 +39,12 @@ fn move_tail(head: &(i32, i32), tail: &(i32, i32)) -> (i32, i32) {
 
 // Simulate your complete hypothetical series of motions.
 // How many positions does the tail of the rope visit at least once?
-fn part_1(lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
     let mut head: (i32, i32) = (0, 0);
     let mut tail: (i32, i32) = (0, 0);
     let mut visited: HashSet<(i32, i32)> = HashSet::new();
 
-    lines.for_each(
+    input.lines().for_each(
         |line| match line.split_whitespace().collect::<Vec<&str>>()[..] {
             [direction, amount] => {
                 for _ in 0..amount.parse().unwrap() {
@@ -64,11 +63,11 @@ fn part_1(lines: Lines) -> usize {
 
 // Simulate your complete series of motions on a larger rope with ten knots.
 // How many positions does the tail of the rope visit at least once?
-fn part_2(lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     let mut snake: Vec<(i32, i32)> = vec![(0, 0); 10];
     let mut visited: HashSet<(i32, i32)> = HashSet::new();
 
-    lines.for_each(
+    input.lines().for_each(
         |line| match line.split_whitespace().collect::<Vec<&str>>()[..] {
             [direction, amount] => {
                 for _ in 0..amount.parse().unwrap() {
@@ -86,13 +85,7 @@ fn part_2(lines: Lines) -> usize {
     visited.len()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_9");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
+
 
 #[cfg(test)]
 mod tests {
@@ -109,12 +102,12 @@ R 2";
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(INPUT.lines()), 13)
+        assert_eq!(part_1(INPUT), 13)
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(INPUT.lines()), 1)
+        assert_eq!(part_2(INPUT), 1)
     }
 
     #[test]
@@ -127,6 +120,6 @@ R 2";
     D 10
     L 25
     U 20";
-        assert_eq!(part_2(input.lines()), 36)
+        assert_eq!(part_2(input), 36)
     }
 }

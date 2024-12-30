@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::str::Lines;
 use std::usize;
 
@@ -40,7 +38,8 @@ fn calculate_nr_of_wins(time: usize, record_distance: usize) -> usize {
     })
 }
 
-fn part_1(mut lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
+    let mut lines = input.lines();
     let times = parse_line_part_1(lines.next().unwrap());
     let record_distances = parse_line_part_1(lines.next().unwrap());
 
@@ -57,23 +56,18 @@ fn part_1(mut lines: Lines) -> usize {
         })
 }
 
-fn part_2(mut lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
+    let mut lines = input.lines();
     let time = parse_line_part_2(lines.next().unwrap());
     let record_distance = parse_line_part_2(lines.next().unwrap());
 
     calculate_nr_of_wins(time, record_distance)
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_6");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
+
     use super::*;
 
     const EXAMPLE_INPUT: &str = "Time:      7  15   30
@@ -81,16 +75,16 @@ Distance:  9  40  200";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 288)
+        assert_eq!(part_1(EXAMPLE_INPUT), 288)
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_6").lines()), 840336)
+        assert_eq!(part_1(&load_input("inputs/2023/day_6")), 840336)
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_6").lines()), 41382569)
+        assert_eq!(part_2(&load_input("inputs/2023/day_6")), 41382569)
     }
 }

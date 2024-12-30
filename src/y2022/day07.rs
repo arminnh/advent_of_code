@@ -1,8 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::str::Lines;
 
 struct Dir {
     name: String,
@@ -115,7 +112,8 @@ fn collect_dirs(dir: &Rc<RefCell<Dir>>, max_size: u32) -> (u32, Vec<(String, u32
 }
 
 // Process input and return root of directory tree
-fn process_input(lines: &mut Lines) -> Rc<RefCell<Dir>> {
+fn process_input(input: &str) -> Rc<RefCell<Dir>> {
+    let mut lines = input.lines();
     let root: Rc<RefCell<Dir>> = Rc::new(RefCell::new(Dir::new("/", None)));
     let mut wd: Rc<RefCell<Dir>> = Rc::clone(&root);
 
@@ -135,8 +133,8 @@ fn process_input(lines: &mut Lines) -> Rc<RefCell<Dir>> {
 }
 
 // What is the sum of the total sizes of directories with a total size of at most 100000?
-fn part_1(lines: &mut Lines) -> u32 {
-    let root: Rc<RefCell<Dir>> = process_input(lines);
+pub fn part_1(input: &str) -> u32 {
+    let root: Rc<RefCell<Dir>> = process_input(input);
     let max_size = 100_000;
     let (_, dirs): (u32, Vec<(String, u32)>) = collect_dirs(&root, max_size);
     println!("{:?}", dirs);
@@ -147,11 +145,11 @@ fn part_1(lines: &mut Lines) -> u32 {
 
 // Find the smallest directory that, if deleted, would free up enough space on the filesystem to
 // run the update. What is the total size of that directory?
-fn part_2(lines: &mut Lines) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let total_disk_space = 70_000_000;
     let target_free_space = 30_000_000;
 
-    let root: Rc<RefCell<Dir>> = process_input(lines);
+    let root: Rc<RefCell<Dir>> = process_input(input);
     let (used_space, mut dirs): (u32, Vec<(String, u32)>) = collect_dirs(&root, target_free_space);
     println!("{:?}", used_space);
     println!("{:?}", dirs);
@@ -165,14 +163,6 @@ fn part_2(lines: &mut Lines) -> u32 {
         .1;
     println!("{:?}", size);
     size
-}
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_7");
-    (
-        Solution::from(part_1(&mut input.lines())),
-        Solution::from(part_2(&mut input.lines())),
-    )
 }
 
 #[cfg(test)]
@@ -205,11 +195,11 @@ $ ls
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(&mut INPUT.lines()), 95437)
+        assert_eq!(part_1(INPUT), 95437)
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(&mut INPUT.lines()), 24933642)
+        assert_eq!(part_2(INPUT), 24933642)
     }
 }

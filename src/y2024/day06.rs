@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashSet;
-use std::str::Lines;
 use std::usize;
 
 type Position = (usize, usize);
@@ -120,12 +117,12 @@ impl std::fmt::Display for Direction {
     }
 }
 
-fn parse_input(lines: Lines) -> (Grid, Position) {
+fn parse_input(input: &str) -> (Grid, Position) {
     let mut obstacles: Vec<Position> = Vec::new();
     let mut max_x = 0;
     let mut max_y = 0;
     let mut position = (0, 0);
-    for (x, line) in lines.enumerate() {
+    for (x, line) in input.lines().enumerate() {
         for (y, ch) in line.chars().enumerate() {
             if ch == '#' {
                 obstacles.push((x, y));
@@ -200,8 +197,8 @@ fn mark_positions_as_visited(
 }
 
 // Predict the path of the guard. How many distinct positions will the guard visit before leaving the mapped area?
-fn part_1(lines: Lines) -> usize {
-    let (grid, start_position) = parse_input(lines);
+pub fn part_1(input: &str) -> usize {
+    let (grid, start_position) = parse_input(input);
     walk_path(start_position, Direction::North, &grid).len()
 }
 
@@ -222,8 +219,8 @@ fn guard_loops(grid: &Grid, mut position: Position, mut direction: Direction) ->
 }
 
 // In how many positions can you place an obstacle to get the guard stuck in a loop?
-fn part_2(lines: Lines) -> usize {
-    let (grid, start_position) = parse_input(lines);
+pub fn part_2(input: &str) -> usize {
+    let (grid, start_position) = parse_input(input);
     let visited: HashSet<Position> = walk_path(start_position, Direction::North, &grid);
 
     // Instead of trying every possible position (16k), try only the path actually walked
@@ -237,17 +234,10 @@ fn part_2(lines: Lines) -> usize {
         .count()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_6");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "....#.....
 .........#
@@ -262,21 +252,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 41);
+        assert_eq!(part_1(EXAMPLE_INPUT), 41);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_6").lines()), 4758);
+        assert_eq!(part_1(&load_input("inputs/2024/day_6")), 4758);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 6);
+        assert_eq!(part_2(EXAMPLE_INPUT), 6);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_6").lines()), 1670)
+        assert_eq!(part_2(&load_input("inputs/2024/day_6")), 1670)
     }
 }

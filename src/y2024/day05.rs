@@ -1,5 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
+
+
 use std::collections::{HashMap, HashSet};
 use std::usize;
 
@@ -51,7 +51,7 @@ fn is_update_correctly_ordered(update: &Vec<usize>, rules: &Rules) -> bool {
 }
 
 // What do you get if you add up the middle page number from the correctly-ordered updates?
-fn part_1(input: String) -> usize {
+pub fn part_1(input: &str) -> usize {
     let parts: Vec<&str> = input.split("\n\n").collect();
     // Map of each number to set of numbers it should be before
     let rules: Rules = parse_rules(parts[0]);
@@ -75,7 +75,7 @@ fn update_ordering(a: &usize, b: &usize, rules: &Rules) -> std::cmp::Ordering {
 
 // For each of the incorrectly-ordered updates, use the page ordering rules to put the page numbers in the right order.
 // What do you get if you add up the middle page numbers after correctly ordering just those updates?
-fn part_2(input: String) -> usize {
+pub fn part_2(input: &str) -> usize {
     let parts: Vec<&str> = input.split("\n\n").collect();
     let rules: Rules = parse_rules(parts[0]);
     let updates = parse_updates(parts[1]);
@@ -90,16 +90,9 @@ fn part_2(input: String) -> usize {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_5");
-    (
-        Solution::from(part_1(input.clone())),
-        Solution::from(part_2(input)),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
     use super::*;
 
     const EXAMPLE_INPUT: &str = "47|53
@@ -133,21 +126,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.to_string()), 143);
+        assert_eq!(part_1(EXAMPLE_INPUT), 143);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_5")), 4281);
+        assert_eq!(part_1(&load_input("inputs/2024/day_5")), 4281);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.to_string()), 123);
+        assert_eq!(part_2(EXAMPLE_INPUT), 123);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_5")), 5466);
+        assert_eq!(part_2(&load_input("inputs/2024/day_5")), 5466);
     }
 }

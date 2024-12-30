@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::str::Lines;
 
 // Figure out the signal being sent by the CPU. It has a single register, X, which starts
@@ -7,7 +5,8 @@ use std::str::Lines;
 // - addx V takes two cycles to complete. After two cycles, the X register is
 //   increased by the value V. (V can be negative.)
 // - noop takes one cycle to complete. It has no other effect.
-fn part_1(mut lines: Lines) -> i64 {
+pub fn part_1(input: &str) -> i64 {
+    let mut lines = input.lines();
     let mut cycle = 0;
     let mut x = 1;
     let mut last_addx_value = 0;
@@ -47,7 +46,8 @@ fn part_1(mut lines: Lines) -> i64 {
 // three pixels is the pixel currently being drawn, the screen produces a lit pixel (#);
 // otherwise, the screen leaves the pixel dark (.). The X register sets the horizontal position of
 // the middle of the sprite, which is 3 pixels wide.
-fn part_2(mut lines: Lines) -> String {
+pub fn part_2(input: &str) -> String {
+    let mut lines = input.lines();
     let mut cycle = 0;
     let mut x = 1;
     let mut last_addx_value = 0;
@@ -85,32 +85,20 @@ fn part_2(mut lines: Lines) -> String {
     out
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_10");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
+
     use super::*;
 
     #[test]
     fn test_part_1_example_1() {
-        assert_eq!(
-            part_1(load_input("inputs/2022/day_10_example_1").lines()),
-            0
-        )
+        assert_eq!(part_1(&load_input("inputs/2022/day_10_example_1")), 0)
     }
 
     #[test]
     fn test_part_1_example_2() {
-        assert_eq!(
-            part_1(load_input("inputs/2022/day_10_example_2").lines()),
-            13140
-        )
+        assert_eq!(part_1(&load_input("inputs/2022/day_10_example_2")), 13140)
     }
 
     #[test]
@@ -123,7 +111,7 @@ mod tests {
 ######      ######      ######      ####\n\
 #######       #######       #######     \n ";
         assert_eq!(
-            part_2(load_input("inputs/2022/day_10_example_2").lines()),
+            part_2(&load_input("inputs/2022/day_10_example_2")),
             expected
         )
     }

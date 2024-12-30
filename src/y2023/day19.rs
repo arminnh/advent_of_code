@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
 use std::usize;
 
@@ -246,7 +244,7 @@ fn is_part_accepted(workflows: &Workflows, part: &Part) -> bool {
 
 // Sort through all of the parts you've been given; what do you get if you add together
 // all of the rating numbers for all of the parts that ultimately get accepted?
-fn part_1(input: String) -> usize {
+pub fn part_1(input: &str) -> usize {
     let (workflows, parts) = match input.split("\n\n").collect::<Vec<&str>>()[..] {
         [workflows, parts] => (parse_workflows(workflows), parse_parts(parts)),
         _ => panic!("Invalid input. Could not split workflows and parts."),
@@ -301,7 +299,7 @@ fn generate_possible_part_ranges(workflows: &Workflows) -> Vec<[(usize, usize); 
 // Consider only your list of workflows; the list of part ratings
 // that the Elves wanted you to sort is no longer relevant.
 // How many distinct combinations of ratings will be accepted by the Elves' workflows?
-fn part_2(input: String) -> usize {
+pub fn part_2(input: &str) -> usize {
     let workflows = match input.split("\n\n").collect::<Vec<&str>>()[..] {
         [workflows, _] => parse_workflows(workflows),
         _ => panic!("Invalid input. Could not split workflows and parts."),
@@ -313,17 +311,10 @@ fn part_2(input: String) -> usize {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_19");
-    (
-        Solution::from(part_1(input.clone())),
-        Solution::from(part_2(input)),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "px{a<2006:qkq,m>2090:A,rfg}
 pv{a>1716:R,A}
@@ -346,21 +337,21 @@ hdj{m>838:A,pv}
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.to_string()), 19114);
+        assert_eq!(part_1(EXAMPLE_INPUT), 19114);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_19")), 401674);
+        assert_eq!(part_1(&load_input("inputs/2023/day_19")), 401674);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.to_string()), 167409079868000);
+        assert_eq!(part_2(EXAMPLE_INPUT), 167409079868000);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_19")), 134906204068564);
+        assert_eq!(part_2(&load_input("inputs/2023/day_19")), 134906204068564);
     }
 }

@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
-use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
@@ -40,8 +37,8 @@ fn search_in_direction(
 }
 
 // How many times does XMAS appear?
-fn part_1(lines: Lines) -> usize {
-    let grid: Vec<Vec<char>> = lines.map(|l| l.chars().collect()).collect();
+pub fn part_1(input: &str) -> usize {
+    let grid: Vec<Vec<char>> = input.lines().map(|l| l.chars().collect()).collect();
     let max_x = grid.len();
     let max_y = grid[0].len();
 
@@ -121,9 +118,9 @@ fn count_shapes(grid: &HashMap<(i32, i32), char>, x: i32, y: i32) -> usize {
 }
 
 // How many times does MAS appear in the shape of an X?
-fn part_2(lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     let mut grid: HashMap<Position, char> = HashMap::new();
-    for (x, line) in lines.enumerate() {
+    for (x, line) in input.lines().enumerate() {
         for (y, c) in line.char_indices() {
             grid.insert((x as i32, y as i32), c);
         }
@@ -132,17 +129,10 @@ fn part_2(lines: Lines) -> usize {
     grid.keys().map(|(x, y)| count_shapes(&grid, *x, *y)).sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_4");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "..X...
 .SAMX.
@@ -178,24 +168,24 @@ M.S";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 4);
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 18);
-        assert_eq!(part_1(EXAMPLE_INPUT_3.lines()), 18);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 4);
+        assert_eq!(part_1(EXAMPLE_INPUT_2), 18);
+        assert_eq!(part_1(EXAMPLE_INPUT_3), 18);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_4").lines()), 2524);
+        assert_eq!(part_1(&load_input("inputs/2024/day_4")), 2524);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_4.lines()), 1);
-        assert_eq!(part_2(EXAMPLE_INPUT_2.lines()), 9);
+        assert_eq!(part_2(EXAMPLE_INPUT_4), 1);
+        assert_eq!(part_2(EXAMPLE_INPUT_2), 9);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_4").lines()), 1873);
+        assert_eq!(part_2(&load_input("inputs/2024/day_4")), 1873);
     }
 }

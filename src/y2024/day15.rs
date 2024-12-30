@@ -1,5 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
+
+
 use std::collections::HashMap;
 use std::usize;
 
@@ -286,24 +286,18 @@ fn solution(input: &str, double_all_the_things: bool) -> usize {
         .sum()
 }
 
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     solution(input, false)
 }
 
-fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> usize {
     solution(input, true)
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_15");
-    (
-        Solution::from(part_1(&input)),
-        Solution::from(part_2(&input)),
-    )
-}
 
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
     use super::*;
 
     const EXAMPLE_INPUT_1: &str = "########

@@ -1,14 +1,12 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::cmp;
 use std::collections::HashSet;
-use std::str::Lines;
 use std::usize;
 
 type Position = (usize, usize);
 
-fn parse_galaxies(lines: Lines) -> HashSet<Position> {
-    lines
+fn parse_galaxies(input: &str) -> HashSet<Position> {
+    input
+        .lines()
         .enumerate()
         .flat_map(|(row, line)| {
             line.char_indices().filter_map(
@@ -67,29 +65,22 @@ fn sum_of_shortest_paths_between_galaxies(galaxies: HashSet<(usize, usize)>) -> 
         .sum()
 }
 
-fn part_1(lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
     let expansion_factor = 2;
-    let galaxies = expand_universe(parse_galaxies(lines), expansion_factor);
+    let galaxies = expand_universe(parse_galaxies(input), expansion_factor);
     sum_of_shortest_paths_between_galaxies(galaxies)
 }
 
-fn part_2(lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     let expansion_factor = 1_000_000;
-    let galaxies = expand_universe(parse_galaxies(lines), expansion_factor);
+    let galaxies = expand_universe(parse_galaxies(input), expansion_factor);
     sum_of_shortest_paths_between_galaxies(galaxies)
-}
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_11");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "...#......
 .......#..
@@ -104,30 +95,30 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 374);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 374);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_11").lines()), 9609130);
+        assert_eq!(part_1(&load_input("inputs/2023/day_11")), 9609130);
     }
 
     #[test]
     fn test_part_2_example_expand_by_10() {
         let expansion_factor = 10;
-        let galaxies = expand_universe(parse_galaxies(EXAMPLE_INPUT_1.lines()), expansion_factor);
+        let galaxies = expand_universe(parse_galaxies(EXAMPLE_INPUT_1), expansion_factor);
         assert_eq!(sum_of_shortest_paths_between_galaxies(galaxies), 1030);
     }
 
     #[test]
     fn test_part_2_example_expand_by_100() {
         let expansion_factor = 100;
-        let galaxies = expand_universe(parse_galaxies(EXAMPLE_INPUT_1.lines()), expansion_factor);
+        let galaxies = expand_universe(parse_galaxies(EXAMPLE_INPUT_1), expansion_factor);
         assert_eq!(sum_of_shortest_paths_between_galaxies(galaxies), 8410);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_11").lines()), 702152204842);
+        assert_eq!(part_2(&load_input("inputs/2023/day_11")), 702152204842);
     }
 }

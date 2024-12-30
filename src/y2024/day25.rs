@@ -1,5 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
+
+
 use std::usize;
 
 fn parse_input(input: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
@@ -28,7 +28,7 @@ fn parse_input(input: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
     (locks, keys)
 }
 
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let (locks, keys) = parse_input(input);
     let mut matches = 0;
     for lock in locks {
@@ -41,20 +41,13 @@ fn part_1(input: &str) -> usize {
     matches
 }
 
-fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> usize {
     0
-}
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_25");
-    (
-        Solution::from(part_1(&input)),
-        Solution::from(part_2(&input)),
-    )
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
     use super::*;
 
     const EXAMPLE_INPUT: &str = "#####

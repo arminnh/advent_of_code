@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
-use std::str::Lines;
 
 type Position = (i32, i32);
 type Path = Vec<char>;
@@ -242,11 +239,12 @@ fn complexity(code: &str, nr_button_presses: usize) -> usize {
 // Find the fewest number of button presses you'll need to perform
 // in order to cause the robot in front of the door to type each code.
 // What is the sum of the complexities of the five codes on your list?
-fn part_1(lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
     let mut paths_cache: PathsCache = HashMap::new();
     let mut counts_cache: CountsCache = HashMap::new();
 
-    lines
+    input
+        .lines()
         .map(|code| {
             let nr = nr_of_button_presses_with_cache(code, 2, &mut paths_cache, &mut counts_cache);
             complexity(code, nr)
@@ -255,11 +253,12 @@ fn part_1(lines: Lines) -> usize {
 }
 
 // Part 1 but with 25 layers of directional keypad robots
-fn part_2(lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     let mut paths_cache: PathsCache = HashMap::new();
     let mut counts_cache: CountsCache = HashMap::new();
 
-    lines
+    input
+        .lines()
         .map(|code| {
             let nr = nr_of_button_presses_with_cache(code, 25, &mut paths_cache, &mut counts_cache);
             complexity(code, nr)
@@ -267,17 +266,10 @@ fn part_2(lines: Lines) -> usize {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_21");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "029A
 980A
@@ -584,19 +576,16 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 126384);
+        assert_eq!(part_1(EXAMPLE_INPUT), 126384);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_21").lines()), 177814);
+        assert_eq!(part_1(&load_input("inputs/2024/day_21")), 177814);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(
-            part_2(load_input("inputs/2024/day_21").lines()),
-            220493992841852
-        )
+        assert_eq!(part_2(&load_input("inputs/2024/day_21")), 220493992841852)
     }
 }

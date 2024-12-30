@@ -1,13 +1,10 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
-use std::collections::{HashMap, HashSet};
-use std::str::Lines;
+use std::collections::HashSet;
 
 type Position = (i32, i32);
 type Garden = Vec<Vec<char>>;
 
-fn parse_garden(lines: Lines<'_>) -> (Garden, i32, i32) {
-    let garden: Garden = lines.map(|line| line.chars().collect()).collect();
+fn parse_garden(input: &str) -> (Garden, i32, i32) {
+    let garden: Garden = input.lines().map(|line| line.chars().collect()).collect();
     let max_x = (garden.len() - 1) as i32;
     let max_y = (garden[0].len() - 1) as i32;
     (garden, max_x, max_y)
@@ -60,8 +57,8 @@ fn perimeter_of_plant(
 }
 
 // What is the total price of fencing all regions on your map?
-fn part_1(lines: Lines) -> usize {
-    let (garden, max_x, max_y) = parse_garden(lines);
+pub fn part_1(input: &str) -> usize {
+    let (garden, max_x, max_y) = parse_garden(input);
     let mut seen: HashSet<Position> = HashSet::new();
     let mut result = 0;
 
@@ -222,8 +219,8 @@ fn area_and_sides_of_region(
 }
 
 // Total price if counting sides of regions instead of perimeter
-fn part_2(lines: Lines) -> usize {
-    let (garden, max_x, max_y) = parse_garden(lines);
+pub fn part_2(input: &str) -> usize {
+    let (garden, max_x, max_y) = parse_garden(input);
     let mut seen: HashSet<Position> = HashSet::new();
     let mut result = 0;
 
@@ -241,17 +238,10 @@ fn part_2(lines: Lines) -> usize {
     result
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_12");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "AAAA
 BBCD
@@ -290,27 +280,27 @@ AAAAAA";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 140);
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 772);
-        assert_eq!(part_1(EXAMPLE_INPUT_3.lines()), 1930);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 140);
+        assert_eq!(part_1(EXAMPLE_INPUT_2), 772);
+        assert_eq!(part_1(EXAMPLE_INPUT_3), 1930);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_12").lines()), 1550156);
+        assert_eq!(part_1(&load_input("inputs/2024/day_12")), 1550156);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 80);
-        assert_eq!(part_2(EXAMPLE_INPUT_2.lines()), 436);
-        assert_eq!(part_2(EXAMPLE_INPUT_4.lines()), 236);
-        assert_eq!(part_2(EXAMPLE_INPUT_5.lines()), 368);
-        assert_eq!(part_2(EXAMPLE_INPUT_3.lines()), 1206);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 80);
+        assert_eq!(part_2(EXAMPLE_INPUT_2), 436);
+        assert_eq!(part_2(EXAMPLE_INPUT_4), 236);
+        assert_eq!(part_2(EXAMPLE_INPUT_5), 368);
+        assert_eq!(part_2(EXAMPLE_INPUT_3), 1206);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_12").lines()), 946084)
+        assert_eq!(part_2(&load_input("inputs/2024/day_12")), 946084)
     }
 }

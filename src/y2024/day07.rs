@@ -1,6 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
-use std::str::Lines;
 use std::usize;
 
 struct Equation {
@@ -53,9 +50,10 @@ impl From<&str> for Equation {
 }
 
 // What is the total calibration result of the equations that could possibly be true?
-fn part_1(lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
     let use_concatenation = false;
-    lines
+    input
+        .lines()
         .map(|line| Equation::from(line))
         .filter(|equation| equation.result_is_possible(use_concatenation))
         .map(|equation| equation.result)
@@ -68,26 +66,20 @@ fn concatenate(a: usize, b: usize) -> usize {
 }
 
 // Part 1 + concatenation operator
-fn part_2(lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     let use_concatenation = true;
-    lines
+    input
+        .lines()
         .map(|line| Equation::from(line))
         .filter(|equation| equation.result_is_possible(use_concatenation))
         .map(|equation| equation.result)
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_7");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "190: 10 19
 3267: 81 40 27
@@ -101,15 +93,12 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 3749);
+        assert_eq!(part_1(EXAMPLE_INPUT), 3749);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(
-            part_1(load_input("inputs/2024/day_7").lines()),
-            1260333054159
-        );
+        assert_eq!(part_1(&load_input("inputs/2024/day_7")), 1260333054159);
     }
 
     #[test]
@@ -129,14 +118,11 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 11387);
+        assert_eq!(part_2(EXAMPLE_INPUT), 11387);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(
-            part_2(load_input("inputs/2024/day_7").lines()),
-            162042343638683
-        )
+        assert_eq!(part_2(&load_input("inputs/2024/day_7")), 162042343638683)
     }
 }

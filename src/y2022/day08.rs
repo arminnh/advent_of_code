@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::str::Lines;
 
 fn parse_grid(lines: Lines) -> Vec<Vec<u32>> {
@@ -11,7 +9,6 @@ fn parse_grid(lines: Lines) -> Vec<Vec<u32>> {
                 .collect::<Vec<u32>>();
             println!("{:?}", row);
             row
-
         })
         .collect::<Vec<Vec<u32>>>()
 }
@@ -26,8 +23,8 @@ fn print_visbility(visibility: &Vec<Vec<bool>>) {
 // A tree is visible if all of the other trees between it and an edge of
 // the grid are shorter than it. Only consider trees in the same row or column;
 // that is, only look up, down, left, or right from any given tree.
-fn part_1(lines: Lines) -> u32 {
-    let grid: Vec<Vec<u32>> = parse_grid(lines);
+pub fn part_1(input: &str) -> u32 {
+    let grid: Vec<Vec<u32>> = parse_grid(input.lines());
     let size: usize = grid.len();
     let mut visibility: Vec<Vec<bool>> = vec![vec![false; size]; size];
 
@@ -109,8 +106,8 @@ fn scenic_score(grid: &Vec<Vec<u32>>, i: usize, j: usize, size: usize) -> u32 {
 }
 
 // Consider each tree on your map. What is the highest scenic score possible for any tree?
-fn part_2(lines: Lines) -> u32 {
-    let grid: Vec<Vec<u32>> = parse_grid(lines);
+pub fn part_2(input: &str) -> u32 {
+    let grid: Vec<Vec<u32>> = parse_grid(input.lines());
     let mut max: u32 = 0;
     let size: usize = grid.len();
 
@@ -122,14 +119,6 @@ fn part_2(lines: Lines) -> u32 {
     }
 
     max
-}
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_8");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
 }
 
 #[cfg(test)]
@@ -144,11 +133,11 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(INPUT.lines()), 21)
+        assert_eq!(part_1(INPUT), 21)
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(INPUT.lines()), 8)
+        assert_eq!(part_2(INPUT), 8)
     }
 }

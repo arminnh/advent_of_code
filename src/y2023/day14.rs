@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::Lines;
@@ -33,8 +31,9 @@ enum Direction {
     West,
 }
 
-fn parse_grid(lines: Lines) -> Grid {
-    let grid: Grid = lines
+fn parse_grid(input: &str) -> Grid {
+    let grid: Grid = input
+        .lines()
         .map(|l| {
             l.chars()
                 .map(|c| match c {
@@ -137,14 +136,14 @@ fn total_load(grid: &Grid) -> usize {
         .sum()
 }
 
-fn part_1(lines: Lines) -> usize {
-    let mut grid = parse_grid(lines);
+pub fn part_1(input: &str) -> usize {
+    let mut grid = parse_grid(input);
     grid = tilt(&grid, Direction::North);
     total_load(&grid)
 }
 
-fn part_2(lines: Lines, nr_of_cycles: usize) -> usize {
-    let mut grid = parse_grid(lines);
+pub fn part_2(input: &str) -> usize {
+    let mut grid = parse_grid(input);
     // Keep track of when a repeating grid was last seen
     let mut cache: HashMap<Grid, (Grid, usize)> = HashMap::new();
     let directions_cycle = [
@@ -154,6 +153,7 @@ fn part_2(lines: Lines, nr_of_cycles: usize) -> usize {
         Direction::East,
     ];
 
+    let nr_of_cycles = 1_000_000_000;
     for i in 0..nr_of_cycles {
         if let Some((final_grid, seen_at)) = cache.get(&grid) {
             if (nr_of_cycles - i - 1) % (i - seen_at) == 0 {
@@ -174,17 +174,10 @@ fn part_2(lines: Lines, nr_of_cycles: usize) -> usize {
     total_load(&grid)
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_14");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines(), 1_000_000_000)),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "O....#....
 O.OO#....#
@@ -265,80 +258,74 @@ OO....OO..
 
     #[test]
     fn test_total_load() {
-        assert_eq!(total_load(&parse_grid(EXAMPLE_INPUT.lines())), 104);
-        assert_eq!(total_load(&parse_grid(EXAMPLE_INPUT_NORTH.lines())), 136);
-        assert_eq!(total_load(&parse_grid(AFTER_3_CYCLES.lines())), 69);
+        assert_eq!(total_load(&parse_grid(EXAMPLE_INPUT)), 104);
+        assert_eq!(total_load(&parse_grid(EXAMPLE_INPUT_NORTH)), 136);
+        assert_eq!(total_load(&parse_grid(AFTER_3_CYCLES)), 69);
     }
 
     #[test]
     fn test_tilt_north_simple() {
-        let grid = tilt(
-            &parse_grid("...O\n.#O.\n..##\nOO.O".lines()),
-            Direction::North,
-        );
-        assert_eq!(grid, parse_grid("O.OO\n.#..\n.O##\n...O".lines()));
+        let grid = tilt(&parse_grid("...O\n.#O.\n..##\nOO.O"), Direction::North);
+        assert_eq!(grid, parse_grid("O.OO\n.#..\n.O##\n...O"));
     }
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 136);
+        assert_eq!(part_1(EXAMPLE_INPUT), 136);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_14").lines()), 109385);
+        assert_eq!(part_1(&load_input("inputs/2023/day_14")), 109385);
     }
 
     #[test]
     fn test_tilt_north_example() {
-        let grid = tilt(&parse_grid(EXAMPLE_INPUT.lines()), Direction::North);
-        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_NORTH.lines()));
+        let grid = tilt(&parse_grid(EXAMPLE_INPUT), Direction::North);
+        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_NORTH));
     }
 
     #[test]
     fn test_tilt_west_example() {
-        let grid = tilt(&parse_grid(EXAMPLE_INPUT_NORTH.lines()), Direction::West);
-        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_WEST.lines()));
+        let grid = tilt(&parse_grid(EXAMPLE_INPUT_NORTH), Direction::West);
+        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_WEST));
     }
 
     #[test]
     fn test_tilt_south_example() {
-        let grid = tilt(&parse_grid(EXAMPLE_INPUT_WEST.lines()), Direction::South);
-        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_SOUTH.lines()));
+        let grid = tilt(&parse_grid(EXAMPLE_INPUT_WEST), Direction::South);
+        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_SOUTH));
     }
 
     #[test]
     fn test_tilt_east_example() {
-        let grid = tilt(&parse_grid(EXAMPLE_INPUT_SOUTH.lines()), Direction::East);
-        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_EAST.lines()));
+        let grid = tilt(&parse_grid(EXAMPLE_INPUT_SOUTH), Direction::East);
+        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_EAST));
     }
 
     #[test]
     fn test_tilt_cycles() {
-        let mut grid = parse_grid(EXAMPLE_INPUT.lines());
+        let mut grid = parse_grid(EXAMPLE_INPUT);
         use Direction as D;
         let cycle = [D::North, D::West, D::South, D::East];
 
         cycle.iter().for_each(|d| grid = tilt(&grid, *d));
-        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_EAST.lines()));
+        assert_eq!(grid, parse_grid(EXAMPLE_INPUT_EAST));
 
         cycle.iter().for_each(|d| grid = tilt(&grid, *d));
-        assert_eq!(grid, parse_grid(AFTER_2_CYCLES.lines()));
+        assert_eq!(grid, parse_grid(AFTER_2_CYCLES));
 
         cycle.iter().for_each(|d| grid = tilt(&grid, *d));
-        assert_eq!(grid, parse_grid(AFTER_3_CYCLES.lines()));
+        assert_eq!(grid, parse_grid(AFTER_3_CYCLES));
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines(), 1_000_000_000), 64);
+        assert_eq!(part_2(EXAMPLE_INPUT), 64);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(
-            part_2(load_input("inputs/2023/day_14").lines(), 1_000_000_000),
-            93102
-        );
+        assert_eq!(part_2(&load_input("inputs/2023/day_14")), 93102);
     }
 }

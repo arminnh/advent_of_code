@@ -1,6 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
-use std::str::Lines;
 use std::usize;
 
 type Program = Vec<u32>;
@@ -25,7 +22,8 @@ enum Instruction {
     CDV,
 }
 
-fn parse_input(mut lines: Lines) -> (Registers, Program) {
+fn parse_input(input: &str) -> (Registers, Program) {
+    let mut lines = input.lines();
     let mut next_register = || {
         lines
             .next()
@@ -137,8 +135,8 @@ fn run_program(program: &Program, registers: &mut Registers) -> Vec<u32> {
 }
 
 // Run the program. What do you get if you use commas to join the values it outputs into a single string?
-fn part_1(lines: Lines) -> String {
-    let (mut registers, program) = parse_input(lines);
+pub fn part_1(input: &str) -> String {
+    let (mut registers, program) = parse_input(input);
     let output = run_program(&program, &mut registers);
 
     output
@@ -149,8 +147,8 @@ fn part_1(lines: Lines) -> String {
 }
 
 // What is the lowest positive initial value for register A that causes the program to output a copy of itself?
-fn part_2(lines: Lines) -> u64 {
-    let (_, program) = parse_input(lines);
+pub fn part_2(input: &str) -> u64 {
+    let (_, program) = parse_input(input);
     // Example input comes down to following loop:
     //     while a != 0:
     //         a = int(a / 8)
@@ -218,17 +216,10 @@ fn part_2(lines: Lines) -> u64 {
     find(0, &program).expect("No result!")
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_17");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "Register A: 729
 Register B: 0
@@ -282,22 +273,19 @@ Program: 0,3,5,4,3,0";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(
-            part_1(EXAMPLE_INPUT.lines()),
-            "4,6,3,5,6,3,5,2,1,0".to_string()
-        );
+        assert_eq!(part_1(EXAMPLE_INPUT), "4,6,3,5,6,3,5,2,1,0".to_string());
     }
 
     #[test]
     fn test_part_1() {
         assert_eq!(
-            part_1(load_input("inputs/2024/day_17").lines()),
+            part_1(&load_input("inputs/2024/day_17")),
             "4,1,7,6,4,1,0,2,7".to_string()
         );
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_17").lines()), 164279024971453)
+        assert_eq!(part_2(&load_input("inputs/2024/day_17")), 164279024971453)
     }
 }

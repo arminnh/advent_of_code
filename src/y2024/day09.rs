@@ -1,6 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
-use std::str::Lines;
 use std::usize;
 
 // Expand compact disk map representation into blocks view of file blocks and free space blocks.
@@ -130,8 +127,9 @@ fn defragment_files(mut disk_blocks: Vec<Option<usize>>) -> Vec<Option<usize>> {
 }
 
 // Compact the amphipod's hard drive. What is the resulting filesystem checksum?
-fn part_1(lines: Lines) -> usize {
-    lines
+pub fn part_1(input: &str) -> usize {
+    input
+        .lines()
         .map(parse_disk_map)
         .map(fragment_files)
         .map(checksum)
@@ -139,25 +137,19 @@ fn part_1(lines: Lines) -> usize {
 }
 
 // Filesystem checksum if we defragment instead of fragment
-fn part_2(lines: Lines) -> usize {
-    lines
+pub fn part_2(input: &str) -> usize {
+    input
+        .lines()
         .map(parse_disk_map)
         .map(defragment_files)
         .map(checksum)
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_9");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "12345";
     const EXAMPLE_INPUT_2: &str = "2333133121414131402";
@@ -235,15 +227,12 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 1928);
+        assert_eq!(part_1(EXAMPLE_INPUT_2), 1928);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(
-            part_1(load_input("inputs/2024/day_9").lines()),
-            6330095022244
-        );
+        assert_eq!(part_1(&load_input("inputs/2024/day_9")), 6330095022244);
     }
 
     #[test]
@@ -319,14 +308,11 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_2.lines()), 2858);
+        assert_eq!(part_2(EXAMPLE_INPUT_2), 2858);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(
-            part_2(load_input("inputs/2024/day_9").lines()),
-            6359491814941
-        )
+        assert_eq!(part_2(&load_input("inputs/2024/day_9")), 6359491814941)
     }
 }

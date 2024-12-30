@@ -1,16 +1,13 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::{HashMap, HashSet};
-use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
 
-fn parse_input(lines: Lines) -> (HashMap<char, Vec<Position>>, i32, i32) {
+fn parse_input(input: &str) -> (HashMap<char, Vec<Position>>, i32, i32) {
     let mut antennas: HashMap<char, Vec<Position>> = HashMap::new();
     let mut max_x = 0;
     let mut max_y = 0;
-    for (x, line) in lines.enumerate() {
+    for (x, line) in input.lines().enumerate() {
         for (y, c) in line.char_indices() {
             if c != '.' {
                 antennas.entry(c).or_default().push((x as i32, y as i32));
@@ -58,8 +55,8 @@ fn find_all_antinodes(positions: Vec<Position>, max_x: i32, max_y: i32) -> Vec<P
     antinodes
 }
 
-fn part_1(lines: Lines) -> usize {
-    let (antennas, max_x, max_y) = parse_input(lines);
+pub fn part_1(input: &str) -> usize {
+    let (antennas, max_x, max_y) = parse_input(input);
     let mut antinodes: HashSet<Position> = HashSet::new();
 
     for (_, positions) in antennas {
@@ -79,8 +76,8 @@ fn part_1(lines: Lines) -> usize {
     antinodes.len()
 }
 
-fn part_2(lines: Lines) -> usize {
-    let (antennas, max_x, max_y) = parse_input(lines);
+pub fn part_2(input: &str) -> usize {
+    let (antennas, max_x, max_y) = parse_input(input);
 
     antennas
         .into_iter()
@@ -95,17 +92,11 @@ fn part_2(lines: Lines) -> usize {
         .collect::<HashSet<_>>()
         .len()
 }
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_8");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "..........
 ..........
@@ -166,10 +157,10 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 2);
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 4);
-        assert_eq!(part_1(EXAMPLE_INPUT_3.lines()), 4);
-        assert_eq!(part_1(EXAMPLE_INPUT_4.lines()), 14);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 2);
+        assert_eq!(part_1(EXAMPLE_INPUT_2), 4);
+        assert_eq!(part_1(EXAMPLE_INPUT_3), 4);
+        assert_eq!(part_1(EXAMPLE_INPUT_4), 14);
     }
 
     #[test]
@@ -181,17 +172,17 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_8").lines()), 254);
+        assert_eq!(part_1(&load_input("inputs/2024/day_8")), 254);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_5.lines()), 9);
-        assert_eq!(part_2(EXAMPLE_INPUT_4.lines()), 34);
+        assert_eq!(part_2(EXAMPLE_INPUT_5), 9);
+        assert_eq!(part_2(EXAMPLE_INPUT_4), 34);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_8").lines()), 951)
+        assert_eq!(part_2(&load_input("inputs/2024/day_8")), 951)
     }
 }

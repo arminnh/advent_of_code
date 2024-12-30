@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
 use std::hash::Hash;
@@ -83,9 +81,10 @@ where
     None
 }
 
-fn parse_input(lines: Lines<'_>) -> (Vec<(i32, i32)>, i32, i32) {
+fn parse_input(input: &str) -> (Vec<(i32, i32)>, i32, i32) {
     let (mut max_x, mut max_y) = (0, 0);
-    let bytes: Vec<(i32, i32)> = lines
+    let bytes: Vec<(i32, i32)> = input
+        .lines()
         .map(|line| {
             let (y, x) = line.split_once(",").expect("Could not split coordinate");
             let x = x.parse::<i32>().expect("Could not parse X");
@@ -101,11 +100,11 @@ fn parse_input(lines: Lines<'_>) -> (Vec<(i32, i32)>, i32, i32) {
 // Return either the cost to reach the end after consuming n bytes,
 // or the position of the last consumed byte which makes the end unreachable
 fn solve_day(
-    lines: Lines,
+    input: &str,
     bytes_to_consume: usize,
     consume_until_end_unreachable: bool,
 ) -> (Option<usize>, Option<Position>) {
-    let (bytes, max_x, max_y) = parse_input(lines);
+    let (bytes, max_x, max_y) = parse_input(input);
     let mut bytes_iter = bytes.into_iter();
     let mut obstacles: HashSet<(i32, i32)> = HashSet::new();
     for _ in 0..bytes_to_consume {
@@ -152,26 +151,18 @@ fn solve_day(
     panic!("No solution")
 }
 
-fn part_1(lines: Lines) -> usize {
-    solve_day(lines, 1024, false).0.unwrap()
+pub fn part_1(input: &str) -> usize {
+    solve_day(input, 1024, false).0.unwrap()
 }
 
-fn part_2(lines: Lines) -> String {
-    let position = solve_day(lines, 1024, true).1.unwrap();
+pub fn part_2(input: &str) -> String {
+    let position = solve_day(input, 1024, true).1.unwrap();
     format!("{},{}", position.0, position.1)
 }
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_18");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "5,4
 4,2
@@ -202,26 +193,26 @@ mod tests {
     #[test]
     fn test_part_1_example() {
         assert_eq!(
-            solve_day(EXAMPLE_INPUT.lines(), 12, false),
+            solve_day(EXAMPLE_INPUT, 12, false),
             (Some(22), None)
         );
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_18").lines()), 404);
+        assert_eq!(part_1(&load_input("inputs/2024/day_18")), 404);
     }
 
     #[test]
     fn test_part_2_example() {
         assert_eq!(
-            solve_day(EXAMPLE_INPUT.lines(), 12, true),
+            solve_day(EXAMPLE_INPUT, 12, true),
             (None, Some((6, 1)))
         );
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_18").lines()), "27,60")
+        assert_eq!(part_2(&load_input("inputs/2024/day_18")), "27,60")
     }
 }

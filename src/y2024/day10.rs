@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::{HashMap, HashSet};
-use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
@@ -25,11 +22,11 @@ fn neighbors(pos: Position, height: i32, topographic_map: &HeightMap) -> Vec<Pos
     neighbors
 }
 
-fn parse_input(lines: Lines) -> (HeightMap, Vec<Position>) {
+fn parse_input(input: &str) -> (HeightMap, Vec<Position>) {
     let mut topographic_map: HeightMap = HashMap::new();
     let mut start_positions: Vec<Position> = Vec::new();
 
-    for (x, line) in lines.enumerate() {
+    for (x, line) in input.lines().enumerate() {
         for (y, ch) in line.chars().enumerate() {
             let height = ch.to_digit(10).expect("Could not parse height");
             topographic_map.insert((x as i32, y as i32), height as i32);
@@ -83,33 +80,26 @@ fn trailhead_rating(topographic_map: &HeightMap, start_pos: Position) -> usize {
     paths
 }
 
-fn part_1(lines: Lines) -> usize {
-    let (topographic_map, start_positions) = parse_input(lines);
+pub fn part_1(input: &str) -> usize {
+    let (topographic_map, start_positions) = parse_input(input);
     start_positions
         .into_iter()
         .map(|pos| trailhead_score(&topographic_map, pos))
         .sum()
 }
 
-fn part_2(lines: Lines) -> usize {
-    let (topographic_map, start_positions) = parse_input(lines);
+pub fn part_2(input: &str) -> usize {
+    let (topographic_map, start_positions) = parse_input(input);
     start_positions
         .into_iter()
         .map(|pos| trailhead_rating(&topographic_map, pos))
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_10");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "0123
 1234
@@ -151,16 +141,16 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 1);
-        assert_eq!(part_1(EXAMPLE_INPUT_2.lines()), 2);
-        assert_eq!(part_1(EXAMPLE_INPUT_3.lines()), 4);
-        assert_eq!(part_1(EXAMPLE_INPUT_4.lines()), 3);
-        assert_eq!(part_1(EXAMPLE_INPUT_5.lines()), 36);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 1);
+        assert_eq!(part_1(EXAMPLE_INPUT_2), 2);
+        assert_eq!(part_1(EXAMPLE_INPUT_3), 4);
+        assert_eq!(part_1(EXAMPLE_INPUT_4), 3);
+        assert_eq!(part_1(EXAMPLE_INPUT_5), 36);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_10").lines()), 659);
+        assert_eq!(part_1(&load_input("inputs/2024/day_10")), 659);
     }
 
     const EXAMPLE_INPUT_6: &str = "1111101
@@ -188,14 +178,14 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_6.lines()), 4);
-        assert_eq!(part_2(EXAMPLE_INPUT_7.lines()), 13);
-        assert_eq!(part_2(EXAMPLE_INPUT_8.lines()), 227);
-        assert_eq!(part_2(EXAMPLE_INPUT_5.lines()), 81);
+        assert_eq!(part_2(EXAMPLE_INPUT_6), 4);
+        assert_eq!(part_2(EXAMPLE_INPUT_7), 13);
+        assert_eq!(part_2(EXAMPLE_INPUT_8), 227);
+        assert_eq!(part_2(EXAMPLE_INPUT_5), 81);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_10").lines()), 1463)
+        assert_eq!(part_2(&load_input("inputs/2024/day_10")), 1463)
     }
 }

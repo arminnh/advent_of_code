@@ -1,5 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
+
+
 use std::collections::HashMap;
 use std::usize;
 
@@ -132,7 +132,7 @@ fn wires_to_decimal(wires: &HashMap<String, bool>, first_letter: &str) -> usize 
 }
 
 // Simulate the system of gates and wires. What decimal number does it output on the wires starting with z?
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let (mut wires, mut gates) = parse_input(input);
 
     while let Some((wire, gate)) = gates.pop() {
@@ -158,7 +158,7 @@ fn part_1(input: &str) -> usize {
 // Your system of gates and wires has four pairs of gates which need their output wires swapped - eight wires in total.
 // Determine which four pairs of gates need their outputs swapped so that your system correctly performs addition;
 // what do you get if you sort the names of the eight wires involved in a swap and then join those names with commas?
-fn part_2(input: &str) -> String {
+pub fn part_2(input: &str) -> String {
     // The system seems to perform addition using a collection of full adders
     // This means we should be able to find the following operations in the input:
     // X_i XOR Y_i -> tmp_1
@@ -210,16 +210,10 @@ fn part_2(input: &str) -> String {
     "blabla".to_string()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_24");
-    (
-        Solution::from(part_1(&input)),
-        Solution::from(part_2(&input)),
-    )
-}
 
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
     use super::*;
 
     const EXAMPLE_INPUT_1: &str = "x00: 1

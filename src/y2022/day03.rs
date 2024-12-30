@@ -1,8 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashSet;
 use std::hash::Hash;
-use std::str::Lines;
 
 fn get_duplicates<T>(left: T, right: T) -> Vec<T::Item>
 where
@@ -36,9 +33,9 @@ fn get_priority(item: &char) -> u8 {
 }
 
 // What is the sum of the priorities of item types that appear in both compartments of each rucksack?
-fn part_1(lines: Lines) -> u32 {
+pub fn part_1(input: &str) -> u32 {
     let mut total: u32 = 0;
-    lines.for_each(|rucksack: &str| {
+    input.lines().for_each(|rucksack: &str| {
         if rucksack.len() > 0 {
             let (left, right): (&str, &str) = rucksack.split_at(rucksack.len() / 2);
             let items: Vec<char> = get_duplicates(left.chars(), right.chars());
@@ -55,8 +52,9 @@ fn part_1(lines: Lines) -> u32 {
 }
 
 // What is the sum of the priorities of those item types that correspond to the badges of each three-Elf group?
-fn part_2(lines: &mut Lines) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let mut total: u32 = 0;
+    let mut lines = input.lines();
     while let (Some(l1), Some(l2), Some(l3)) = (lines.next(), lines.next(), lines.next()) {
         let duplicates_l1_l2: String = get_duplicates(l1.chars(), l2.chars())
             .into_iter()
@@ -69,22 +67,14 @@ fn part_2(lines: &mut Lines) -> u32 {
     total
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_3");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(&mut input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_part_1_single_line() {
-        assert_eq!(part_1("vJrwpWtwJgWrhcsFMMfFFhFp".lines()), 16);
-        assert_eq!(part_1("PmmdzqPrVvPwwTWBwg".lines()), 42);
+        assert_eq!(part_1("vJrwpWtwJgWrhcsFMMfFFhFp"), 16);
+        assert_eq!(part_1("PmmdzqPrVvPwwTWBwg"), 42);
     }
 
     #[test]
@@ -96,7 +86,7 @@ wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
 ttgJtRGJQctTZtZT
 CrZsJsPPZsGzwwsLwLmpwMDw";
 
-        assert_eq!(part_1(input.lines()), 157)
+        assert_eq!(part_1(input), 157)
     }
 
     #[test]
@@ -108,6 +98,6 @@ wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
 ttgJtRGJQctTZtZT
 CrZsJsPPZsGzwwsLwLmpwMDw";
 
-        assert_eq!(part_2(&mut input.lines()), 70)
+        assert_eq!(part_2(input), 70)
     }
 }

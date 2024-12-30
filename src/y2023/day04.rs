@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::{HashMap, HashSet};
-use std::str::Lines;
 use std::usize;
 
 fn parse_card_id(input: &str) -> usize {
@@ -21,8 +18,9 @@ fn parse_numbers(input: &str) -> HashSet<usize> {
         .collect()
 }
 
-fn part_1(lines: Lines) -> usize {
-    lines
+pub fn part_1(input: &str) -> usize {
+    input
+        .lines()
         .map(
             |line| match line.split([':', '|']).collect::<Vec<&str>>()[..] {
                 [_, winners_str, scratched_str] => {
@@ -42,10 +40,10 @@ fn part_1(lines: Lines) -> usize {
         .sum()
 }
 
-fn part_2(lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     let mut card_amounts: HashMap<usize, usize> = HashMap::new();
 
-    lines.for_each(
+    input.lines().for_each(
         |line| match line.split([':', '|']).collect::<Vec<&str>>()[..] {
             [card_id_str, winners_str, scratched_str] => {
                 let card_id = parse_card_id(card_id_str);
@@ -69,16 +67,9 @@ fn part_2(lines: Lines) -> usize {
     card_amounts.values().sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_4");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
     use super::*;
 
     const EXAMPLE_INPUT_1: &str = "Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
@@ -90,21 +81,21 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 13);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 13);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_4").lines()), 26914);
+        assert_eq!(part_1(&load_input("inputs/2023/day_4")), 26914);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 30);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 30);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_4").lines()), 13080971);
+        assert_eq!(part_2(&load_input("inputs/2023/day_4")), 13080971);
     }
 }

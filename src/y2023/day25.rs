@@ -1,12 +1,11 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use rand::Rng;
 use std::collections::HashSet;
 use std::str::Lines;
 use std::usize;
 
-fn parse_edges(lines: Lines) -> Vec<(String, String)> {
-    lines
+fn parse_edges(input: &str) -> Vec<(String, String)> {
+    input
+        .lines()
         .flat_map(|l| match l.split(":").collect::<Vec<_>>()[..] {
             [from, right] => right
                 .trim()
@@ -61,9 +60,9 @@ fn contract_edge(nodes: &mut HashSet<String>, edges: &mut Vec<(String, String)>,
     });
 }
 
-fn part_1(lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
     let mut rng = rand::thread_rng();
-    let mut edges: Vec<(String, String)> = parse_edges(lines.clone());
+    let mut edges: Vec<(String, String)> = parse_edges(input);
     let mut nodes: HashSet<String> = edges
         .iter()
         .flat_map(|(from, to)| vec![from.clone(), to.clone()])
@@ -102,21 +101,14 @@ fn part_1(lines: Lines) -> usize {
     }
 }
 
-fn part_2(_lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     0
-}
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_25");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "jqt: rhn xhk nvd
 rsh: frs pzl lsr
@@ -261,6 +253,6 @@ frs: qnr lhk lsr";
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_25").lines()), 514794);
+        assert_eq!(part_1(&load_input("inputs/2023/day_25")), 514794);
     }
 }

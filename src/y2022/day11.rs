@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::error::Error;
@@ -260,14 +258,14 @@ impl Monkeys {
     }
 }
 
-fn part_1(lines: Lines) -> usize {
-    let monkeys: Monkeys = Monkeys::from_str(lines);
+pub fn part_1(input: &str) -> usize {
+    let monkeys: Monkeys = Monkeys::from_str(input.lines());
     monkeys.do_rounds(20, None);
     monkeys.calc_monkey_business()
 }
 
-fn part_2(lines: Lines) -> usize {
-    let monkeys: Monkeys = Monkeys::from_str(lines);
+pub fn part_2(input: &str) -> usize {
+    let monkeys: Monkeys = Monkeys::from_str(input.lines());
     let lowest_common_multiple = Some(
         monkeys
             .0
@@ -283,36 +281,32 @@ fn part_2(lines: Lines) -> usize {
     monkeys.calc_monkey_business()
 }
 
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_11");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
+
     use super::*;
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(load_input("inputs/2022/day_11_example").lines()), 10_605)
+        assert_eq!(part_1(&load_input("inputs/2022/day_11_example")), 10_605)
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2022/day_11").lines()), 100_345)
+        assert_eq!(part_1(&load_input("inputs/2022/day_11")), 100_345)
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(load_input("inputs/2022/day_11_example").lines()), 2_713_310_158)
+        assert_eq!(
+            part_2(&load_input("inputs/2022/day_11_example")),
+            2_713_310_158
+        )
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2022/day_11").lines()), 28_537_348_205)
+        assert_eq!(part_2(&load_input("inputs/2022/day_11")), 28_537_348_205)
     }
 }

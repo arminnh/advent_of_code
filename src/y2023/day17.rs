@@ -1,5 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
+
+
 use std::collections::{BinaryHeap, HashSet};
 use std::str::Lines;
 use std::usize;
@@ -176,8 +176,8 @@ where
     panic!("Oh no!")
 }
 
-fn part_1(lines: Lines) -> usize {
-    let mut grid = Grid::from_lines(lines);
+pub fn part_1(input: &str) -> usize {
+    let mut grid = Grid::from_lines(input.lines());
     let goal = grid.grid.len() - 1;
     let success = |current: &Move| current.position == goal;
     let successors = |grid: &Grid, m: &Move| m.next_moves(grid, 0, 3);
@@ -185,8 +185,8 @@ fn part_1(lines: Lines) -> usize {
     dijkstra(&mut grid, success, successors)
 }
 
-fn part_2(lines: Lines) -> usize {
-    let mut grid = Grid::from_lines(lines);
+pub fn part_2(input: &str) -> usize {
+    let mut grid = Grid::from_lines(input.lines());
     let goal = grid.grid.len() - 1;
     let success = |current: &Move| current.position == goal && current.steps_in_direction >= 4;
     let successors = |grid: &Grid, m: &Move| m.next_moves(grid, 4, 10);
@@ -194,16 +194,10 @@ fn part_2(lines: Lines) -> usize {
     dijkstra(&mut grid, success, successors)
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_17");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
 
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
     use super::*;
 
     const EXAMPLE_INPUT: &str = "2413432311323
@@ -225,26 +219,26 @@ mod tests {
 
     #[test]
     fn test_part_1_example_simple() {
-        assert_eq!(part_1(EXAMPLE_INPUT_SIMPLE.lines()), 7);
+        assert_eq!(part_1(EXAMPLE_INPUT_SIMPLE), 7);
     }
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 102);
+        assert_eq!(part_1(EXAMPLE_INPUT), 102);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_17").lines()), 1001);
+        assert_eq!(part_1(&load_input("inputs/2023/day_17")), 1001);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 94);
+        assert_eq!(part_2(EXAMPLE_INPUT), 94);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_17").lines()), 1197);
+        assert_eq!(part_2(&load_input("inputs/2023/day_17")), 1197);
     }
 }

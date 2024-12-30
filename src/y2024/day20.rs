@@ -1,5 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
+
+
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::hash::Hash;
@@ -137,28 +137,21 @@ fn nr_of_cheats(path: Vec<(i32, i32)>, max_cheat_distance: usize) -> usize {
 
 // You aren't sure what the conditions of the racetrack will be like, so to give yourself as many options as possible,
 // you'll need a list of the best cheats. How many cheats would save you at least 100 picoseconds?
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let (grid, start, end) = parse_input(input);
     let path = find_best_path(grid, start, end);
     nr_of_cheats(path, 2)
 }
 // Find the best cheats using the updated cheating rules. How many cheats would save you at least 100 picoseconds?
-fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> usize {
     let (grid, start, end) = parse_input(input);
     let path = find_best_path(grid, start, end);
     nr_of_cheats(path, 20)
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_20");
-    (
-        Solution::from(part_1(&input)),
-        Solution::from(part_2(&input)),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
     use super::*;
 
     const EXAMPLE_INPUT: &str = "###############

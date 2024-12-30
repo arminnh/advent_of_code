@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::{HashMap, HashSet};
 use std::str::Lines;
 use std::usize;
@@ -7,8 +5,8 @@ use std::usize;
 type Position = (i32, i32);
 type Graph = HashMap<Position, HashSet<(Position, usize)>>;
 
-fn parse_input(lines: Lines, ignore_slopes: bool) -> (Position, Position, Graph) {
-    let grid: Grid = Grid::from_lines(lines);
+fn parse_input(input: &str, ignore_slopes: bool) -> (Position, Position, Graph) {
+    let grid: Grid = Grid::from_lines(input.lines());
     let start = (0, 1);
     let goal = (grid.max_x - 1, grid.max_y - 2);
     let graph: Graph = grid_to_graph(&grid, start, goal, ignore_slopes);
@@ -205,29 +203,22 @@ fn find_longest_path(
     max_cost
 }
 
-fn part_1(lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
     let ignore_slopes = false;
-    let (start, goal, graph): (Position, Position, Graph) = parse_input(lines, ignore_slopes);
+    let (start, goal, graph): (Position, Position, Graph) = parse_input(input, ignore_slopes);
     find_longest_path(&graph, start, 0, goal, &mut HashSet::new())
 }
 
-fn part_2(lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     let ignore_slopes = true;
-    let (start, goal, graph): (Position, Position, Graph) = parse_input(lines, ignore_slopes);
+    let (start, goal, graph): (Position, Position, Graph) = parse_input(input, ignore_slopes);
     find_longest_path(&graph, start, 0, goal, &mut HashSet::new())
-}
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_23");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "#.#####################
 #.......#########...###
@@ -255,21 +246,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 94);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 94);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_23").lines()), 2334);
+        assert_eq!(part_1(&load_input("inputs/2023/day_23")), 2334);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 154);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 154);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_23").lines()), 6422);
+        assert_eq!(part_2(&load_input("inputs/2023/day_23")), 6422);
     }
 }

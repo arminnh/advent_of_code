@@ -1,14 +1,11 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::{BinaryHeap, HashMap};
-use std::str::Lines;
 
 // Distance between lists
-fn part_1(lines: Lines) -> usize {
+pub fn part_1(input: &str) -> usize {
     let mut left: BinaryHeap<usize> = BinaryHeap::new();
     let mut right: BinaryHeap<usize> = BinaryHeap::new();
 
-    lines.for_each(|line| {
+    input.lines().for_each(|line| {
         let mut nums = line
             .split("   ")
             .map(|s| s.parse::<usize>().expect("could not parse number"));
@@ -22,11 +19,11 @@ fn part_1(lines: Lines) -> usize {
 }
 
 // Similarity score
-fn part_2(lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     let mut left: HashMap<usize, usize> = HashMap::new();
     let mut right: HashMap<usize, usize> = HashMap::new();
 
-    lines.for_each(|line| {
+    input.lines().for_each(|line| {
         let mut nums = line
             .split("   ")
             .map(|s| s.parse::<usize>().expect("could not parse number"));
@@ -45,16 +42,11 @@ fn part_2(lines: Lines) -> usize {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2024/day_1");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::util::util::load_input;
+
+
     use super::*;
 
     const EXAMPLE_INPUT: &str = "3   4
@@ -66,21 +58,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines()), 11);
+        assert_eq!(part_1(EXAMPLE_INPUT), 11);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2024/day_1").lines()), 1879048);
+        assert_eq!(part_1(&load_input("inputs/2024/day_1")), 1879048);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT.lines()), 31);
+        assert_eq!(part_2(EXAMPLE_INPUT), 31);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2024/day_1").lines()), 21024792);
+        assert_eq!(part_2(&load_input("inputs/2024/day_1")), 21024792);
     }
 }

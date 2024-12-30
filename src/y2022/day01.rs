@@ -1,8 +1,5 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
-
 // Find the Elf carrying the most Calories. How many total Calories is that Elf carrying?
-fn part_1(input: &str) -> u32 {
+pub fn part_1(input: &str) -> u32 {
     let elves: std::str::Split<&str> = input.split("\n\n");
     elves
         .map(|elf: &str| {
@@ -15,7 +12,7 @@ fn part_1(input: &str) -> u32 {
 }
 
 // How many Calories are the top 3 Elves carrying in total?
-fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let elves: std::str::Split<&str> = input.split("\n\n");
     let mut calories_per_elf: Vec<u32> = elves
         .map(|elf: &str| {
@@ -31,12 +28,4 @@ fn part_2(input: &str) -> u32 {
         .unwrap()
         .iter()
         .sum::<u32>()
-}
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2022/day_1");
-    (
-        Solution::from(part_1(&input)),
-        Solution::from(part_2(&input)),
-    )
 }

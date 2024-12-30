@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::fmt::Display;
 use std::num::ParseFloatError;
 use std::str::{FromStr, Lines};
@@ -47,8 +45,9 @@ impl Hailstone {
     }
 }
 
-fn parse_hailstones(input_lines: Lines<'_>) -> Vec<Hailstone> {
-    input_lines
+fn parse_hailstones(input: &str) -> Vec<Hailstone> {
+    input
+        .lines()
         .map(
             |l| match l.split("@").map(|l| l.trim()).collect::<Vec<&str>>()[..] {
                 [position, velocity] => Hailstone {
@@ -96,8 +95,8 @@ impl Line {
     }
 }
 
-fn part_1(input_lines: Lines, min: f32, max: f32) -> usize {
-    let hailstones: Vec<Hailstone> = parse_hailstones(input_lines);
+fn part_1_params(input: &str, min: f32, max: f32) -> usize {
+    let hailstones: Vec<Hailstone> = parse_hailstones(input);
     let lines: Vec<Line> = hailstones
         .iter()
         .map(|h| Line::from_point_slope_form(h.position, h.velocity))
@@ -121,25 +120,18 @@ fn part_1(input_lines: Lines, min: f32, max: f32) -> usize {
     intersections.len()
 }
 
-fn part_2(_lines: Lines) -> usize {
-    0
+pub fn part_1(input: &str) -> usize {
+    part_1_params(input, 200_000_000_000_000.0, 400_000_000_000_000.0)
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_24");
-    (
-        Solution::from(part_1(
-            input.lines(),
-            200_000_000_000_000.0,
-            400_000_000_000_000.0,
-        )),
-        Solution::from(part_2(input.lines())),
-    )
+pub fn part_2(input: &str) -> usize {
+    todo!()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "19, 13, 30 @ -2,  1, -2
 18, 19, 22 @ -1, -1, -2
@@ -149,28 +141,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines(), 7.0, 27.0), 2);
+        assert_eq!(part_1_params(EXAMPLE_INPUT_1, 7.0, 27.0), 2);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(
-            part_1(
-                load_input("inputs/2023/day_24").lines(),
-                200_000_000_000_000.0,
-                400_000_000_000_000.0
-            ),
-            18651
-        );
+        assert_eq!(part_1(&load_input("inputs/2023/day_24"),), 18651);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 0);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 0);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_24").lines()), 0);
+        assert_eq!(part_2(&load_input("inputs/2023/day_24")), 0);
     }
 }

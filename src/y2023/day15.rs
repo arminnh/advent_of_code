@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashMap;
-use std::str::Lines;
 use std::usize;
 
 fn hash(s: &[u8]) -> usize {
@@ -16,16 +13,17 @@ fn hash(s: &[u8]) -> usize {
     current
 }
 
-fn part_1(lines: Lines) -> usize {
-    lines
+pub fn part_1(input: &str) -> usize {
+    input
+        .lines()
         .map(|line| line.split(',').map(|s| hash(s.as_bytes())).sum::<usize>())
         .sum()
 }
 
-fn part_2(lines: Lines) -> usize {
+pub fn part_2(input: &str) -> usize {
     let mut boxes_of_lenses: HashMap<usize, Vec<(&[u8], u8)>> = HashMap::new();
 
-    lines.for_each(|line| {
+    input.lines().for_each(|line| {
         line.split(',').for_each(|operation| {
             match operation.as_bytes() {
                 // Add a lens
@@ -74,17 +72,10 @@ fn part_2(lines: Lines) -> usize {
         .sum()
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_15");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7";
 
@@ -99,21 +90,21 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT_1.lines()), 1320);
+        assert_eq!(part_1(EXAMPLE_INPUT_1), 1320);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_15").lines()), 513158);
+        assert_eq!(part_1(&load_input("inputs/2023/day_15")), 513158);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 145);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 145);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_15").lines()), 200277);
+        assert_eq!(part_2(&load_input("inputs/2023/day_15")), 200277);
     }
 }

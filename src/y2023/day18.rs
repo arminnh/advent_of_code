@@ -1,5 +1,3 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use image::{ImageBuffer, Rgb, RgbImage};
 use std::collections::HashSet;
 use std::str::Lines;
@@ -105,10 +103,10 @@ impl Direction {
 }
 
 #[allow(dead_code)]
-fn parse_lagoon(lines: Lines) -> HashSet<Point> {
+fn parse_lagoon(input: &str) -> HashSet<Point> {
     let mut lagoon: HashSet<Point> = HashSet::new();
 
-    lines.fold(Point::from(0, 0), |position, line| {
+    input.lines().fold(Point::from(0, 0), |position, line| {
         match line.split_whitespace().collect::<Vec<&str>>()[..] {
             [direction, count, _] => (0..count.parse::<i64>().unwrap()).fold(position, |p, _| {
                 let (x_diff, y_diff) = Direction::from_str(direction).to_coords();
@@ -197,8 +195,8 @@ fn flood_fill(lagoon: &HashSet<Point>) -> usize {
 
 // Calculate the volume of the lagoon formed by the perimeter. Each position is a 1 meter cube.
 #[allow(dead_code)]
-fn part_1_flood_fill(lines: Lines) -> usize {
-    let lagoon = parse_lagoon(lines);
+pub fn part_1_flood_fill(input: &str) -> usize {
+    let lagoon = parse_lagoon(input);
     // print_lagoon(&lagoon, None);
     flood_fill(&lagoon)
 }
@@ -540,29 +538,22 @@ fn area_of_rectilinear_polygon(mut edges: Vec<Edge>) -> i64 {
 }
 
 // Calculate the volume of the lagoon formed by the perimeter. Each position is a 1 meter cube.
-fn part_1(lines: Lines) -> i64 {
-    let edges = parse_edges(lines, false);
+pub fn part_1(input: &str) -> i64 {
+    let edges = parse_edges(input.lines(), false);
     // draw_lagoon(&edges, &Vec::new());
     area_of_rectilinear_polygon(edges)
 }
 
-fn part_2(lines: Lines) -> i64 {
-    let edges = parse_edges(lines, true);
+pub fn part_2(input: &str) -> i64 {
+    let edges = parse_edges(input.lines(), true);
     // draw_lagoon(&edges, &Vec::new());
     area_of_rectilinear_polygon(edges)
-}
-
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_18");
-    (
-        Solution::from(part_1(input.lines())),
-        Solution::from(part_2(input.lines())),
-    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "R 6 (#70c710)
 D 5 (#0dc571)
@@ -581,62 +572,53 @@ U 2 (#7a21e3)";
 
     #[test]
     fn test_part_1_flood_fill() {
-        assert_eq!(part_1_flood_fill(EXAMPLE_INPUT_1.lines()), 62);
+        assert_eq!(part_1_flood_fill(EXAMPLE_INPUT_1), 62);
         assert_eq!(
-            part_1_flood_fill(load_input("inputs/2023/day_18_shortened").lines()),
+            part_1_flood_fill(&load_input("inputs/2023/day_18_shortened")),
             5532
         );
         assert_eq!(
-            part_1_flood_fill(load_input("inputs/2023/day_18_shortened_2").lines()),
+            part_1_flood_fill(&load_input("inputs/2023/day_18_shortened_2")),
             17891
         );
         assert_eq!(
-            part_1_flood_fill(load_input("inputs/2023/day_18_shortened_3").lines()),
+            part_1_flood_fill(&load_input("inputs/2023/day_18_shortened_3")),
             1704
         );
-        assert_eq!(
-            part_1_flood_fill(load_input("inputs/2023/day_18").lines()),
-            33491
-        );
+        assert_eq!(part_1_flood_fill(&load_input("inputs/2023/day_18")), 33491);
     }
 
     #[test]
     fn test_part_1_rectangles_example() {
         let mut lines = EXAMPLE_INPUT_1.split("\n").collect::<Vec<&str>>();
-        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        assert_eq!(part_1(&lines.join("\n")), 62);
         lines.rotate_left(1);
-        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        assert_eq!(part_1(&lines.join("\n")), 62);
         lines.rotate_left(5);
-        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        assert_eq!(part_1(&lines.join("\n")), 62);
         lines.rotate_left(1);
-        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        assert_eq!(part_1(&lines.join("\n")), 62);
         lines.rotate_left(1);
-        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        assert_eq!(part_1(&lines.join("\n")), 62);
         lines.rotate_left(1);
-        assert_eq!(part_1(lines.join("\n").lines()), 62);
+        assert_eq!(part_1(&lines.join("\n")), 62);
     }
 
     #[test]
     fn test_part_1_rectangles() {
-        assert_eq!(part_1(load_input("inputs/2023/day_18_shortened").lines()), 5532);
-        assert_eq!(
-            part_1(load_input("inputs/2023/day_18_shortened_3").lines()),
-            1704
-        );
-        assert_eq!(
-            part_1(load_input("inputs/2023/day_18_shortened_2").lines()),
-            17891
-        );
-        assert_eq!(part_1(load_input("inputs/2023/day_18").lines()), 33491);
+        assert_eq!(part_1(&load_input("inputs/2023/day_18_shortened")), 5532);
+        assert_eq!(part_1(&load_input("inputs/2023/day_18_shortened_3")), 1704);
+        assert_eq!(part_1(&load_input("inputs/2023/day_18_shortened_2")), 17891);
+        assert_eq!(part_1(&load_input("inputs/2023/day_18")), 33491);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1.lines()), 952408144115);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 952408144115);
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(load_input("inputs/2023/day_18").lines()), 101029016139262);
+        assert_eq!(part_2(&load_input("inputs/2023/day_18")), 101029016139262);
     }
 }

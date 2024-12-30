@@ -1,7 +1,4 @@
-use crate::util::util::load_input;
-use crate::{Solution, SolutionPair};
 use std::collections::HashSet;
-use std::str::Lines;
 use std::usize;
 
 type Position = (i32, i32);
@@ -115,14 +112,18 @@ fn nr_of_possible_positions(
     }
 }
 
-fn part_1(lines: Lines, iterations: usize) -> usize {
-    let grid: Vec<Vec<u8>> = lines.map(|line| line.as_bytes().to_vec()).collect();
+fn part_1_iterations(input: &str, iterations: usize) -> usize {
+    let grid: Vec<Vec<u8>> = input.lines().map(|line| line.as_bytes().to_vec()).collect();
     let max_x = grid.len() as i32;
     let max_y = grid[0].len() as i32;
     let start = get_start(&grid);
     let rocks = rock_positions(&grid);
 
     nr_of_possible_positions(&rocks, max_x, max_y, start, iterations)
+}
+
+pub fn part_1(input: &str) -> usize {
+    part_1_iterations(input, 64)
 }
 
 fn second_order_lagrange_polynomial(x_i: Vec<f64>, y_i: Vec<f64>) -> impl Fn(f64) -> f64 {
@@ -141,8 +142,8 @@ fn second_order_lagrange_polynomial(x_i: Vec<f64>, y_i: Vec<f64>) -> impl Fn(f64
 }
 
 // This elf is very into ultra marathon running
-fn part_2(lines: Lines, iterations: usize) -> i64 {
-    let grid: Vec<Vec<u8>> = lines.map(|line| line.as_bytes().to_vec()).collect();
+fn part_2_iterations(input: &str, iterations: usize) -> i64 {
+    let grid: Vec<Vec<u8>> = input.lines().map(|line| line.as_bytes().to_vec()).collect();
     let max_x = grid.len() as i32;
     let max_y = grid[0].len() as i32;
     let start = get_start(&grid);
@@ -166,17 +167,14 @@ fn part_2(lines: Lines, iterations: usize) -> i64 {
     polynomial_fn(iterations as f64) as i64
 }
 
-pub fn solve() -> SolutionPair {
-    let input = load_input("inputs/2023/day_21");
-    (
-        Solution::from(part_1(input.lines(), 64)),
-        Solution::from(part_2(input.lines(), 26501365)),
-    )
+pub fn part_2(input: &str) -> i64 {
+    part_2_iterations(input, 26501365)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "...........
 .....###.#.
@@ -192,12 +190,12 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(EXAMPLE_INPUT.lines(), 6), 16);
+        assert_eq!(part_1_iterations(EXAMPLE_INPUT, 6), 16);
     }
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(load_input("inputs/2023/day_21").lines(), 64), 3617);
+        assert_eq!(part_1(&load_input("inputs/2023/day_21")), 3617);
     }
 
     #[test]
@@ -223,9 +221,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(
-            part_2(load_input("inputs/2023/day_21").lines(), 26501365),
-            596857397104703
-        );
+        assert_eq!(part_2(&load_input("inputs/2023/day_21")), 596857397104703);
     }
 }

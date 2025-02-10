@@ -5,7 +5,7 @@ mod y2024;
 
 use clap::{command, Parser};
 use std::time::Instant;
-use util::solution::Solution;
+use util::solution::{Solution, SolverFn};
 use util::util::load_input;
 
 #[derive(Parser, Debug)]
@@ -20,6 +20,7 @@ struct Cli {
 
     /// Specific days to solve (default: all days [1-25])
     // #[arg(short, long)]
+    #[arg(num_args=1..=25)]
     days: Option<Vec<u8>>,
 }
 
@@ -55,7 +56,7 @@ fn solve_with_time_tracking(years: Vec<usize>, days: Vec<u8>) {
             };
             do_part(part_1, 1);
             do_part(part_2, 2);
-            println!("");
+            println!();
         }
     }
 
@@ -66,263 +67,77 @@ fn solve_with_time_tracking(years: Vec<usize>, days: Vec<u8>) {
     }
 }
 
-fn get_day_solvers(year: usize, day: &u8) -> (fn(&str) -> Solution, fn(&str) -> Solution) {
+fn get_day_solvers(year: usize, day: &u8) -> (SolverFn, SolverFn) {
     match year {
         2022 => match day {
-            1 => (
-                |input: &str| Solution::from(y2022::day01::part_1(input)),
-                |input: &str| Solution::from(y2022::day01::part_2(input)),
-            ),
-            2 => (
-                |input: &str| Solution::from(y2022::day02::part_1(input)),
-                |input: &str| Solution::from(y2022::day02::part_2(input)),
-            ),
-            3 => (
-                |input: &str| Solution::from(y2022::day03::part_1(input)),
-                |input: &str| Solution::from(y2022::day03::part_2(input)),
-            ),
-            4 => (
-                |input: &str| Solution::from(y2022::day04::part_1(input)),
-                |input: &str| Solution::from(y2022::day04::part_2(input)),
-            ),
-            5 => (
-                |input: &str| Solution::from(y2022::day05::part_1(input)),
-                |input: &str| Solution::from(y2022::day05::part_2(input)),
-            ),
-            6 => (
-                |input: &str| Solution::from(y2022::day06::part_1(input)),
-                |input: &str| Solution::from(y2022::day06::part_2(input)),
-            ),
-            7 => (
-                |input: &str| Solution::from(y2022::day07::part_1(input)),
-                |input: &str| Solution::from(y2022::day07::part_2(input)),
-            ),
-            8 => (
-                |input: &str| Solution::from(y2022::day08::part_1(input)),
-                |input: &str| Solution::from(y2022::day08::part_2(input)),
-            ),
-            9 => (
-                |input: &str| Solution::from(y2022::day09::part_1(input)),
-                |input: &str| Solution::from(y2022::day09::part_2(input)),
-            ),
-            10 => (
-                |input: &str| Solution::from(y2022::day10::part_1(input)),
-                |input: &str| Solution::from(y2022::day10::part_2(input)),
-            ),
-            11 => (
-                |input: &str| Solution::from(y2022::day11::part_1(input)),
-                |input: &str| Solution::from(y2022::day11::part_2(input)),
-            ),
-            12 => (
-                |input: &str| Solution::from(y2022::day12::part_1(input)),
-                |input: &str| Solution::from(y2022::day12::part_2(input)),
-            ),
+            1 => make_solver!(y2022, day01),
+            2 => make_solver!(y2022, day02),
+            3 => make_solver!(y2022, day03),
+            4 => make_solver!(y2022, day04),
+            5 => make_solver!(y2022, day05),
+            6 => make_solver!(y2022, day06),
+            7 => make_solver!(y2022, day07),
+            8 => make_solver!(y2022, day08),
+            9 => make_solver!(y2022, day09),
+            10 => make_solver!(y2022, day10),
+            11 => make_solver!(y2022, day11),
+            12 => make_solver!(y2022, day12),
             _ => unimplemented!(),
         },
         2023 => match day {
-            1 => (
-                |input: &str| Solution::from(y2023::day01::part_1(input)),
-                |input: &str| Solution::from(y2023::day01::part_2(input)),
-            ),
-            2 => (
-                |input: &str| Solution::from(y2023::day02::part_1(input)),
-                |input: &str| Solution::from(y2023::day02::part_2(input)),
-            ),
-            3 => (
-                |input: &str| Solution::from(y2023::day03::part_1(input)),
-                |input: &str| Solution::from(y2023::day03::part_2(input)),
-            ),
-            4 => (
-                |input: &str| Solution::from(y2023::day04::part_1(input)),
-                |input: &str| Solution::from(y2023::day04::part_2(input)),
-            ),
-            5 => (
-                |input: &str| Solution::from(y2023::day05::part_1(input)),
-                |input: &str| Solution::from(y2023::day05::part_2(input)),
-            ),
-            6 => (
-                |input: &str| Solution::from(y2023::day06::part_1(input)),
-                |input: &str| Solution::from(y2023::day06::part_2(input)),
-            ),
-            7 => (
-                |input: &str| Solution::from(y2023::day07::part_1(input)),
-                |input: &str| Solution::from(y2023::day07::part_2(input)),
-            ),
-            8 => (
-                |input: &str| Solution::from(y2023::day08::part_1(input)),
-                |input: &str| Solution::from(y2023::day08::part_2(input)),
-            ),
-            9 => (
-                |input: &str| Solution::from(y2023::day09::part_1(input)),
-                |input: &str| Solution::from(y2023::day09::part_2(input)),
-            ),
-            10 => (
-                |input: &str| Solution::from(y2023::day10::part_1(input)),
-                |input: &str| Solution::from(y2023::day10::part_2(input)),
-            ),
-            11 => (
-                |input: &str| Solution::from(y2023::day11::part_1(input)),
-                |input: &str| Solution::from(y2023::day11::part_2(input)),
-            ),
-            12 => (
-                |input: &str| Solution::from(y2023::day12::part_1(input)),
-                |input: &str| Solution::from(y2023::day12::part_2(input)),
-            ),
-            13 => (
-                |input: &str| Solution::from(y2023::day13::part_1(input)),
-                |input: &str| Solution::from(y2023::day13::part_2(input)),
-            ),
-            14 => (
-                |input: &str| Solution::from(y2023::day14::part_1(input)),
-                |input: &str| Solution::from(y2023::day14::part_2(input)),
-            ),
-            15 => (
-                |input: &str| Solution::from(y2023::day15::part_1(input)),
-                |input: &str| Solution::from(y2023::day15::part_2(input)),
-            ),
-            16 => (
-                |input: &str| Solution::from(y2023::day16::part_1(input)),
-                |input: &str| Solution::from(y2023::day16::part_2(input)),
-            ),
-            17 => (
-                |input: &str| Solution::from(y2023::day17::part_1(input)),
-                |input: &str| Solution::from(y2023::day17::part_2(input)),
-            ),
-            18 => (
-                |input: &str| Solution::from(y2023::day18::part_1(input)),
-                |input: &str| Solution::from(y2023::day18::part_2(input)),
-            ),
-            19 => (
-                |input: &str| Solution::from(y2023::day19::part_1(input)),
-                |input: &str| Solution::from(y2023::day19::part_2(input)),
-            ),
-            20 => (
-                |input: &str| Solution::from(y2023::day20::part_1(input)),
-                |input: &str| Solution::from(y2023::day20::part_2(input)),
-            ),
-            21 => (
-                |input: &str| Solution::from(y2023::day21::part_1(input)),
-                |input: &str| Solution::from(y2023::day21::part_2(input)),
-            ),
-            22 => (
-                |input: &str| Solution::from(y2023::day22::part_1(input)),
-                |input: &str| Solution::from(y2023::day22::part_2(input)),
-            ),
-            23 => (
-                |input: &str| Solution::from(y2023::day23::part_1(input)),
-                |input: &str| Solution::from(y2023::day23::part_2(input)),
-            ),
-            24 => (
-                |input: &str| Solution::from(y2023::day24::part_1(input)),
-                |input: &str| Solution::from(y2023::day24::part_2(input)),
-            ),
-            25 => (
-                |input: &str| Solution::from(y2023::day25::part_1(input)),
-                |input: &str| Solution::from(y2023::day25::part_2(input)),
-            ),
+            1 => make_solver!(y2023, day01),
+            2 => make_solver!(y2023, day02),
+            3 => make_solver!(y2023, day03),
+            4 => make_solver!(y2023, day04),
+            5 => make_solver!(y2023, day05),
+            6 => make_solver!(y2023, day06),
+            7 => make_solver!(y2023, day07),
+            8 => make_solver!(y2023, day08),
+            9 => make_solver!(y2023, day09),
+            10 => make_solver!(y2023, day10),
+            11 => make_solver!(y2023, day11),
+            12 => make_solver!(y2023, day12),
+            13 => make_solver!(y2023, day13),
+            14 => make_solver!(y2023, day14),
+            15 => make_solver!(y2023, day15),
+            16 => make_solver!(y2023, day16),
+            17 => make_solver!(y2023, day17),
+            18 => make_solver!(y2023, day18),
+            19 => make_solver!(y2023, day19),
+            20 => make_solver!(y2023, day20),
+            21 => make_solver!(y2023, day21),
+            22 => make_solver!(y2023, day22),
+            23 => make_solver!(y2023, day23),
+            24 => make_solver!(y2023, day24),
+            25 => make_solver!(y2023, day25),
             _ => unimplemented!(),
         },
         2024 => match day {
-            1 => (
-                |input: &str| Solution::from(y2024::day01::part_1(input)),
-                |input: &str| Solution::from(y2024::day01::part_2(input)),
-            ),
-            2 => (
-                |input: &str| Solution::from(y2024::day02::part_1(input)),
-                |input: &str| Solution::from(y2024::day02::part_2(input)),
-            ),
-            3 => (
-                |input: &str| Solution::from(y2024::day03::part_1(input)),
-                |input: &str| Solution::from(y2024::day03::part_2(input)),
-            ),
-            4 => (
-                |input: &str| Solution::from(y2024::day04::part_1(input)),
-                |input: &str| Solution::from(y2024::day04::part_2(input)),
-            ),
-            5 => (
-                |input: &str| Solution::from(y2024::day05::part_1(input)),
-                |input: &str| Solution::from(y2024::day05::part_2(input)),
-            ),
-            6 => (
-                |input: &str| Solution::from(y2024::day06::part_1(input)),
-                |input: &str| Solution::from(y2024::day06::part_2(input)),
-            ),
-            7 => (
-                |input: &str| Solution::from(y2024::day07::part_1(input)),
-                |input: &str| Solution::from(y2024::day07::part_2(input)),
-            ),
-            8 => (
-                |input: &str| Solution::from(y2024::day08::part_1(input)),
-                |input: &str| Solution::from(y2024::day08::part_2(input)),
-            ),
-            9 => (
-                |input: &str| Solution::from(y2024::day09::part_1(input)),
-                |input: &str| Solution::from(y2024::day09::part_2(input)),
-            ),
-            10 => (
-                |input: &str| Solution::from(y2024::day10::part_1(input)),
-                |input: &str| Solution::from(y2024::day10::part_2(input)),
-            ),
-            11 => (
-                |input: &str| Solution::from(y2024::day11::part_1(input)),
-                |input: &str| Solution::from(y2024::day11::part_2(input)),
-            ),
-            12 => (
-                |input: &str| Solution::from(y2024::day12::part_1(input)),
-                |input: &str| Solution::from(y2024::day12::part_2(input)),
-            ),
-            13 => (
-                |input: &str| Solution::from(y2024::day13::part_1(input)),
-                |input: &str| Solution::from(y2024::day13::part_2(input)),
-            ),
-            14 => (
-                |input: &str| Solution::from(y2024::day14::part_1(input)),
-                |input: &str| Solution::from(y2024::day14::part_2(input)),
-            ),
-            15 => (
-                |input: &str| Solution::from(y2024::day15::part_1(input)),
-                |input: &str| Solution::from(y2024::day15::part_2(input)),
-            ),
-            16 => (
-                |input: &str| Solution::from(y2024::day16::part_1(input)),
-                |input: &str| Solution::from(y2024::day16::part_2(input)),
-            ),
-            17 => (
-                |input: &str| Solution::from(y2024::day17::part_1(input)),
-                |input: &str| Solution::from(y2024::day17::part_2(input)),
-            ),
-            18 => (
-                |input: &str| Solution::from(y2024::day18::part_1(input)),
-                |input: &str| Solution::from(y2024::day18::part_2(input)),
-            ),
-            19 => (
-                |input: &str| Solution::from(y2024::day19::part_1(input)),
-                |input: &str| Solution::from(y2024::day19::part_2(input)),
-            ),
-            20 => (
-                |input: &str| Solution::from(y2024::day20::part_1(input)),
-                |input: &str| Solution::from(y2024::day20::part_2(input)),
-            ),
-            21 => (
-                |input: &str| Solution::from(y2024::day21::part_1(input)),
-                |input: &str| Solution::from(y2024::day21::part_2(input)),
-            ),
-            22 => (
-                |input: &str| Solution::from(y2024::day22::part_1(input)),
-                |input: &str| Solution::from(y2024::day22::part_2(input)),
-            ),
-            23 => (
-                |input: &str| Solution::from(y2024::day23::part_1(input)),
-                |input: &str| Solution::from(y2024::day23::part_2(input)),
-            ),
-            24 => (
-                |input: &str| Solution::from(y2024::day24::part_1(input)),
-                |input: &str| Solution::from(y2024::day24::part_2(input)),
-            ),
-            25 => (
-                |input: &str| Solution::from(y2024::day25::part_1(input)),
-                |input: &str| Solution::from(y2024::day25::part_2(input)),
-            ),
+            1 => make_solver!(y2024, day01),
+            2 => make_solver!(y2024, day02),
+            3 => make_solver!(y2024, day03),
+            4 => make_solver!(y2024, day04),
+            5 => make_solver!(y2024, day05),
+            6 => make_solver!(y2024, day06),
+            7 => make_solver!(y2024, day07),
+            8 => make_solver!(y2024, day08),
+            9 => make_solver!(y2024, day09),
+            10 => make_solver!(y2024, day10),
+            11 => make_solver!(y2024, day11),
+            12 => make_solver!(y2024, day12),
+            13 => make_solver!(y2024, day13),
+            14 => make_solver!(y2024, day14),
+            15 => make_solver!(y2024, day15),
+            16 => make_solver!(y2024, day16),
+            17 => make_solver!(y2024, day17),
+            18 => make_solver!(y2024, day18),
+            19 => make_solver!(y2024, day19),
+            20 => make_solver!(y2024, day20),
+            21 => make_solver!(y2024, day21),
+            22 => make_solver!(y2024, day22),
+            23 => make_solver!(y2024, day23),
+            24 => make_solver!(y2024, day24),
+            25 => make_solver!(y2024, day25),
             _ => unimplemented!(),
         },
         _ => unimplemented!(),

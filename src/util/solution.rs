@@ -18,6 +18,18 @@ pub enum Solution {
     Str(String),
 }
 
+pub type SolverFn = fn(&str) -> Solution;
+
+#[macro_export]
+macro_rules! make_solver {
+    ($year:ident, $day:ident) => {
+        (
+            |input: &str| Solution::from($year::$day::part_1(input)),
+            |input: &str| Solution::from($year::$day::part_2(input)),
+        )
+    };
+}
+
 impl Display for Solution {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {

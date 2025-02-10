@@ -26,11 +26,9 @@ struct Cli {
 fn main() {
     let cli = Cli::parse();
 
-    let years = if let Some(y) = cli.year {
-        Vec::from([y])
-    } else {
-        (2022..=2024).collect()
-    };
+    let years = cli
+        .year
+        .map_or_else(|| (2022..=2024).collect(), |y| vec![y]);
     let days: Vec<u8> = cli.days.unwrap_or((1..=25).collect());
 
     solve_with_time_tracking(years, days);

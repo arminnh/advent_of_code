@@ -10,8 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_and_test:
-    name: Rust project - latest
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout with submodules
@@ -23,3 +22,15 @@ jobs:
         run: cargo build --verbose
       - name: Test
         run: cargo test --verbose
+
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo fmt --all --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo clippy -- -D warnings

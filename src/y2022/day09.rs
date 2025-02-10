@@ -1,5 +1,3 @@
-
-
 use std::collections::HashSet;
 
 fn move_head(head: (i32, i32), direction: &str) -> (i32, i32) {
@@ -84,8 +82,6 @@ pub fn part_2(input: &str) -> usize {
 
     visited.len()
 }
-
-
 
 #[cfg(test)]
 mod tests {

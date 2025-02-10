@@ -1,5 +1,3 @@
-
-
 use regex::Regex;
 use std::usize;
 
@@ -36,8 +34,8 @@ pub fn part_2(input: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::util::util::load_input;
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str =
         "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))";

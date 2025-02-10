@@ -1,5 +1,3 @@
-
-
 use std::str::Lines;
 
 enum Direction {
@@ -28,21 +26,23 @@ fn extrapolate(nums: Vec<i32>, direction: &Direction) -> i32 {
 }
 
 pub fn part_1(input: &str) -> i32 {
-    input.lines()
+    input
+        .lines()
         .map(|line| extrapolate(parse_line(line), &Direction::Forward))
         .sum()
 }
 
 pub fn part_2(input: &str) -> i32 {
-    input.lines()
+    input
+        .lines()
         .map(|line| extrapolate(parse_line(line), &Direction::Backward))
         .sum()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::util::util::load_input;
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "0 3 6 9 12 15
 1 3 6 10 15 21

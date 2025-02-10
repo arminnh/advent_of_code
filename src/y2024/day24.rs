@@ -1,5 +1,3 @@
-
-
 use std::collections::HashMap;
 use std::usize;
 
@@ -210,11 +208,10 @@ pub fn part_2(input: &str) -> String {
     "blabla".to_string()
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::util::util::load_input;
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "x00: 1
 x01: 1

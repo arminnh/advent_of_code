@@ -1,5 +1,3 @@
-
-
 use std::collections::{HashMap, HashSet};
 use std::usize;
 
@@ -14,7 +12,10 @@ fn parse_rules(input: &str) -> Rules {
             .map(|s| s.parse::<usize>().expect("could not parse number in rule"))
             .collect();
 
-        rules.entry(rule_parts[0]).or_default().insert(rule_parts[1]);
+        rules
+            .entry(rule_parts[0])
+            .or_default()
+            .insert(rule_parts[1]);
     }
     rules
 }
@@ -92,8 +93,8 @@ pub fn part_2(input: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::util::util::load_input;
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "47|53
 97|13

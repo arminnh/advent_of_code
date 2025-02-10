@@ -154,8 +154,8 @@ pub fn part_2(input: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::util::util::load_input;
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "32T3K 765
 T55J5 684

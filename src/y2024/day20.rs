@@ -1,5 +1,3 @@
-
-
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::hash::Hash;
@@ -151,8 +149,8 @@ pub fn part_2(input: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::util::util::load_input;
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "###############
 #...#...#.....#

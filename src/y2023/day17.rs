@@ -1,5 +1,3 @@
-
-
 use std::collections::{BinaryHeap, HashSet};
 use std::str::Lines;
 use std::usize;
@@ -194,11 +192,10 @@ pub fn part_2(input: &str) -> usize {
     dijkstra(&mut grid, success, successors)
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::util::util::load_input;
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "2413432311323
 3215453535623

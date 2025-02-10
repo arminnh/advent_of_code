@@ -46,7 +46,6 @@ pub fn part_2(input: &str) -> usize {
 mod tests {
     use crate::util::util::load_input;
 
-
     use super::*;
 
     const EXAMPLE_INPUT: &str = "3   4

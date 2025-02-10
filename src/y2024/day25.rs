@@ -1,5 +1,3 @@
-
-
 use std::usize;
 
 fn parse_input(input: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
@@ -47,8 +45,8 @@ pub fn part_2(input: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::util::util::load_input;
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT: &str = "#####
 .####
@@ -97,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(&load_input("inputs/2024/day_25")),3508);
+        assert_eq!(part_1(&load_input("inputs/2024/day_25")), 3508);
     }
 
     #[test]

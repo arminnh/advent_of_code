@@ -1,5 +1,3 @@
-
-
 use std::collections::HashMap;
 use std::usize;
 
@@ -294,11 +292,10 @@ pub fn part_2(input: &str) -> usize {
     solution(input, true)
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::util::util::load_input;
     use super::*;
+    use crate::util::util::load_input;
 
     const EXAMPLE_INPUT_1: &str = "########
 #..O.O.#

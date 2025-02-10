@@ -192,10 +192,7 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(
-            solve_day(EXAMPLE_INPUT, 12, false),
-            (Some(22), None)
-        );
+        assert_eq!(solve_day(EXAMPLE_INPUT, 12, false), (Some(22), None));
     }
 
     #[test]
@@ -205,10 +202,7 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(
-            solve_day(EXAMPLE_INPUT, 12, true),
-            (None, Some((6, 1)))
-        );
+        assert_eq!(solve_day(EXAMPLE_INPUT, 12, true), (None, Some((6, 1))));
     }
 
     #[test]

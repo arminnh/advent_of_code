@@ -3,29 +3,40 @@ mod y2022;
 mod y2023;
 mod y2024;
 
-use std::env;
+use clap::{command, Parser};
 use std::time::Instant;
 use util::solution::Solution;
 use util::util::load_input;
 
+#[derive(Parser, Debug)]
+#[command(
+    name = "Advent of Code Solver",
+    about = "Solve Advent of Code puzzles with optional year and day filtering."
+)]
+struct Cli {
+    /// Year to solve (default: all years [2022-2024])
+    // #[arg(short, long)]
+    year: Option<usize>,
+
+    /// Specific days to solve (default: all days [1-25])
+    // #[arg(short, long)]
+    days: Option<Vec<u8>>,
+}
+
 fn main() {
-    let mut args: env::Args = env::args();
-    args.next();
-    let years: Vec<usize> = if let Some(y) = args.next() {
-        Vec::from([y.parse().expect("Could not parse first argument to year.")])
+    let cli = Cli::parse();
+
+    let years = if let Some(y) = cli.year {
+        Vec::from([y])
     } else {
         (2022..=2024).collect()
     };
-    let mut days: Vec<u8> = args
-        .map(|x| {
-            x.parse()
-                .unwrap_or_else(|v| panic!("Not a valid day: {}", v))
-        })
-        .collect();
-    if days.is_empty() {
-        days = (1..=25).collect();
-    };
+    let days: Vec<u8> = cli.days.unwrap_or((1..=25).collect());
 
+    solve_with_time_tracking(years, days);
+}
+
+fn solve_with_time_tracking(years: Vec<usize>, days: Vec<u8>) {
     let mut runtime = 0.0;
     let mut times: Vec<(f64, usize, u8, usize)> = Vec::new();
 

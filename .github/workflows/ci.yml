@@ -14,6 +14,11 @@ jobs:
     name: Rust project - latest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: cargo build --verbose
-      - run: cargo test --verbose
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build
+        run: cargo build --verbose
+      - name: Test
+        run: cargo test --verbose

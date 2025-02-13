@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::mem::swap;
 use std::usize;
 
 #[derive(PartialEq, Eq, Debug)]
@@ -153,6 +154,35 @@ pub fn part_1(input: &str) -> usize {
     wires_to_decimal(&wires, "z")
 }
 
+fn gate_index(gates: &Vec<(String, Gate)>, gate: &Gate) -> Option<usize> {
+    gates.iter().position(|(_, g)| g == gate)
+}
+
+fn resulting_wire(gates: &Vec<(String, Gate)>, gate: &Gate) -> String {
+    gates[gate_index(gates, gate).expect("Could not find gate")]
+        .0
+        .clone()
+}
+
+fn swap_wires(
+    gates: &mut Vec<(String, Gate)>,
+    swapped: &mut Vec<String>,
+    gate_index: usize,
+    expected: &str,
+    actual: &str,
+) {
+    let other_index = gates.iter().position(|(w, _)| w == &expected).unwrap();
+    // println!(
+    //     "swap: expected: {} at index {}, actual: {} at index {}",
+    //     expected, actual, gate_index, other_index
+    // );
+    swapped.push(expected.to_string());
+    swapped.push(actual.to_string());
+
+    gates[gate_index].0 = expected.to_string();
+    gates[other_index].0 = actual.to_string();
+}
+
 // Your system of gates and wires has four pairs of gates which need their output wires swapped - eight wires in total.
 // Determine which four pairs of gates need their outputs swapped so that your system correctly performs addition;
 // what do you get if you sort the names of the eight wires involved in a swap and then join those names with commas?
@@ -168,44 +198,61 @@ pub fn part_2(input: &str) -> String {
     //     * X_0 XOR Y_0 -> Z_0
     //     * X_0 AND Y_0 -> C_in_1
     let (_, mut gates) = parse_input(input);
+    let mut swapped = Vec::<String>::new();
 
-    let mut c_in = "mqs";
+    let mut c_in = "mqs".to_string();
+    // Iterate through each bit and ensure that gates lead to the correct wires
     for i in 1..45 {
         let x_i = format!("x{:0>2}", i);
         let y_i = format!("y{:0>2}", i);
         let z_i = format!("z{:0>2}", i);
-        println!("{} -> {}, {}, {}, c_in: {}", i, x_i, y_i, z_i, c_in);
-        let x_xor_y = Gate::from(&x_i, &y_i, Operation::XOR);
+        // println!("{} -> {}, {}, {}, c_in: {}", i, x_i, y_i, z_i, c_in);
         // X_i XOR Y_i -> tmp_1
-        let (tmp_1, _) = gates.iter().find(|(_, g)| *g == x_xor_y).expect("tmp_1");
+        let x_xor_y = Gate::from(&x_i, &y_i, Operation::XOR);
+        let mut tmp_1 = resulting_wire(&gates, &x_xor_y);
 
+        // X_i AND Y_i -> tmp_3
+        let x_and_y = Gate::from(&x_i, &y_i, Operation::AND);
+        let mut tmp_3 = resulting_wire(&gates, &x_and_y);
+
+        // Each iteration, we know which combination of wires leads to z_i. If the next wire
+        // does not result in z_i, then swap it with z_i so rest of the checks can finish successfully
         // tmp_1 XOR C_in_i -> Z_i
         let tmp1_xor_cin = Gate::from(&tmp_1, &c_in, Operation::XOR);
-        // TODO: if the following search doesn't exist, need to swap tmp1 with what is expected in the XOR with c_in to result in actual_wire
-        let (actual_wire, gate_index) = gates.iter().find(|(_, g)| *g == tmp1_xor_cin).unwrap();
-        if *actual_wire != z_i {
-            println!("Wires swapped: {}, {}", z_i, actual_wire);
-            // TODO: make the swap so rest of the checks can finish successfully
+        let i = gate_index(&gates, &tmp1_xor_cin).unwrap_or_else(|| {
+            // Gate using tmp1 could not be found. -> Must have been swapped with tmp3
+            // println!("Swapping tmp1 and tmp3");
+            let tmp_1_i = gate_index(&gates, &x_xor_y).expect("x_xor_y");
+            swap_wires(&mut gates, &mut swapped, tmp_1_i, &tmp_1, &tmp_3);
+            swap(&mut tmp_1, &mut tmp_3);
+            // Search again after swapping
+            let tmp1_xor_cin = Gate::from(&tmp_1, &c_in, Operation::XOR);
+            gate_index(&gates, &tmp1_xor_cin)
+                .expect("Could not find tmp1_xor_cin even after swapping")
+        });
+
+        let actual_wire = gates[i].0.clone();
+        if actual_wire != z_i {
+            // Expected z_i but found something else -> swap
+            swap_wires(&mut gates, &mut swapped, i, &z_i, &actual_wire);
+            if tmp_3 == z_i {
+                tmp_3 = actual_wire;
+            }
         }
 
         // tmp_1 AND C_in_i -> tmp_2
         let tmp1_and_c = Gate::from(&tmp_1, &c_in, Operation::AND);
-        let (tmp_2, _) = gates.iter().find(|(_, g)| *g == tmp1_and_c).expect("tmp2");
-
-        // X_i AND Y_i -> tmp_3
-        let x_and_y = Gate::from(&x_i, &y_i, Operation::AND);
-        let (tmp_3, _) = gates.iter().find(|(_, g)| *g == x_and_y).expect("tmp_3");
+        let tmp_2 = resulting_wire(&gates, &tmp1_and_c);
 
         // tmp_2 OR tmp_3 -> C_in_i+1
         let tmp2_or_tmp3 = Gate::from(&tmp_2, &tmp_3, Operation::OR);
-        let (next_c_in, _) = gates
-            .iter()
-            .find(|(_, g)| *g == tmp2_or_tmp3)
-            .expect("c_in");
-        c_in = next_c_in;
+        let next_c_in = resulting_wire(&gates, &tmp2_or_tmp3);
+
+        c_in = next_c_in.clone();
     }
 
-    "blabla".to_string()
+    swapped.sort();
+    swapped.join(",")
 }
 
 #[cfg(test)]

@@ -8,6 +8,10 @@ Each day has functions `part_1` and `part_2` which take a `&str` and return a pr
 
 ## Usage
 
+Set up dev environment with `nix develop` (see `flake.nix`).
+
+To activate the dev shell automatically when entering the dir: `direnv allow`.
+
 ```sh
 $ cargo run -- --help
 Solve Advent of Code puzzles with optional year and day filtering.

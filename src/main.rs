@@ -2,6 +2,7 @@ mod util;
 mod y2022;
 mod y2023;
 mod y2024;
+mod y2025;
 
 use clap::{command, Parser};
 use std::time::Instant;
@@ -138,6 +139,10 @@ fn get_day_solvers(year: usize, day: &u8) -> (SolverFn, SolverFn) {
             23 => make_solver!(y2024, day23),
             24 => make_solver!(y2024, day24),
             25 => make_solver!(y2024, day25),
+            _ => unimplemented!(),
+        },
+        2025 => match day {
+            1 => make_solver!(y2025, day01),
             _ => unimplemented!(),
         },
         _ => unimplemented!(),

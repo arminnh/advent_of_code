@@ -145,6 +145,7 @@ fn get_day_solvers(year: usize, day: &u8) -> (SolverFn, SolverFn) {
             1 => make_solver!(y2025, day01),
             2 => make_solver!(y2025, day02),
             3 => make_solver!(y2025, day03),
+            4 => make_solver!(y2025, day04),
             _ => unimplemented!(),
         },
         _ => unimplemented!(),

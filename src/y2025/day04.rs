@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, hash::Hash};
 
 type Position = (i32, i32);
 
@@ -14,8 +14,7 @@ pub fn part_1(input: &str) -> usize {
 }
 
 fn neighbors(pos: Position, paper: &HashSet<Position>) -> Vec<Position> {
-    let mut neighbors: Vec<Position> = Vec::with_capacity(4);
-    for next_pos in [
+    [
         (pos.0 + 1, pos.1 - 1),
         (pos.0 + 1, pos.1),
         (pos.0 + 1, pos.1 + 1),
@@ -24,13 +23,10 @@ fn neighbors(pos: Position, paper: &HashSet<Position>) -> Vec<Position> {
         (pos.0 - 1, pos.1 - 1),
         (pos.0 - 1, pos.1),
         (pos.0 - 1, pos.1 + 1),
-    ] {
-        if paper.contains(&next_pos) {
-            neighbors.push(next_pos);
-        }
-    }
-
-    neighbors
+    ]
+    .into_iter()
+    .filter(|&p| paper.contains(&p))
+    .collect()
 }
 
 fn parse_input(input: &str) -> HashSet<Position> {
@@ -47,9 +43,27 @@ fn parse_input(input: &str) -> HashSet<Position> {
     paper
 }
 
-// ...
+// Once a roll of paper can be accessed, it can be removed.
+// How many rolls can be removed in total?
 pub fn part_2(input: &str) -> usize {
-    0
+    let mut paper = parse_input(input);
+    let nr_of_rolls = paper.len();
+
+    loop {
+        let to_remove: HashSet<Position> = paper
+            .iter()
+            .filter(|&p| neighbors(*p, &paper).iter().count() < 4)
+            .copied()
+            .collect();
+
+        if to_remove.is_empty() {
+            break;
+        } else {
+            paper = paper.difference(&to_remove).copied().collect();
+        }
+    }
+
+    nr_of_rolls - paper.len()
 }
 
 #[cfg(test)]
@@ -79,13 +93,13 @@ mod tests {
         assert_eq!(part_1(&load_input("inputs/2025/day_4")), 1518);
     }
 
-    // #[test]
-    // fn test_part_2_example() {
-    //     assert_eq!(part_2(EXAMPLE_INPUT_1), 0);
-    // }
+    #[test]
+    fn test_part_2_example() {
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 43);
+    }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(&load_input("inputs/2025/day_4")), 0);
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(&load_input("inputs/2025/day_4")), 8665);
+    }
 }

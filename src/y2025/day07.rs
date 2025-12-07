@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 // How many times does the beam get split?
 pub fn part_1(input: &str) -> usize {
     let mut lines = input.lines();
@@ -55,9 +57,44 @@ pub fn part_1(input: &str) -> usize {
     splits
 }
 
-//
+// Now it's the timeline that splits instead of the beam. How many possible timelines are there?
 pub fn part_2(input: &str) -> usize {
-    0
+    let mut lines = input.lines();
+    let s = lines
+        .next()
+        .unwrap()
+        .find('S')
+        .expect("Could not find starting point");
+    // This time, keep count of total possible paths after each split point
+    let mut beams: HashMap<usize, usize> = HashMap::from([(s, 1)]);
+
+    // Split beams from top to bottom while iterating through the input
+    for line in lines {
+        let splitters: Vec<usize> = line
+            .char_indices()
+            .filter_map(|(i, c)| if c == '^' { Some(i) } else { None })
+            .collect();
+
+        let mut next_beams: HashMap<usize, usize> = HashMap::new();
+        for (beam, count) in beams {
+            if splitters.contains(&beam) {
+                merge_beam_counts(&mut next_beams, beam - 1, count);
+                merge_beam_counts(&mut next_beams, beam + 1, count);
+            } else {
+                merge_beam_counts(&mut next_beams, beam, count);
+            }
+        }
+        beams = next_beams;
+    }
+
+    beams.values().sum()
+}
+
+fn merge_beam_counts(next_beams: &mut HashMap<usize, usize>, beam: usize, count: usize) {
+    next_beams
+        .entry(beam)
+        .and_modify(|prev_c| *prev_c += count)
+        .or_insert(count);
 }
 
 #[cfg(test)]
@@ -93,13 +130,13 @@ mod tests {
         assert_eq!(part_1(&load_input("inputs/2025/day_7")), 1619);
     }
 
-    // #[test]
-    // fn test_part_2_example() {
-    //     assert_eq!(part_2(EXAMPLE_INPUT_1), 0);
-    // }
+    #[test]
+    fn test_part_2_example() {
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 40);
+    }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(&load_input("inputs/2025/day_7")), 0);
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(&load_input("inputs/2025/day_7")), 23607984027985);
+    }
 }

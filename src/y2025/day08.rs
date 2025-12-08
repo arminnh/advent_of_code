@@ -9,15 +9,14 @@ pub fn part_1(input: &str) -> usize {
 
 fn part_1_for_n_pairs(input: &str, n: usize) -> usize {
     let boxes = parse_input(input);
-    let mut distances = calculate_distances(boxes);
-    distances.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    let mut distances = calculate_distances(&boxes);
+    distances.select_nth_unstable(n); // sort until nth index
 
     // Collect closest pairs of boxes into circuits. Map box_id -> circuit_id
     let mut circuits: HashMap<usize, usize> = HashMap::new();
     let mut next_id = 0;
-    for _ in 0..n {
-        let (_, i, j) = distances.pop().unwrap();
-        connect_pairs(&mut circuits, &mut next_id, i, j);
+    for (_, i, j) in &distances[..n] {
+        connect_pairs(&mut circuits, &mut next_id, *i, *j);
     }
 
     // Determine size of each circuit
@@ -48,7 +47,7 @@ fn parse_input(input: &str) -> Vec<Box3D> {
         .collect()
 }
 
-fn calculate_distances(boxes: Vec<Box3D>) -> Vec<(usize, usize, usize)> {
+fn calculate_distances(boxes: &[Box3D]) -> Vec<(usize, usize, usize)> {
     // let mut distances: BinaryHeap<(f64, usize, usize)> = BinaryHeap::new();
     let mut distances = Vec::new();
     for i in 0..boxes.len() - 1 {
@@ -106,20 +105,19 @@ fn connect_pairs(
 // What do you get if you multiply together the X coordinates of the last two junction boxes you need to connect?
 pub fn part_2(input: &str) -> usize {
     let boxes = parse_input(input);
-    let mut distances = calculate_distances(boxes.clone());
-    distances.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    let mut distances = calculate_distances(&boxes);
+    distances.sort_by(|a, b| b.0.cmp(&a.0));
 
     let mut circuits: HashMap<usize, usize> = HashMap::new();
     let mut next_id = 0;
-    let mut last = (0, 0);
+    let mut result = 0;
     while let Some((_, i, j)) = distances.pop() {
-        let just_connected = connect_pairs(&mut circuits, &mut next_id, i, j);
-        if just_connected {
-            last = (boxes[i][0], boxes[j][0]);
+        if connect_pairs(&mut circuits, &mut next_id, i, j) {
+            result = boxes[i][0] * boxes[j][0];
         }
     }
 
-    last.0 * last.1
+    result
 }
 
 #[cfg(test)]

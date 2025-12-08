@@ -1,26 +1,26 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, mem::swap};
 
-type Box3D = [usize; 3];
+type Box3D = [u32; 3];
 
 // Connect 1000 pairs of nearest junction boxes. What do you get after multiplying together the sizes of the three largest circuits
-pub fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> u64 {
     part_1_for_n_pairs(input, 1000)
 }
 
-fn part_1_for_n_pairs(input: &str, n: usize) -> usize {
+fn part_1_for_n_pairs(input: &str, n: usize) -> u64 {
     let boxes = parse_input(input);
     let mut distances = calculate_distances(&boxes);
     distances.select_nth_unstable(n); // sort until nth index
 
     // Collect closest pairs of boxes into circuits. Map box_id -> circuit_id
-    let mut circuits: HashMap<usize, usize> = HashMap::new();
+    let mut circuits: HashMap<u16, u16> = HashMap::new();
     let mut next_id = 0;
-    for (_, i, j) in &distances[..n] {
-        connect_pairs(&mut circuits, &mut next_id, *i, *j);
+    for dist in &distances[..n] {
+        connect_pairs(&mut circuits, &mut next_id, dist.i, dist.j);
     }
 
     // Determine size of each circuit
-    let mut circuit_sizes: HashMap<usize, usize> = HashMap::new();
+    let mut circuit_sizes: HashMap<u16, u16> = HashMap::new();
     for id in circuits.values() {
         *circuit_sizes.entry(*id).or_insert(0) += 1;
     }
@@ -28,7 +28,7 @@ fn part_1_for_n_pairs(input: &str, n: usize) -> usize {
     // Multiply the three largest circuits
     let mut sizes: Vec<_> = circuit_sizes.values().collect();
     sizes.sort_by(|a, b| b.cmp(&a));
-    sizes.into_iter().take(3).product()
+    sizes.into_iter().take(3).map(|i| *i as u64).product()
 }
 
 fn parse_input(input: &str) -> Vec<Box3D> {
@@ -37,7 +37,7 @@ fn parse_input(input: &str) -> Vec<Box3D> {
         .map(|line| {
             let mut nums = line
                 .split(",")
-                .map(|x| x.parse::<usize>().expect("Could not parse box position"));
+                .map(|x| x.parse::<u32>().expect("Could not parse box position"));
             [
                 nums.next().unwrap(),
                 nums.next().unwrap(),
@@ -47,29 +47,36 @@ fn parse_input(input: &str) -> Vec<Box3D> {
         .collect()
 }
 
-fn calculate_distances(boxes: &[Box3D]) -> Vec<(usize, usize, usize)> {
-    // let mut distances: BinaryHeap<(f64, usize, usize)> = BinaryHeap::new();
-    let mut distances = Vec::new();
+// Smaller than (usize, usize, usize) to better fit in cache
+#[derive(Eq, Ord, PartialEq, PartialOrd)]
+struct Dist {
+    d: u64,
+    i: u16,
+    j: u16,
+}
+
+fn calculate_distances(boxes: &[Box3D]) -> Vec<Dist> {
+    let n = boxes.len();
+    let mut distances = Vec::with_capacity(n * (n - 1) / 2);
     for i in 0..boxes.len() - 1 {
         for j in i + 1..boxes.len() {
             // Dont need to sqrt, order is preserved
             let a = boxes[i];
             let b = boxes[j];
-            let d = (a[0].abs_diff(b[0])).pow(2)
-                + (a[1].abs_diff(b[1])).pow(2)
-                + (a[2].abs_diff(b[2])).pow(2);
-            distances.push((d, i, j));
+            let d = (a[0].abs_diff(b[0]) as u64).pow(2)
+                + (a[1].abs_diff(b[1]) as u64).pow(2)
+                + (a[2].abs_diff(b[2]) as u64).pow(2);
+            distances.push(Dist {
+                d: d,
+                i: i as u16,
+                j: j as u16,
+            });
         }
     }
     distances
 }
 
-fn connect_pairs(
-    circuits: &mut HashMap<usize, usize>,
-    next_id: &mut usize,
-    i: usize,
-    j: usize,
-) -> bool {
+fn connect_pairs(circuits: &mut HashMap<u16, u16>, next_id: &mut u16, i: u16, j: u16) -> bool {
     match (circuits.get(&i), circuits.get(&j)) {
         (Some(&circuit_i), Some(&circuit_j)) => {
             if circuit_i != circuit_j {
@@ -103,21 +110,52 @@ fn connect_pairs(
 
 // Keep connecting boxes until they're all in the same circuit.
 // What do you get if you multiply together the X coordinates of the last two junction boxes you need to connect?
-pub fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> u64 {
     let boxes = parse_input(input);
     let mut distances = calculate_distances(&boxes);
-    distances.sort_by(|a, b| b.0.cmp(&a.0));
+    // distances.sort_by(|left, right| right.d.cmp(&left.d));
+    distances.sort_unstable_by_key(|d| d.d);
 
-    let mut circuits: HashMap<usize, usize> = HashMap::new();
-    let mut next_id = 0;
+    // Disjoint-set/union-find (DSU) approach to connect circuits - https://en.wikipedia.org/wiki/Disjoint-set_data_structure
+    // Circuits = vec where each index (junction box) points to the set/circuit it is in
+    let mut circuits: Vec<u16> = (0..boxes.len()).map(|i| i as u16).collect();
+    let mut sizes: Vec<u16> = vec![1; boxes.len()];
     let mut result = 0;
-    while let Some((_, i, j)) = distances.pop() {
-        if connect_pairs(&mut circuits, &mut next_id, i, j) {
-            result = boxes[i][0] * boxes[j][0];
+    for dist in distances {
+        let mut circuit_i = find_circuit(dist.i, &mut circuits) as usize;
+        let mut circuit_j = find_circuit(dist.j, &mut circuits) as usize;
+
+        if circuit_i != circuit_j {
+            if sizes[circuit_i] < sizes[circuit_j] {
+                swap(&mut circuit_i, &mut circuit_j);
+            }
+
+            circuits[circuit_j] = circuit_i as u16;
+            sizes[circuit_i] += sizes[circuit_j];
+            result = boxes[dist.i as usize][0] as u64 * boxes[dist.j as usize][0] as u64;
         }
     }
 
     result
+}
+
+// Non-recursive find with path compression
+#[inline(always)]
+fn find_circuit(i: u16, circuits: &mut [u16]) -> u16 {
+    // Find root (= circuit_id)
+    let mut root = i;
+    while circuits[root as usize] != root {
+        root = circuits[root as usize];
+    }
+
+    // Set all nodes in the path to the root value
+    let mut x = i;
+    while circuits[x as usize] != x {
+        let next = circuits[x as usize];
+        circuits[x as usize] = root;
+        x = next;
+    }
+    root
 }
 
 #[cfg(test)]

@@ -121,6 +121,7 @@ pub fn part_2(input: &str) -> u64 {
     let mut circuits: Vec<u16> = (0..boxes.len()).map(|i| i as u16).collect();
     let mut sizes: Vec<u16> = vec![1; boxes.len()];
     let mut result = 0;
+    let mut unions = 0;
     for dist in distances {
         let mut circuit_i = find_circuit(dist.i, &mut circuits) as usize;
         let mut circuit_j = find_circuit(dist.j, &mut circuits) as usize;
@@ -133,6 +134,10 @@ pub fn part_2(input: &str) -> u64 {
             circuits[circuit_j] = circuit_i as u16;
             sizes[circuit_i] += sizes[circuit_j];
             result = boxes[dist.i as usize][0] as u64 * boxes[dist.j as usize][0] as u64;
+            unions += 1;
+            if unions == boxes.len() - 1 {
+                return result;
+            }
         }
     }
 

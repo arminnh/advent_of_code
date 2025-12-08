@@ -30,3 +30,4 @@ target/
 !.vscode/*.code-snippets
 
 .direnv
+.vscode

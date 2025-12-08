@@ -9,13 +9,20 @@ pub fn part_1(input: &str) -> usize {
 
 fn part_1_for_n_pairs(input: &str, n: usize) -> usize {
     let boxes = parse_input(input);
-    let distances = calculate_distances(boxes);
+    let mut distances = calculate_distances(boxes);
+    distances.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+
     // Collect closest pairs of boxes into circuits. Map box_id -> circuit_id
-    let boxes_in_circuits: HashMap<usize, usize> = connect_n_closest_pairs(n, distances);
+    let mut circuits: HashMap<usize, usize> = HashMap::new();
+    let mut next_id = 0;
+    for _ in 0..n {
+        let (_, i, j) = distances.pop().unwrap();
+        connect_pairs(&mut circuits, &mut next_id, i, j);
+    }
 
     // Determine size of each circuit
     let mut circuit_sizes: HashMap<usize, usize> = HashMap::new();
-    for id in boxes_in_circuits.values() {
+    for id in circuits.values() {
         *circuit_sizes.entry(*id).or_insert(0) += 1;
     }
 
@@ -58,46 +65,61 @@ fn calculate_distances(boxes: Vec<Box3D>) -> Vec<(usize, usize, usize)> {
     distances
 }
 
-fn connect_n_closest_pairs(
-    n: usize,
-    mut distances: Vec<(usize, usize, usize)>,
-) -> HashMap<usize, usize> {
+fn connect_pairs(
+    circuits: &mut HashMap<usize, usize>,
+    next_id: &mut usize,
+    i: usize,
+    j: usize,
+) -> bool {
+    match (circuits.get(&i), circuits.get(&j)) {
+        (Some(&circuit_i), Some(&circuit_j)) => {
+            if circuit_i != circuit_j {
+                // Merge circuits
+                for v in circuits.values_mut() {
+                    if *v == circuit_j {
+                        *v = circuit_i;
+                    }
+                }
+                true
+            } else {
+                false
+            }
+        }
+        (Some(&circuit_i), None) => {
+            circuits.insert(j, circuit_i);
+            true
+        }
+        (None, Some(&circuit_j)) => {
+            circuits.insert(i, circuit_j);
+            true
+        }
+        _ => {
+            circuits.insert(i, *next_id);
+            circuits.insert(j, *next_id);
+            *next_id += 1;
+            true
+        }
+    }
+}
+
+// Keep connecting boxes until they're all in the same circuit.
+// What do you get if you multiply together the X coordinates of the last two junction boxes you need to connect?
+pub fn part_2(input: &str) -> usize {
+    let boxes = parse_input(input);
+    let mut distances = calculate_distances(boxes.clone());
     distances.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
 
     let mut circuits: HashMap<usize, usize> = HashMap::new();
     let mut next_id = 0;
-    for _ in 0..n {
-        let (_, i, j) = distances.pop().unwrap();
-        match (circuits.get(&i), circuits.get(&j)) {
-            (Some(&circuit_i), Some(&circuit_j)) => {
-                if circuit_i != circuit_j {
-                    // Merge circuits
-                    for v in circuits.values_mut() {
-                        if *v == circuit_j {
-                            *v = circuit_i;
-                        }
-                    }
-                }
-            }
-            (Some(&circuit_i), None) => {
-                circuits.insert(j, circuit_i);
-            }
-            (None, Some(&circuit_j)) => {
-                circuits.insert(i, circuit_j);
-            }
-            _ => {
-                circuits.insert(i, next_id);
-                circuits.insert(j, next_id);
-                next_id += 1;
-            }
+    let mut last = (0, 0);
+    while let Some((_, i, j)) = distances.pop() {
+        let just_connected = connect_pairs(&mut circuits, &mut next_id, i, j);
+        if just_connected {
+            last = (boxes[i][0], boxes[j][0]);
         }
     }
-    circuits
-}
 
-//
-pub fn part_2(input: &str) -> usize {
-    0
+    last.0 * last.1
 }
 
 #[cfg(test)]
@@ -137,13 +159,13 @@ mod tests {
         assert_eq!(part_1(&load_input("inputs/2025/day_8")), 121770);
     }
 
-    // #[test]
-    // fn test_part_2_example() {
-    //     assert_eq!(part_2(EXAMPLE_INPUT_1), 0);
-    // }
+    #[test]
+    fn test_part_2_example() {
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 25272);
+    }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(&load_input("inputs/2025/day_8")), 0);
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(&load_input("inputs/2025/day_8")), 7893123992);
+    }
 }

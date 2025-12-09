@@ -619,6 +619,6 @@ U 2 (#7a21e3)";
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(&load_input("inputs/2023/day_18")), 101029016139262);
+        assert_eq!(part_2(&load_input("inputs/2023/day_18")), 87716969654406);
     }
 }

@@ -31,7 +31,8 @@ fn main() {
     let years = cli
         .year
         .map_or_else(|| (2022..=2024).collect(), |y| vec![y]);
-    let days: Vec<u8> = cli.days.unwrap_or((1..=25).collect());
+    let default_days_max = if years.contains(&2025) { 12 } else { 25 };
+    let days: Vec<u8> = cli.days.unwrap_or((1..=default_days_max).collect());
 
     solve_with_time_tracking(years, days);
 }

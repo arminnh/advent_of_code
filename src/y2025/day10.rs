@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 struct Machine {
     lights: u8,               // nr of lights, max 10
     lights_target: Vec<bool>, // target configuration of lights
-    buttons: Vec<Vec<u8>>,    // each button is a list of lights it toggles
+    buttons: Vec<Vec<u8>>,    // each button is a list of lights indices it toggles
     joltage_target: Vec<u16>, // part 2: buttons increment joltage counters instead of toggling lights
 }
 
@@ -64,24 +64,38 @@ fn fewest_button_presses(machine: Machine) -> usize {
     // Each press of a button toggles the lights
     // So pressing it once is the same as pressing any uneven number of times
     // In other words: look for the combination of buttons that results in the target
-    let start_state: Vec<bool> = (0..machine.lights).map(|_| false).collect();
     // Will check each possible combination, starting with each button by itself
     let mut combinations: VecDeque<Vec<usize>> =
         (0..machine.buttons.len()).map(|i| vec![i]).collect();
+    // Convert list of booleans into one number for easy XOR
+    let target_state: u16 =
+        machine.lights_target.iter().rev().fold(
+            0,
+            |acc, b| {
+                if *b {
+                    (acc << 1) + 1
+                } else {
+                    acc << 1
+                }
+            },
+        );
+    // Convert buttons from nested vecs of indices to vec of u16 for XORing with
+    let buttons: Vec<u16> = machine
+        .buttons
+        .iter()
+        .map(|button| button.iter().fold(0, |acc, i| acc + (1 << i)))
+        .collect();
 
     while let Some(combination) = combinations.pop_front() {
-        let mut state = start_state.clone();
-        let nr_of_buttons = combination.len();
+        let mut state: u16 = 0;
         for button_index in &combination {
-            for i in machine.buttons[*button_index].clone() {
-                state[i as usize] = !state[i as usize];
-            }
+            state ^= buttons[*button_index];
         }
-        if state == machine.lights_target {
-            return nr_of_buttons;
+        if state == target_state {
+            return combination.len();
         }
         // Form next combinations by adding buttons after the last one used in the current combination
-        let last_button_index = combination[nr_of_buttons - 1];
+        let last_button_index = combination[combination.len() - 1];
         for j in last_button_index + 1..machine.buttons.len() {
             combinations.push_back(combination.iter().copied().chain([j].into_iter()).collect());
         }

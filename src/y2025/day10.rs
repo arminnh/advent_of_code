@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 #[derive(Debug)]
 struct Machine {
     lights: u8,               // nr of lights, max 10
@@ -59,33 +61,35 @@ pub fn part_1(input: &str) -> usize {
 
 // The least nr of button presses to set the machine to the target configuration
 fn fewest_button_presses(machine: Machine) -> usize {
+    // Each press of a button toggles the lights
+    // So pressing it once is the same as pressing any uneven number of times
+    // In other words: look for the combination of buttons that results in the target
     let start_state: Vec<bool> = (0..machine.lights).map(|_| false).collect();
-    let mut presses = 0;
-    // Bruteforce search approach -- just try all combinations until the target is reached
-    let mut states: Vec<Vec<bool>> = Vec::from([start_state]);
-    // let mut paths: VecDeque<(Vec<bool>)> =
-    //     machine.buttons.iter().map(|b| (start_state, *b)).collect();
-    while !states.contains(&machine.lights_target) {
-        let mut next_states = Vec::new();
-        for s in states {
-            for b in &machine.buttons {
-                next_states.push(next_state(s.clone(), b));
+    // Will check each possible combination, starting with each button by itself
+    let mut combinations: VecDeque<Vec<usize>> =
+        (0..machine.buttons.len()).map(|i| vec![i]).collect();
+
+    while let Some(combination) = combinations.pop_front() {
+        let mut state = start_state.clone();
+        let nr_of_buttons = combination.len();
+        for button_index in &combination {
+            for i in machine.buttons[*button_index].clone() {
+                state[i as usize] = !state[i as usize];
             }
         }
-        states = next_states;
-        presses += 1;
+        if state == machine.lights_target {
+            return nr_of_buttons;
+        }
+        // Form next combinations by adding buttons after the last one used in the current combination
+        let last_button_index = combination[nr_of_buttons - 1];
+        for j in last_button_index + 1..machine.buttons.len() {
+            combinations.push_back(combination.iter().copied().chain([j].into_iter()).collect());
+        }
     }
-    presses
+    0
 }
 
-fn next_state(mut state: Vec<bool>, button: &Vec<u8>) -> Vec<bool> {
-    for i in button {
-        state[*i as usize] = !state[*i as usize];
-    }
-    state
-}
-
-// What is the fewest button presses required to correctly configure the joltage level counters on all of the machines?
+// What is the lowest nr of button presses required to configure the joltage counters on all of the machines?
 pub fn part_2(input: &str) -> usize {
     0
 }

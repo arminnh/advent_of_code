@@ -62,6 +62,7 @@
               cargo-watch
               rust-analyzer
               gcc
+              graphviz # e.g. dot -Tpng inputs/2025/day_11.dot -o outputs/2025/day11.png
             ];
 
             env = {

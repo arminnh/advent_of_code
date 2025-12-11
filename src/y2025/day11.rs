@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 // How many different paths lead from `you` to `out`?
 pub fn part_1(input: &str) -> usize {
@@ -50,10 +50,11 @@ fn nr_of_paths(
     // Since it's directed without cycles, and we want all possible paths, can just keep a list of nodes currently being visited
     let mut paths: Vec<u16> = Vec::from([source]);
     // Visit all states after target. Don't want to explore those
-    let mut visited: HashSet<u16> = HashSet::new();
+    let mut visited: Vec<u8> = vec![0; mapping.len()];
     let mut after_target = vec![target];
     while let Some(node) = after_target.pop() {
-        if visited.insert(node) {
+        if visited[node as usize] == 0 {
+            visited[node as usize] = 1;
             if let Some(next_nodes) = graph.get(&node) {
                 for next in next_nodes {
                     after_target.push(*next);
@@ -61,7 +62,6 @@ fn nr_of_paths(
             }
         }
     }
-    // println!("Ignoring {} nodes", visited.len());
 
     let mut result = 0;
     while let Some(node) = paths.pop() {
@@ -69,7 +69,7 @@ fn nr_of_paths(
             for next in next_nodes {
                 if *next == target {
                     result += 1;
-                } else if !visited.contains(next) {
+                } else if visited[*next as usize] == 0 {
                     paths.push(*next);
                 }
             }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 // How many different paths lead from `you` to `out`?
 pub fn part_1(input: &str) -> usize {
@@ -7,33 +7,70 @@ pub fn part_1(input: &str) -> usize {
     Visualized graphs of example and real data shows no cycles
     Real data represents massive directed graph with a few fully connected layers of 3 to 5 nodes
     Between these fully connected layers are about 100 nodes forming many paths
+    Paths between nodes can be different lengths
     The `you` node is in the last connected layer.
     Path length from `you` to `out` seems to be 7. Simple DFS should be fine for part 1.
     */
-    let graph: HashMap<&str, Vec<&str>> = input
-        .lines()
-        .map(|line| {
-            let (source, targets) = line.split_once(": ").unwrap();
-            (
-                source,
-                targets
-                    .split_whitespace()
-                    .map(|target| target)
-                    .collect::<Vec<&str>>(),
-            )
-        })
-        .collect();
+    let (graph, mapping) = parse_graph(input);
+    nr_of_paths(&graph, &mapping, "you", "out")
+}
 
+fn parse_graph(input: &str) -> (HashMap<u16, Vec<u16>>, Vec<&str>) {
+    // Map each str to a u16
+    let mut mapping: Vec<&str> = Vec::new();
+    let mut graph: HashMap<u16, Vec<u16>> = HashMap::new();
+    for line in input.lines() {
+        let (source, targets) = line.split_once(": ").unwrap();
+        if !mapping.contains(&source) {
+            mapping.push(source);
+        }
+        for target in targets.split_whitespace() {
+            if !mapping.contains(&target) {
+                mapping.push(target);
+            }
+            let source_index = mapping.iter().position(|m| *m == source).unwrap() as u16;
+            let target_index = mapping.iter().position(|m| *m == target).unwrap() as u16;
+            graph
+                .entry(source_index)
+                .and_modify(|m| m.push(target_index))
+                .or_insert(vec![target_index]);
+        }
+    }
+    (graph, mapping)
+}
+
+fn nr_of_paths(
+    graph: &HashMap<u16, Vec<u16>>,
+    mapping: &Vec<&str>,
+    source: &str,
+    target: &str,
+) -> usize {
+    let source = mapping.iter().position(|m| *m == source).unwrap() as u16;
+    let target = mapping.iter().position(|m| *m == target).unwrap() as u16;
     // Since it's directed without cycles, and we want all possible paths, can just keep a list of nodes currently being visited
-    let mut paths: Vec<&str> = Vec::from(["you"]);
+    let mut paths: Vec<u16> = Vec::from([source]);
+    // Visit all states after target. Don't want to explore those
+    let mut visited: HashSet<u16> = HashSet::new();
+    let mut after_target = vec![target];
+    while let Some(node) = after_target.pop() {
+        if visited.insert(node) {
+            if let Some(next_nodes) = graph.get(&node) {
+                for next in next_nodes {
+                    after_target.push(*next);
+                }
+            }
+        }
+    }
+    // println!("Ignoring {} nodes", visited.len());
+
     let mut result = 0;
     while let Some(node) = paths.pop() {
-        if let Some(next_nodes) = graph.get(node) {
+        if let Some(next_nodes) = graph.get(&node) {
             for next in next_nodes {
-                if *next == "out" {
+                if *next == target {
                     result += 1;
-                } else {
-                    paths.push(next);
+                } else if !visited.contains(next) {
+                    paths.push(*next);
                 }
             }
         }
@@ -41,9 +78,19 @@ pub fn part_1(input: &str) -> usize {
     result
 }
 
-//
+// Now find the number of paths that lead from `svr` to `out` while passing through both `dac` and `fft`
 pub fn part_2(input: &str) -> usize {
-    0
+    // svr is the first node in the graph
+    // fft is between the second and third fully connected layers
+    // dac is between layers 5 and 6
+    let (graph, mapping) = parse_graph(input);
+    let first = nr_of_paths(&graph, &mapping, "svr", "fft");
+    println!(" first: {}", first);
+    let second = nr_of_paths(&graph, &mapping, "fft", "dac");
+    println!(" second: {}", second);
+    let third = nr_of_paths(&graph, &mapping, "dac", "out");
+    println!(" third: {}", third);
+    first * second * third
 }
 
 #[cfg(test)]
@@ -63,6 +110,20 @@ ggg: out
 hhh: ccc fff iii
 iii: out";
 
+    const EXAMPLE_INPUT_2: &str = "svr: aaa bbb
+aaa: fft
+fft: ccc
+bbb: tty
+tty: ccc
+ccc: ddd eee
+ddd: hub
+hub: fff
+eee: dac
+dac: fff
+fff: ggg hhh
+ggg: out
+hhh: out";
+
     #[test]
     fn test_part_1_example() {
         assert_eq!(part_1(EXAMPLE_INPUT_1), 5);
@@ -73,13 +134,13 @@ iii: out";
         assert_eq!(part_1(&load_input("inputs/2025/day_11")), 733);
     }
 
-    // #[test]
-    // fn test_part_2_example() {
-    //     assert_eq!(part_2(EXAMPLE_INPUT_1), 0);
-    // }
+    #[test]
+    fn test_part_2_example() {
+        assert_eq!(part_2(EXAMPLE_INPUT_2), 2);
+    }
 
     // #[test]
     // fn test_part_2() {
-    //     assert_eq!(part_2(&load_input("inputs/2025/day_11")), 0);
+    //     assert_eq!(part_2(&load_input("inputs/2025/day_11")), 290_219_757_077_250);
     // }
 }

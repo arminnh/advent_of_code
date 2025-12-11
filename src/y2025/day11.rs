@@ -11,63 +11,66 @@ pub fn part_1(input: &str) -> usize {
     The `you` node is in the last connected layer.
     Path length from `you` to `out` seems to be 7. Simple DFS should be fine for part 1.
     */
-    let (graph, mapping) = parse_graph(input);
-    let source = mapping.iter().position(|m| *m == "you").unwrap();
-    let target = mapping.iter().position(|m| *m == "out").unwrap();
-    nr_of_paths(&graph, &mut HashMap::new(), source, target)
+    let graph = parse_graph(input);
+    nr_of_paths(&graph, &mut HashMap::new(), "you", "out")
 }
 
-fn parse_graph(input: &str) -> (Vec<Vec<usize>>, Vec<&str>) {
-    // Map each str to a usize
-    let mut mapping: Vec<&str> = Vec::new();
-    for line in input.lines() {
-        let (source, targets) = line.split_once(": ").unwrap();
-        if !mapping.contains(&source) {
-            mapping.push(source);
-        }
+// First bruteforce solution for part 1 was just was fast as the final solution with memoization (0.2ms)
+// Since it's directed without cycles, and we want all possible paths, can just keep a list of nodes currently being visited
+// let mut paths: Vec<&str> = Vec::from(["you"]);
+// let mut result = 0;
+// while let Some(node) = paths.pop() {
+//     if let Some(next_nodes) = graph.get(node) {
+//         for next in next_nodes {
+//             if *next == "out" {
+//                 result += 1;
+//             } else {
+//                 paths.push(next);
+//             }
+//         }
+//     }
+// }
+// result
 
-        for target in targets.split_whitespace() {
-            if !mapping.contains(&target) {
-                mapping.push(target);
-            }
-        }
-    }
-
-    // Each position in graph vec maps the index of the source to the indices of the targets
-    let mut graph: Vec<Vec<usize>> = vec![vec![]; mapping.len()];
-    for line in input.lines() {
-        let (source, targets) = line.split_once(": ").unwrap();
-        let source_index = mapping.iter().position(|m| *m == source).unwrap();
-
-        let targets = targets
-            .split_whitespace()
-            .map(|target| mapping.iter().position(|m| *m == target).unwrap())
-            .collect();
-
-        graph[source_index] = targets;
-    }
-    (graph, mapping)
+fn parse_graph(input: &str) -> HashMap<&str, Vec<&str>> {
+    input
+        .lines()
+        .map(|line| {
+            let (source, targets) = line.split_once(": ").unwrap();
+            (
+                source,
+                targets
+                    .split_whitespace()
+                    .map(|target| target)
+                    .collect::<Vec<&str>>(),
+            )
+        })
+        .collect()
 }
 
-fn nr_of_paths(
-    graph: &Vec<Vec<usize>>,
-    cache: &mut HashMap<usize, usize>,
-    source: usize,
-    target: usize,
+fn nr_of_paths<'a>(
+    graph: &'a HashMap<&str, Vec<&str>>,
+    cache: &mut HashMap<&'a str, usize>,
+    source: &'a str,
+    target: &str,
 ) -> usize {
-    if let Some(count) = cache.get(&source) {
+    if let Some(count) = cache.get(source) {
         return *count;
     } else {
-        let count = graph[source]
-            .iter()
-            .map(|next| {
-                if *next == target {
-                    1
-                } else {
-                    nr_of_paths(graph, cache, *next, target)
-                }
-            })
-            .sum::<usize>();
+        let count = if let Some(next_nodes) = graph.get(source) {
+            next_nodes
+                .iter()
+                .map(|next| {
+                    if *next == target {
+                        1
+                    } else {
+                        nr_of_paths(graph, cache, *next, target)
+                    }
+                })
+                .sum()
+        } else {
+            0
+        };
         cache.insert(source, count);
         return count;
     }
@@ -78,18 +81,11 @@ pub fn part_2(input: &str) -> usize {
     // svr is the first node in the graph
     // fft is between the second and third fully connected layers
     // dac is between layers 5 and 6
-    let (graph, mapping) = parse_graph(input);
-    let svr = mapping.iter().position(|m| *m == "svr").unwrap();
-    let fft = mapping.iter().position(|m| *m == "fft").unwrap();
-    let dac = mapping.iter().position(|m| *m == "dac").unwrap();
-    let out = mapping.iter().position(|m| *m == "out").unwrap();
-    let first = nr_of_paths(&graph, &mut HashMap::new(), svr, fft);
-    // println!(" first: {}", first);
-    let second = nr_of_paths(&graph, &mut HashMap::new(), fft, dac);
-    // println!(" second: {}", second);
-    let third = nr_of_paths(&graph, &mut HashMap::new(), dac, out);
-    // println!(" third: {}", third);
-    first * second * third
+    let graph = parse_graph(input);
+
+    nr_of_paths(&graph, &mut HashMap::new(), "svr", "fft")
+        * nr_of_paths(&graph, &mut HashMap::new(), "fft", "dac")
+        * nr_of_paths(&graph, &mut HashMap::new(), "dac", "out")
 }
 
 #[cfg(test)]

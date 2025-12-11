@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 // How many different paths lead from `you` to `out`?
 pub fn part_1(input: &str) -> usize {
     /*
@@ -15,63 +13,62 @@ pub fn part_1(input: &str) -> usize {
     nr_of_paths(&graph, &mapping, "you", "out")
 }
 
-fn parse_graph(input: &str) -> (HashMap<u16, Vec<u16>>, Vec<&str>) {
-    // Map each str to a u16
+fn parse_graph(input: &str) -> (Vec<Vec<usize>>, Vec<&str>) {
+    // Map each str to a usize
     let mut mapping: Vec<&str> = Vec::new();
-    let mut graph: HashMap<u16, Vec<u16>> = HashMap::new();
     for line in input.lines() {
         let (source, targets) = line.split_once(": ").unwrap();
         if !mapping.contains(&source) {
             mapping.push(source);
         }
+
         for target in targets.split_whitespace() {
             if !mapping.contains(&target) {
                 mapping.push(target);
             }
-            let source_index = mapping.iter().position(|m| *m == source).unwrap() as u16;
-            let target_index = mapping.iter().position(|m| *m == target).unwrap() as u16;
-            graph
-                .entry(source_index)
-                .and_modify(|m| m.push(target_index))
-                .or_insert(vec![target_index]);
         }
+    }
+
+    // Each position in graph vec maps the index of the source to the indices of the targets
+    let mut graph: Vec<Vec<usize>> = vec![vec![]; mapping.len()];
+    for line in input.lines() {
+        let (source, targets) = line.split_once(": ").unwrap();
+        let source_index = mapping.iter().position(|m| *m == source).unwrap();
+
+        let targets = targets
+            .split_whitespace()
+            .map(|target| mapping.iter().position(|m| *m == target).unwrap())
+            .collect();
+
+        graph[source_index] = targets;
     }
     (graph, mapping)
 }
 
-fn nr_of_paths(
-    graph: &HashMap<u16, Vec<u16>>,
-    mapping: &Vec<&str>,
-    source: &str,
-    target: &str,
-) -> usize {
-    let source = mapping.iter().position(|m| *m == source).unwrap() as u16;
-    let target = mapping.iter().position(|m| *m == target).unwrap() as u16;
+fn nr_of_paths(graph: &Vec<Vec<usize>>, mapping: &Vec<&str>, source: &str, target: &str) -> usize {
+    let source = mapping.iter().position(|m| *m == source).unwrap();
+    let target = mapping.iter().position(|m| *m == target).unwrap();
     // Since it's directed without cycles, and we want all possible paths, can just keep a list of nodes currently being visited
-    let mut paths: Vec<u16> = Vec::from([source]);
+    let mut paths: Vec<usize> = Vec::from([source]);
     // Visit all states after target. Don't want to explore those
     let mut visited: Vec<u8> = vec![0; mapping.len()];
     let mut after_target = vec![target];
     while let Some(node) = after_target.pop() {
-        if visited[node as usize] == 0 {
-            visited[node as usize] = 1;
-            if let Some(next_nodes) = graph.get(&node) {
-                for next in next_nodes {
-                    after_target.push(*next);
-                }
+        if visited[node] == 0 {
+            visited[node] = 1;
+            for next in graph[node].iter() {
+                after_target.push(*next);
             }
         }
     }
 
     let mut result = 0;
     while let Some(node) = paths.pop() {
-        if let Some(next_nodes) = graph.get(&node) {
-            for next in next_nodes {
-                if *next == target {
-                    result += 1;
-                } else if visited[*next as usize] == 0 {
-                    paths.push(*next);
-                }
+        for next in graph[node].iter() {
+            if *next == target {
+                result += 1;
+            } else if visited[*next] == 0 {
+                paths.push(*next);
             }
         }
     }
@@ -85,11 +82,11 @@ pub fn part_2(input: &str) -> usize {
     // dac is between layers 5 and 6
     let (graph, mapping) = parse_graph(input);
     let first = nr_of_paths(&graph, &mapping, "svr", "fft");
-    println!(" first: {}", first);
+    // println!(" first: {}", first);
     let second = nr_of_paths(&graph, &mapping, "fft", "dac");
-    println!(" second: {}", second);
+    // println!(" second: {}", second);
     let third = nr_of_paths(&graph, &mapping, "dac", "out");
-    println!(" third: {}", third);
+    // println!(" third: {}", third);
     first * second * third
 }
 
@@ -139,8 +136,11 @@ hhh: out";
         assert_eq!(part_2(EXAMPLE_INPUT_2), 2);
     }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(&load_input("inputs/2025/day_11")), 290_219_757_077_250);
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(
+            part_2(&load_input("inputs/2025/day_11")),
+            290_219_757_077_250
+        );
+    }
 }

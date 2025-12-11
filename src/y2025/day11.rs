@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 // How many different paths lead from `you` to `out`?
 pub fn part_1(input: &str) -> usize {
     /*
@@ -10,7 +12,9 @@ pub fn part_1(input: &str) -> usize {
     Path length from `you` to `out` seems to be 7. Simple DFS should be fine for part 1.
     */
     let (graph, mapping) = parse_graph(input);
-    nr_of_paths(&graph, &mapping, "you", "out")
+    let source = mapping.iter().position(|m| *m == "you").unwrap();
+    let target = mapping.iter().position(|m| *m == "out").unwrap();
+    nr_of_paths(&graph, &mut HashMap::new(), source, target)
 }
 
 fn parse_graph(input: &str) -> (Vec<Vec<usize>>, Vec<&str>) {
@@ -45,34 +49,28 @@ fn parse_graph(input: &str) -> (Vec<Vec<usize>>, Vec<&str>) {
     (graph, mapping)
 }
 
-fn nr_of_paths(graph: &Vec<Vec<usize>>, mapping: &Vec<&str>, source: &str, target: &str) -> usize {
-    let source = mapping.iter().position(|m| *m == source).unwrap();
-    let target = mapping.iter().position(|m| *m == target).unwrap();
-    // Since it's directed without cycles, and we want all possible paths, can just keep a list of nodes currently being visited
-    let mut paths: Vec<usize> = Vec::from([source]);
-    // Visit all states after target. Don't want to explore those
-    let mut visited: Vec<u8> = vec![0; mapping.len()];
-    let mut after_target = vec![target];
-    while let Some(node) = after_target.pop() {
-        if visited[node] == 0 {
-            visited[node] = 1;
-            for next in graph[node].iter() {
-                after_target.push(*next);
-            }
-        }
+fn nr_of_paths(
+    graph: &Vec<Vec<usize>>,
+    cache: &mut HashMap<usize, usize>,
+    source: usize,
+    target: usize,
+) -> usize {
+    if let Some(count) = cache.get(&source) {
+        return *count;
+    } else {
+        let count = graph[source]
+            .iter()
+            .map(|next| {
+                if *next == target {
+                    1
+                } else {
+                    nr_of_paths(graph, cache, *next, target)
+                }
+            })
+            .sum::<usize>();
+        cache.insert(source, count);
+        return count;
     }
-
-    let mut result = 0;
-    while let Some(node) = paths.pop() {
-        for next in graph[node].iter() {
-            if *next == target {
-                result += 1;
-            } else if visited[*next] == 0 {
-                paths.push(*next);
-            }
-        }
-    }
-    result
 }
 
 // Now find the number of paths that lead from `svr` to `out` while passing through both `dac` and `fft`
@@ -81,11 +79,15 @@ pub fn part_2(input: &str) -> usize {
     // fft is between the second and third fully connected layers
     // dac is between layers 5 and 6
     let (graph, mapping) = parse_graph(input);
-    let first = nr_of_paths(&graph, &mapping, "svr", "fft");
+    let svr = mapping.iter().position(|m| *m == "svr").unwrap();
+    let fft = mapping.iter().position(|m| *m == "fft").unwrap();
+    let dac = mapping.iter().position(|m| *m == "dac").unwrap();
+    let out = mapping.iter().position(|m| *m == "out").unwrap();
+    let first = nr_of_paths(&graph, &mut HashMap::new(), svr, fft);
     // println!(" first: {}", first);
-    let second = nr_of_paths(&graph, &mapping, "fft", "dac");
+    let second = nr_of_paths(&graph, &mut HashMap::new(), fft, dac);
     // println!(" second: {}", second);
-    let third = nr_of_paths(&graph, &mapping, "dac", "out");
+    let third = nr_of_paths(&graph, &mut HashMap::new(), dac, out);
     // println!(" third: {}", third);
     first * second * third
 }

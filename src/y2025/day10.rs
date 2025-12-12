@@ -1,85 +1,69 @@
 use std::collections::{BinaryHeap, HashMap, VecDeque};
 
-#[derive(Debug)]
-struct Machine {
-    lights_target: Vec<bool>, // target configuration of lights
-    buttons: Vec<Vec<u8>>,    // each button is a list of lights indices it toggles
-    joltage_target: Vec<u16>, // part 2: buttons increment joltage counters instead of toggling lights
-}
-
-impl From<&str> for Machine {
-    fn from(value: &str) -> Self {
-        let parts: Vec<&str> = value.split_whitespace().collect();
-        let lights: Vec<bool> = parts[0]
-            .chars()
-            .filter_map(|c| {
-                if c == '#' {
-                    Some(true)
-                } else if c == '.' {
-                    Some(false)
-                } else {
-                    None // Ignore brackets
-                }
-            })
-            .collect();
-        let buttons: Vec<Vec<u8>> = parts[1..parts.len() - 1]
-            .iter()
-            .map(|s| {
-                s[1..s.len() - 1] // skip brackets
-                    .split(',')
-                    .map(|c| c.parse::<u8>().expect("Could not parse light nr"))
-                    .collect()
-            })
-            .collect();
-        let joltage_str = parts[parts.len() - 1];
-        let joltage: Vec<u16> = joltage_str[1..joltage_str.len() - 1]
-            .split(',')
-            .map(|c| c.parse::<u16>().expect("Could not parse joltage nr"))
-            .collect();
-        if lights.len() != joltage.len() {
-            panic!("Nr of lights does not equal nr of joltage counters");
-        }
-
-        Machine {
-            lights_target: lights,
-            buttons: buttons,
-            joltage_target: joltage,
-        }
-    }
-}
+type Buttons = Vec<Vec<u8>>;
+type Lights = Vec<bool>;
+type Joltage = Vec<u16>;
 
 // What is the lowest nr of button presses required to configure the lights on all of the machines
 pub fn part_1(input: &str) -> usize {
     input
         .lines()
-        .map(|line| Machine::from(line))
-        .map(|machine| fewest_button_presses_lights(machine))
+        .map(|line| parse_buttons_and_lights(line))
+        .map(|(buttons, lights)| fewest_button_presses_for_lights(buttons, lights))
         .sum()
 }
 
+fn parse_buttons_and_lights(line: &str) -> (Buttons, Lights) {
+    let parts: Vec<&str> = line.split_whitespace().collect();
+
+    (
+        parse_buttons(&parts[1..parts.len() - 1]),
+        parse_lights(&parts[0]),
+    )
+}
+
+fn parse_lights(lights: &str) -> Lights {
+    lights
+        .chars()
+        .filter_map(|c| {
+            if c == '#' {
+                Some(true)
+            } else if c == '.' {
+                Some(false)
+            } else {
+                None // Ignore brackets
+            }
+        })
+        .collect()
+}
+
+fn parse_buttons(buttons: &[&str]) -> Buttons {
+    buttons
+        .iter()
+        .map(|s| {
+            s[1..s.len() - 1] // skip brackets
+                .split(',')
+                .map(|c| c.parse::<u8>().expect("Could not parse index in button"))
+                .collect()
+        })
+        .collect()
+}
+
 // The least nr of button presses to set the machine to the target lights configuration
-fn fewest_button_presses_lights(machine: Machine) -> usize {
+fn fewest_button_presses_for_lights(buttons: Buttons, lights: Lights) -> usize {
     // Each press of a button toggles the lights
     // So pressing it once is the same as pressing any uneven number of times
     // In other words: look for the combination of buttons that results in the target
     // Will check each possible combination, starting with each button by itself
-    let mut combinations: VecDeque<Vec<usize>> =
-        (0..machine.buttons.len()).map(|i| vec![i]).collect();
+    let mut combinations: VecDeque<Vec<usize>> = (0..buttons.len()).map(|i| vec![i]).collect();
+
     // Convert list of booleans into one number for easy XOR
-    let target_state: u16 =
-        machine.lights_target.iter().rev().fold(
-            0,
-            |acc, b| {
-                if *b {
-                    (acc << 1) + 1
-                } else {
-                    acc << 1
-                }
-            },
-        );
+    let target_state: u16 = lights
+        .iter()
+        .rev()
+        .fold(0, |acc, b| if *b { (acc << 1) + 1 } else { acc << 1 });
     // Convert buttons from nested vecs of indices to vec of u16 for XORing with
-    let buttons: Vec<u16> = machine
-        .buttons
+    let buttons: Vec<u16> = buttons
         .iter()
         .map(|button| button.iter().fold(0, |acc, i| acc + (1 << i)))
         .collect();
@@ -94,7 +78,7 @@ fn fewest_button_presses_lights(machine: Machine) -> usize {
         }
         // Form next combinations by adding buttons after the last one used in the current combination
         let last_button_index = combination[combination.len() - 1];
-        for j in last_button_index + 1..machine.buttons.len() {
+        for j in last_button_index + 1..buttons.len() {
             combinations.push_back(combination.iter().copied().chain([j].into_iter()).collect());
         }
     }
@@ -102,17 +86,7 @@ fn fewest_button_presses_lights(machine: Machine) -> usize {
 }
 
 // What is the lowest nr of button presses required to configure the joltage counters on all of the machines?
-pub fn part_2(input: &str) -> usize {
-    input
-        .lines()
-        .map(|line| Machine::from(line))
-        .map(|machine| fewest_button_presses_joltage(machine))
-        .sum()
-}
-
 /*
-The least nr of button presses to set the machine to the target joltage counters
-
 Search space has exploded, since now targeting a list of numbers instead of a list of booleans. XOR trick won't work.
 First row in input has 13 buttons and highest counter of 66. So search space of 13^66 for only first of 200 machines.
 Too many states for BFS/DFS. Could not make it work with an A* heuristic.
@@ -134,10 +108,31 @@ Will try solving by:
 3. Search valid combinations of free variables (or nullspace parametrization?)
 4. Select combination resulting in min x
 */
-fn fewest_button_presses_joltage(machine: Machine) -> usize {
-    println!("{:?}", machine);
+pub fn part_2(input: &str) -> usize {
+    input
+        .lines()
+        .map(|line| parse_buttons_and_joltage(line))
+        .map(|(buttons, joltage)| fewest_button_presses_for_joltage_a_star(buttons, joltage))
+        .sum()
+}
+
+fn parse_buttons_and_joltage(line: &str) -> (Buttons, Joltage) {
+    let parts: Vec<&str> = line.split_whitespace().collect();
+    let buttons = parse_buttons(&parts[1..parts.len() - 1]);
+    let joltage_str = parts[parts.len() - 1];
+    let joltage: Joltage = joltage_str[1..joltage_str.len() - 1]
+        .split(',')
+        .map(|c| c.parse::<u16>().expect("Could not parse joltage nr"))
+        .collect();
+
+    (buttons, joltage)
+}
+
+// A* worked fine for example. Not good enough for actual input
+fn fewest_button_presses_for_joltage_a_star(buttons: Buttons, joltage: Joltage) -> usize {
+    println!("{:?}, {:?}", buttons, joltage);
     // state = joltage counts sum, joltage counts & nr of button presses
-    let start_state = (0, vec![0; machine.joltage_target.len()], 0);
+    let start_state = (0, vec![0; joltage.len()], 0);
     let mut frontier: BinaryHeap<(isize, Vec<u16>, usize)> =
         BinaryHeap::from([start_state.clone()]);
     // keep track of minimum number of presses needed to reach each state
@@ -147,25 +142,25 @@ fn fewest_button_presses_joltage(machine: Machine) -> usize {
     let h = |counts: &[u16]| -> usize {
         counts
             .iter()
-            .zip(machine.joltage_target.iter())
+            .zip(joltage.iter())
             .map(|(c, t)| *t - *c)
             .max()
             .unwrap_or(0) as usize
     };
 
     while let Some((_, counts, presses)) = frontier.pop() {
-        if counts == machine.joltage_target {
-            println!("---> {}", presses);
+        if counts == joltage {
             return presses;
         }
 
-        for button in &machine.buttons {
+        for button in &buttons {
             let mut next_counts = counts.clone();
+            // stop exploring if a joltage counter has been exceeded
             let mut exceeded = false;
             for b in button {
                 let joltage_i = *b as usize;
                 next_counts[joltage_i] += 1;
-                if next_counts[joltage_i] > machine.joltage_target[joltage_i] {
+                if next_counts[joltage_i] > joltage[joltage_i] {
                     exceeded = true;
                     break;
                 }

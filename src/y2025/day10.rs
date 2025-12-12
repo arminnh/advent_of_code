@@ -9,7 +9,7 @@ pub fn part_1(input: &str) -> usize {
     input
         .lines()
         .map(|line| parse_buttons_and_lights(line))
-        .map(|(buttons, lights)| fewest_button_presses_for_lights(buttons, lights))
+        .map(|(buttons, lights)| fewest_button_presses_for_lights(&buttons, lights))
         .sum()
 }
 
@@ -50,7 +50,7 @@ fn parse_buttons(buttons: &[&str]) -> Buttons {
 }
 
 // The least nr of button presses to set the machine to the target lights configuration
-fn fewest_button_presses_for_lights(buttons: Buttons, lights: Lights) -> usize {
+fn fewest_button_presses_for_lights(buttons: &Buttons, lights: Lights) -> usize {
     // Each press of a button toggles the lights
     // So pressing it once is the same as pressing any uneven number of times
     // In other words: look for the combination of buttons that results in the target
@@ -112,7 +112,9 @@ pub fn part_2(input: &str) -> usize {
     input
         .lines()
         .map(|line| parse_buttons_and_joltage(line))
-        .map(|(buttons, joltage)| fewest_button_presses_for_joltage_a_star(buttons, joltage))
+        .map(|(buttons, joltage)| {
+            fewest_button_presses_for_joltage_bifurcation(&buttons, joltage, &mut HashMap::new())
+        })
         .sum()
 }
 
@@ -129,6 +131,7 @@ fn parse_buttons_and_joltage(line: &str) -> (Buttons, Joltage) {
 }
 
 // A* worked fine for example. Not good enough for actual input
+#[allow(dead_code)]
 fn fewest_button_presses_for_joltage_a_star(buttons: Buttons, joltage: Joltage) -> usize {
     println!("{:?}, {:?}", buttons, joltage);
     // state = joltage counts sum, joltage counts & nr of button presses
@@ -181,6 +184,97 @@ fn fewest_button_presses_for_joltage_a_star(buttons: Buttons, joltage: Joltage) 
     0
 }
 
+// Brilliant elegant bifurcation approach as per https://old.reddit.com/r/adventofcode/comments/1pk87hl/2025_day_10_part_2_bifurcate_your_way_to_victory/
+// Reuse part 1 logic to find all combinations that reduce joltage counters to even numbers, divide counters by 2, recurse with each combination found
+fn fewest_button_presses_for_joltage_bifurcation(
+    buttons: &Buttons,
+    joltage: Joltage,
+    cache: &mut HashMap<Joltage, usize>,
+) -> usize {
+    if joltage.iter().all(|c| *c == 0) {
+        return 0;
+    }
+    if let Some(result) = cache.get(&joltage) {
+        return *result;
+    }
+
+    // Convert odd joltage counts to target lights to use as input for part 1 style solver
+    let lights: Lights = joltage.iter().map(|counter| counter % 2 == 1).collect();
+
+    let mut min = usize::MAX;
+    for combination in all_combinations_for_lights(&buttons, lights) {
+        let presses = combination.len() as usize;
+        if let Some(next_joltages) = next_joltages_bifurcation(buttons, &joltage, combination) {
+            let recursion =
+                fewest_button_presses_for_joltage_bifurcation(buttons, next_joltages, cache);
+            if recursion.overflowing_mul(2).1 {
+                continue;
+            }
+            min = min.min(2 * recursion + presses);
+        }
+    }
+    cache.insert(joltage, min);
+    min
+}
+
+fn next_joltages_bifurcation(
+    buttons: &Buttons,
+    joltage: &Vec<u16>,
+    buttons_to_press: Vec<usize>,
+) -> Option<Vec<u16>> {
+    let mut next_joltages = joltage.clone();
+    // Press each button
+    for button_index in buttons_to_press {
+        for counter_index in &buttons[button_index] {
+            if next_joltages[*counter_index as usize] == 0 {
+                return None;
+            }
+            next_joltages[*counter_index as usize] -= 1;
+        }
+    }
+    // Divide counters by 2 for next recursions
+    next_joltages.iter_mut().for_each(|c| *c /= 2);
+    Some(next_joltages)
+}
+
+// Find all combinations of buttons presses that result in the target light configuration
+fn all_combinations_for_lights(buttons: &Buttons, lights: Lights) -> Vec<Vec<usize>> {
+    // Will check each possible combination, starting with each button by itself
+    let mut candidates: VecDeque<Vec<usize>> = (0..buttons.len()).map(|i| vec![i]).collect();
+    let mut combinations: Vec<Vec<usize>> = Vec::new();
+
+    // Convert list of booleans into one number for easy XOR
+    let target_state: u16 = lights
+        .iter()
+        .rev()
+        .fold(0, |acc, b| if *b { (acc << 1) + 1 } else { acc << 1 });
+    if target_state == 0 {
+        // not pressing any button is also an option
+        combinations.push(Vec::new());
+    }
+    // Convert buttons from nested vecs of indices to vec of u16 for XORing with
+    let buttons: Vec<u16> = buttons
+        .iter()
+        .map(|button| button.iter().fold(0, |acc, i| acc + (1 << i)))
+        .collect();
+
+    while let Some(combination) = candidates.pop_front() {
+        let mut state: u16 = 0;
+        for button_index in &combination {
+            state ^= buttons[*button_index];
+        }
+        if state == target_state {
+            combinations.push(combination.clone());
+        }
+        // Form next combinations by adding buttons after the last one used in the current combination
+        let last_button_index = combination[combination.len() - 1];
+        for j in last_button_index + 1..buttons.len() {
+            candidates.push_back(combination.iter().copied().chain([j].into_iter()).collect());
+        }
+    }
+    combinations
+}
+
 #[cfg(test)]
 mod tests {
     use crate::util::util::load_input;
@@ -203,11 +297,11 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(EXAMPLE_INPUT_1), 33);
+        assert_eq!(part_2(EXAMPLE_INPUT_1), 33); // 10 + 12 + 11
     }
 
-    // #[test]
-    // fn test_part_2() {
-    //     assert_eq!(part_2(&load_input("inputs/2025/day_10")), 0);
-    // }
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(&load_input("inputs/2025/day_10")), 18981);
+    }
 }

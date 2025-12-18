@@ -53,17 +53,24 @@
         { pkgs }:
         {
           default = pkgs.mkShellNoCC {
-            packages = with pkgs; [
-              rustToolchain
-              openssl
-              pkg-config
-              cargo-deny
-              cargo-edit
-              cargo-watch
-              rust-analyzer
-              gcc
-              graphviz # e.g. dot -Tpng inputs/2025/day_11.dot -o outputs/2025/day11.png
-            ];
+            packages =
+              with pkgs;
+              [
+                rustToolchain
+                openssl
+                pkg-config
+                cargo-deny
+                cargo-edit
+                cargo-watch
+                rust-analyzer
+                gcc
+                graphviz # e.g. dot -Tpng inputs/2025/day_11.dot -o outputs/2025/day11.png
+              ]
+
+              # macOS-specific
+              ++ lib.optionals stdenv.isDarwin [
+                libiconv
+              ];
 
             env = {
               # Required by rust-analyzer
